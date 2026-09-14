@@ -51,15 +51,28 @@ fi
 
 mkdir -- "$DESTINATION"
 
+TRACKED="$(mktemp)"
 MANIFEST="$(mktemp)"
-trap 'rm -f "$MANIFEST"' EXIT
+trap 'rm -f "$TRACKED" "$MANIFEST"' EXIT
 
-git -C "$SOURCE" ls-files -z > "$MANIFEST"
+git -C "$SOURCE" ls-files -z > "$TRACKED"
+
+while IFS= read -r -d '' path; do
+  case "$path" in
+    assets/*|inc/*|templates/*|languages/*|yoohw-support-portal.php|readme.txt|third-party-licenses.txt|uninstall.php)
+      printf '%s\0' "$path" >> "$MANIFEST"
+      ;;
+  esac
+done < "$TRACKED"
+
+if [[ ! -s "$MANIFEST" ]]; then
+  echo "distribution allowlist selected no tracked product files" >&2
+  exit 1
+fi
 
 rsync -a \
   --from0 \
   --files-from="$MANIFEST" \
-  --exclude-from="$SOURCE/.distignore" \
   "$SOURCE/" "$DESTINATION/"
 
 for forbidden in .git .github tests docs scripts AGENTS.md .distignore composer.json composer.lock phpunit.xml phpunit.xml.dist .env debug.log; do
