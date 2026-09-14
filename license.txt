@@ -1,4 +1,4 @@
-YoOhw Support Portal
+Support Portal
 Copyright (C) 2026 YoOhw
 
 This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
@@ -195,7 +195,7 @@ Program), you indicate your acceptance of this License to do so, and
 all its terms and conditions for copying, distributing or modifying
 the Program or works based on it.
 
-  6. Each time you redistribute the Program (or any work based on the
+  6. Each time you redistribute the Program (or a work based on the
 Program), the recipient automatically receives a license from the
 original licensor to copy, distribute or modify the Program subject to
 these terms and conditions. You may not impose any further restrictions
