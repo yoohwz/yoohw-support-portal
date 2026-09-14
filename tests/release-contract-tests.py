@@ -36,8 +36,11 @@ def workflow_contract() -> None:
         assert "push:" not in workflow
         assert "GITHUB_REF_PROTECTED" in workflow or "publisher-context" in workflow
 
+    trusted_stage = "cp -- control/scripts/stage-distribution.sh candidate-data/scripts/stage-distribution.sh"
     for required in (
         "test \"$CANDIDATE_SHA\" = \"$GITHUB_SHA\"",
+        "Replace candidate staging helper with trusted control helper",
+        trusted_stage,
         "release_cli.py prepare",
         "Plugin Check exact prepared WordPress.org payload",
         "strict: false",
@@ -55,6 +58,8 @@ def workflow_contract() -> None:
         "Read-only WordPress.org publication preflight",
         "Dry-run final remote recheck",
         "Human-gated atomic WordPress.org publication",
+        "Assert production Environment configuration before mutation",
+        "Seal immutable annotated release Git tag",
         "Read-only WordPress.org recovery and propagation check",
         "GitHub Release only after verified WordPress.org publication",
         "release_cli.py recheck",
@@ -77,6 +82,8 @@ def workflow_contract() -> None:
         "test \"$GITHUB_REF\" = refs/heads/main",
         "test \"$GITHUB_REF_PROTECTED\" = true",
         "publish-wordpress-org.yml@refs/heads/main",
+        "Replace candidate staging helper with trusted control helper",
+        trusted_stage,
         "actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093",
         "ysp-wporg-${{ env.VERSION }}-${{ env.CANDIDATE_SHA }}",
         "subversion rsync",
@@ -131,6 +138,7 @@ def implementation_contract() -> None:
     assert "PUBLISH_ENVIRONMENT" in cli
     assert "wordpress-org-production" in cli
     assert "dry-run cannot mutate external state" in cli
+    assert "tag_object_sha" in cli
 
 
 def documentation_contract() -> None:
