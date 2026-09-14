@@ -30,6 +30,13 @@ PREPARE_WORKFLOW = ".github/workflows/release-prepare.yml"
 PUBLISH_WORKFLOW = ".github/workflows/publish-wordpress-org.yml"
 VERSION_RE = re.compile(r"^[0-9]+(?:\.[0-9]+){1,2}$")
 SHA_RE = re.compile(r"^[0-9a-f]{40}$")
+SVN_APPROVAL_SNAPSHOT_KEYS = (
+    "trunk_revision",
+    "trunk_tree_sha256",
+    "assets_revision",
+    "assets_tree_sha256",
+    "target_tag_exists",
+)
 
 
 class ReleaseError(RuntimeError):
@@ -470,6 +477,12 @@ class GitHubAPI:
         return release_id
 
 
+def svn_approval_identity(snapshot: dict) -> dict:
+    missing = [key for key in SVN_APPROVAL_SNAPSHOT_KEYS if key not in snapshot]
+    require(not missing, "WordPress.org SVN approval snapshot is incomplete: " + ", ".join(missing))
+    return {key: snapshot[key] for key in SVN_APPROVAL_SNAPSHOT_KEYS}
+
+
 class SVNWorkspace:
     def __init__(self, path: Path):
         self.path = path
@@ -497,7 +510,6 @@ class SVNWorkspace:
     def snapshot(self, version: str) -> dict:
         assets = self.path / "assets"
         return {
-            "root_revision": run(["svn", "info", "--show-item", "revision", "."], cwd=self.path).stdout.strip(),
             "trunk_revision": self._revision("trunk"),
             "trunk_tree_sha256": tree_digest(self.path / "trunk"),
             "assets_revision": self._revision("assets"),
@@ -507,7 +519,10 @@ class SVNWorkspace:
 
     def compare_snapshot(self, expected: dict, version: str) -> dict:
         current = self.snapshot(version)
-        require(current == expected, "WordPress.org SVN changed after approved preflight")
+        require(
+            svn_approval_identity(current) == svn_approval_identity(expected),
+            "WordPress.org SVN changed after approved preflight",
+        )
         return current
 
     def _status(self) -> list[str]:
@@ -608,6 +623,14 @@ class SVNWorkspace:
         return revision
 
 
+def plugin_relative_svn_path(path: str) -> str:
+    prefix = f"/{SLUG}/"
+    require(path.startswith(prefix), f"SVN release revision changed path outside {SLUG}: {path}")
+    relative = "/" + path[len(prefix):].lstrip("/")
+    require(relative != "/", f"SVN release revision changed plugin root unexpectedly: {path}")
+    return relative
+
+
 def svn_publication_log(version: str, candidate_sha: str, run_id: int) -> dict:
     message = f"Release {SLUG} {version} from {candidate_sha} (GitHub run {run_id})"
     raw = run(
@@ -618,31 +641,42 @@ def svn_publication_log(version: str, candidate_sha: str, run_id: int) -> dict:
     for entry in root.findall("logentry"):
         if (entry.findtext("msg") or "") != message:
             continue
-        paths = [item.text or "" for item in entry.findall("./paths/path")]
+        raw_paths = sorted(item.text or "" for item in entry.findall("./paths/path"))
         matches.append(
             {
                 "revision": int(entry.attrib["revision"]),
                 "author": entry.findtext("author") or "",
                 "message": message,
-                "changed_paths": sorted(paths),
+                "changed_paths": raw_paths,
             }
         )
     require(len(matches) == 1, "could not authenticate exactly one WordPress.org SVN publication revision")
     result = matches[0]
     require(result["author"] == EXPECTED_SVN_AUTHOR, "WordPress.org release was authored by an unexpected committer")
+
+    plugin_paths = sorted(plugin_relative_svn_path(path) for path in result["changed_paths"])
+    tag_prefix = f"/tags/{version}"
+    for path in plugin_paths:
+        require(
+            not (path == "/assets" or path.startswith("/assets/")),
+            "SVN release revision changed assets",
+        )
+        require(
+            path == "/trunk"
+            or path.startswith("/trunk/")
+            or path == tag_prefix
+            or path.startswith(tag_prefix + "/"),
+            f"SVN release revision changed unexpected plugin path: {path}",
+        )
     require(
-        any(path == "/trunk" or path.startswith("/trunk/") for path in result["changed_paths"]),
+        any(path == "/trunk" or path.startswith("/trunk/") for path in plugin_paths),
         "SVN release revision did not change trunk",
     )
-    tag_prefix = f"/tags/{version}"
     require(
-        any(path == tag_prefix or path.startswith(tag_prefix + "/") for path in result["changed_paths"]),
+        any(path == tag_prefix or path.startswith(tag_prefix + "/") for path in plugin_paths),
         "SVN release revision did not create target tag",
     )
-    require(
-        not any(path == "/assets" or path.startswith("/assets/") for path in result["changed_paths"]),
-        "SVN release revision changed assets",
-    )
+    result["plugin_relative_changed_paths"] = plugin_paths
     return result
 
 
@@ -660,6 +694,7 @@ def verify_svn(manifest: dict, publish_run_id: int, work: Path) -> dict:
         "svn_revision": log["revision"],
         "svn_author": log["author"],
         "svn_changed_paths": log["changed_paths"],
+        "svn_plugin_relative_changed_paths": log["plugin_relative_changed_paths"],
         "trunk_tree_sha256": expected,
         "tag_tree_sha256": expected,
     }
