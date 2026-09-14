@@ -1,4 +1,4 @@
-=== YoOhw Support Portal ===
+=== Support Portal ===
 Contributors: yoohw
 Tags: customer support, help desk, support portal, ticket system, private support
 Requires at least: 6.2
@@ -12,7 +12,7 @@ Build a private support portal with conversations, access controls, flexible sto
 
 == Description ==
 
-YoOhw Support Portal adds a private, account-based support area to WordPress. Customers can open support topics, exchange replies with authorized staff, and follow conversations from open to resolved.
+Support Portal adds a private, account-based support area to WordPress. Customers can open support topics, exchange replies with authorized staff, and follow conversations from open to resolved.
 
 When the portal uses WordPress posts and comments storage, customers can also upload protected attachments that are delivered through authorization checks. Attachment uploads are not currently available in isolated support storage.
 
@@ -35,7 +35,7 @@ The plugin is designed for sites that need customer support to stay separate fro
 
 == Storage Modes ==
 
-YoOhw Support Portal supports two storage modes so the portal can fit both established websites and dedicated support installations.
+Support Portal supports two storage modes so the portal can fit both established websites and dedicated support installations.
 
 = Isolated support storage =
 
@@ -61,7 +61,7 @@ Switching modes does not migrate or delete either dataset. Each dataset remains 
 
 == Installation ==
 
-1. Install YoOhw Support Portal from the WordPress plugin screen, or upload the plugin ZIP through Plugins > Add New.
+1. Install Support Portal from the WordPress plugin screen, or upload the plugin ZIP through Plugins > Add New.
 2. Activate the plugin.
 3. Complete the first-run setup wizard and choose the storage mode that fits the site.
 4. Open Settings > Support Portal to configure portal appearance, labels, and behavior.
@@ -96,7 +96,7 @@ Protected attachment uploads are currently available only in WordPress posts/com
 
 = Does YoOhw receive my support conversations or attachments? =
 
-No. YoOhw Support Portal does not transmit support conversations, attachments, or account data to YoOhw or another external service.
+No. Support Portal does not transmit support conversations, attachments, or account data to YoOhw or another external service.
 
 = Does the plugin add a public YoOhw credit? =
 
@@ -110,19 +110,19 @@ The plugin removes its settings, scheduled hooks, and custom capabilities. Suppo
 
 Support topics and replies may contain personal or confidential information, including account identifiers, message content, timestamps, categories, and workflow status. In WordPress posts/comments storage mode, support conversations may also include uploaded files.
 
-This information is stored on the WordPress site. YoOhw Support Portal does not transmit support conversations, attachments, or account data to YoOhw or another external service.
+This information is stored on the WordPress site. Support Portal does not transmit support conversations, attachments, or account data to YoOhw or another external service.
 
 The plugin adds suggested privacy-policy text to the WordPress privacy-policy guide. Site owners remain responsible for establishing appropriate retention periods, access policies, backups, and procedures for verified export or erasure requests.
 
 == External Services ==
 
-YoOhw Support Portal does not require an external service to provide its core support portal functionality and does not transmit support conversation data to YoOhw.
+Support Portal does not require an external service to provide its core support portal functionality and does not transmit support conversation data to YoOhw.
 
 If a site administrator configures an external documentation URL, that link is presented as a normal outbound link and does not send support conversation content to that destination.
 
 == License ==
 
-YoOhw Support Portal is licensed under the GNU General Public License v2.0 or later. See `license.txt` for the full license text.
+Support Portal is licensed under the GNU General Public License v2.0 or later. See `license.txt` for the full license text.
 
 Third-party components and their license notices are documented in `third-party-licenses.txt`.
 
