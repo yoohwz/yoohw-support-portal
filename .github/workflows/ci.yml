@@ -33,6 +33,9 @@ jobs:
       - name: Repository contracts
         run: python3 tests/repository-contract-tests.py
 
+      - name: Release publisher contracts
+        run: python3 tests/release-contract-tests.py
+
       - name: Source safety characterizations
         run: python3 tests/source-safety-contract-tests.py
 
