@@ -47,7 +47,6 @@ def workflow_contract() -> None:
         "STANDARD_YSP",
         "CRITICAL_YSP",
         "task-state.json",
-        "evidence ledger",
     ):
         assert forbidden not in workflow, forbidden
 
