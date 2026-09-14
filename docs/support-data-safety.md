@@ -1,4 +1,4 @@
-# YoOhw Support Portal data-safety contract
+# Support Portal data-safety contract
 
 This document records the minimum safety boundaries that future work must preserve unless a Human-approved CONTROLLED task explicitly changes them.
 
