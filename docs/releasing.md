@@ -14,15 +14,22 @@ mutation, read-only recovery, and GitHub Release only after public verification.
 - Manual release workflows execute only from protected `main`.
 - The release control plane is checked out from the workflow's exact main SHA.
 - A prepared candidate is checked out separately and treated as release data.
+- Before staging, the candidate copy of `scripts/stage-distribution.sh` is replaced
+  by the trusted helper from the protected-main control checkout. Candidate release
+  scripts are therefore not trusted execution authority.
 - `scripts/stage-distribution.sh` is the only product-payload staging definition.
 - Prepare stages the product twice and requires byte-identical deterministic ZIPs.
-- The preparation artifact binds candidate SHA, version, staged tree SHA-256,
-  per-file SHA-256 inventory and package SHA-256.
+- WordPress Plugin Check runs against the exact `rc/payload` that is later uploaded.
+- The preparation artifact preserves hidden tracked product files and binds candidate
+  SHA, version, staged tree SHA-256, per-file SHA-256 inventory and package SHA-256.
 - Publication authenticates the successful Prepare run and reproduces the candidate
   staged tree before reading WordPress.org SVN.
 - Normal publication never modifies the WordPress.org `assets/` directory.
 - The WordPress.org SVN password is available only to the single production commit
-  step. Dry-run, preflight, verify-only and GitHub Release jobs do not receive it.
+  step. It is sent to SVN on stdin, removed from the SVN child-process environment,
+  and never placed on a command-line argument.
+- Dry-run, preflight, verify-only and GitHub Release jobs never receive the SVN
+  password.
 - A changed candidate, version or preparation run requires a new release sequence.
 
 ## One-time owner setup
@@ -33,16 +40,19 @@ A repository administrator and WordPress.org plugin committer must configure:
    - Require Human reviewer approval.
    - Prevent self-review where the plan supports it.
    - Restrict deployment branches to protected `main`.
-2. In that Environment, add variable `WPORG_SVN_USERNAME` with the WordPress.org
-   committer username (normally `yoohw`).
+2. In that Environment, add variable `WPORG_SVN_USERNAME` with the exact value
+   `yoohw`. Production fails before any mutation if this value is absent or different.
 3. In that Environment, add secret `WPORG_SVN_PASSWORD` using the WordPress.org
-   **SVN-specific password**. Enter it directly in GitHub. Never paste it into
-   ChatGPT/Codex, Issues, PRs, workflow inputs, artifacts, summaries or logs.
+   **SVN-specific password** for `yoohw`. Enter it directly in GitHub. Never paste it
+   into ChatGPT/Codex, Issues, PRs, workflow inputs, artifacts, summaries or logs.
 4. Protect numeric release tags such as `1.0.0` from update, force-update and
-   deletion. Authorized production publication must be able to create a new tag,
-   but a created release tag must be immutable.
+   deletion. Authorized production publication must be able to create a new
+   **annotated** tag, but a created release tag must be immutable.
 5. Keep the existing `main` ruleset and exact required `YSP Required CI` check.
    Do not add bypass actors or weaken protection to make a release pass.
+
+The workflows intentionally fail closed when the production Environment variable or
+secret is not configured. Do not weaken that behavior to perform a release.
 
 ## Before Prepare
 
@@ -72,13 +82,14 @@ Prepare fails closed unless `candidate_sha` equals the workflow's exact protecte
 `main` SHA. It then:
 
 1. checks out trusted release control and a separate candidate tree;
-2. validates Version/Stable tag;
-3. stages the canonical WordPress.org payload twice;
-4. requires identical staged product identity;
-5. builds two deterministic STORE-compressed ZIPs with fixed timestamps;
-6. requires byte-identical packages;
-7. runs WordPress Plugin Check against the exact staged payload;
-8. uploads exactly one immutable artifact named
+2. replaces the candidate staging helper with the trusted control-plane helper;
+3. validates Version/Stable tag;
+4. stages the canonical WordPress.org payload twice;
+5. requires identical staged product identity;
+6. builds two deterministic STORE-compressed ZIPs with fixed timestamps;
+7. requires byte-identical packages;
+8. runs WordPress Plugin Check against the exact prepared `rc/payload`;
+9. uploads exactly one immutable artifact named
    `ysp-wporg-<version>-<candidate_sha>` containing:
    - `payload/`;
    - `yoohw-support-portal-<version>.zip`;
@@ -128,22 +139,30 @@ After approval, the production job:
 3. performs a fresh WordPress.org SVN checkout and requires the remote snapshot to
    still equal the approved preflight;
 4. restages the exact payload locally;
-5. creates or verifies the immutable numeric Git tag `<version>`;
-6. reuses the already rechecked SVN working copy and attempts **one** atomic SVN
+5. confirms the production Environment is configured for SVN user `yoohw`;
+6. creates or verifies the immutable **annotated** numeric Git tag `<version>`;
+7. uses the already rechecked SVN working copy and attempts **one** atomic SVN
    commit covering `trunk` + `tags/<version>`;
-7. verifies a unique SVN revision with the exact traceability message and no asset
-   changes;
-8. verifies WordPress.org trunk and tag product identities;
-9. checks the public versioned download
+8. verifies a unique SVN revision, exact traceability message, expected SVN author
+   `yoohw`, and no asset changes;
+9. verifies WordPress.org trunk and tag product identities;
+10. checks the public versioned download
    `downloads.wordpress.org/plugin/yoohw-support-portal.<version>.zip`.
 
 If the public ZIP is already propagated and matches the prepared product, the state
 is `WPORG_PUBLIC_RELEASE_VERIFIED`. If SVN is verified but the public download is
 not ready yet, the state is `WPORG_PROPAGATION_PENDING` and no recommit is allowed.
 
+WordPress.org may require a separate release-confirmation action before a newly
+committed version becomes public. Treat that as propagation, not as a reason to
+recommit SVN. Complete the confirmation only through WordPress.org's own UI/email
+flow, then use `verify-only` to continue public verification. Do not store or relay
+private confirmation URLs/tokens in GitHub artifacts, Issues, PR comments or chat.
+
 Only `WPORG_PUBLIC_RELEASE_VERIFIED` can reach the separate GitHub Release job.
 That job is also Environment-gated, re-verifies public identity, binds the immutable
-numeric Git tag, and uploads only the authenticated release ZIP and manifest.
+annotated numeric Git tag, and uploads only the authenticated release ZIP and
+manifest.
 
 ## Verify-only and recovery
 
@@ -157,14 +176,16 @@ Use `operation=verify-only` with:
 
 Verify-only never receives the SVN password and never commits SVN. It authenticates
 the original production run and original non-dry-run preflight, requires the
-immutable Git tag to still point to the candidate, and reconstructs release state
-from fresh public SVN/download evidence.
+immutable annotated Git tag to still point to the candidate, and reconstructs
+release state from fresh public SVN/download evidence.
 
 Use verify-only when:
 
 - SVN commit succeeded but later verification/artifact persistence failed;
 - a commit response was lost or timed out (`SVN_COMMIT_OUTCOME_UNKNOWN`);
-- the production run ended at `WPORG_PROPAGATION_PENDING`.
+- the production run ended at `WPORG_PROPAGATION_PENDING`;
+- WordPress.org release confirmation has been completed and public propagation now
+  needs to be verified.
 
 Do **not** retry a production commit merely because the commit step timed out or a
 later verification step failed. First reconcile with verify-only.
@@ -174,7 +195,7 @@ later verification step failed. First reconcile with verify-only.
 - `RC_PREPARED` — immutable candidate package is ready; no external mutation.
 - `READ_ONLY_PUBLICATION_PREFLIGHT` — exact Human approval target captured.
 - `FINAL_PRE_MUTATION_REMOTE_RECHECK` — approved SVN snapshot still current.
-- `TAG_SEALED` — immutable numeric Git tag points to candidate.
+- `TAG_SEALED` — immutable annotated numeric Git tag points to candidate.
 - `SVN_ATOMIC_COMMIT_RECORDED` — one SVN commit response reported a revision.
 - `WPORG_PROPAGATION_PENDING` — SVN identity is correct; public ZIP is not ready.
 - `WPORG_PUBLIC_RELEASE_VERIFIED` — SVN and public WordPress.org package match.
@@ -187,6 +208,7 @@ later verification step failed. First reconcile with verify-only.
 - WordPress.org SVN changes between preflight and approval/recheck: stop and dispatch
   a fresh release run so the Human sees a new approval target.
 - Prepared artifact/candidate/tree/package mismatch: stop and create a new Prepare.
+- Missing/mismatched production Environment configuration: stop before mutation.
 - Any attempt to alter `assets/`: stop.
 - SVN commit failure/timeout with uncertain outcome: do not recommit; use verify-only.
 - Public ZIP exists but differs from prepared product identity: stop as a release
