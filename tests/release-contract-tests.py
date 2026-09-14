@@ -6,6 +6,7 @@ import ast
 import importlib.util
 import os
 from pathlib import Path
+import subprocess
 import tempfile
 import zipfile
 
@@ -103,6 +104,10 @@ def implementation_contract() -> None:
         'SLUG = "yoohw-support-portal"',
         'SVN_URL = f"https://plugins.svn.wordpress.org/{SLUG}"',
         'EXPECTED_SVN_AUTHOR = "yoohw"',
+        "SVN_APPROVAL_SNAPSHOT_KEYS",
+        "svn_approval_identity",
+        "plugin_relative_svn_path",
+        'prefix = f"/{SLUG}/"',
         "scripts/stage-distribution.sh",
         "zipfile.ZIP_STORED",
         "date_time=(1980, 1, 1, 0, 0, 0)",
@@ -121,6 +126,10 @@ def implementation_contract() -> None:
         "WPORG_PUBLIC_RELEASE_VERIFIED",
     ):
         assert required in lib, required
+
+    # Global plugins-repository revision must never be an approval equality key.
+    assert '"root_revision"' not in lib
+    assert '["svn", "info", "--show-item", "revision", "."]' not in lib
 
     # No credential is ever passed as a command-line --password argument.
     assert '"--password",' not in lib
@@ -242,6 +251,110 @@ def full_prepare_contract() -> None:
         assert loaded == manifest
 
 
+def svn_snapshot_scope_contract() -> None:
+    rel = load_release_lib()
+    ysp_state = {
+        "trunk_revision": "3693807",
+        "trunk_tree_sha256": "a" * 64,
+        "assets_revision": "3693001",
+        "assets_tree_sha256": "b" * 64,
+        "target_tag_exists": False,
+    }
+    approved = {"repository_revision": "3694483", **ysp_state}
+    current = {"repository_revision": "3694999", **ysp_state}
+
+    # Unrelated commits elsewhere in the global plugins SVN repository must not
+    # invalidate unchanged YSP-scoped trunk/assets/tag-absence approval state.
+    assert rel.svn_approval_identity(approved) == rel.svn_approval_identity(current)
+
+    changed = dict(current)
+    changed["trunk_revision"] = "3695000"
+    assert rel.svn_approval_identity(approved) != rel.svn_approval_identity(changed)
+
+
+def svn_log_namespace_contract() -> None:
+    rel = load_release_lib()
+    version = "1.0.0"
+    candidate = "c" * 40
+    run_id = 123456
+    message = f"Release {rel.SLUG} {version} from {candidate} (GitHub run {run_id})"
+
+    def xml(paths: list[tuple[str, str]]) -> str:
+        rendered = "\n".join(
+            f'<path action="{action}">{path}</path>' for action, path in paths
+        )
+        return (
+            '<?xml version="1.0"?>\n'
+            '<log>\n'
+            '<logentry revision="3695001">\n'
+            '<author>yoohw</author>\n'
+            '<paths>\n'
+            f'{rendered}\n'
+            '</paths>\n'
+            f'<msg>{message}</msg>\n'
+            '</logentry>\n'
+            '</log>\n'
+        )
+
+    original_run = rel.run
+
+    def evaluate(paths: list[tuple[str, str]]):
+        payload = xml(paths)
+
+        def fake_run(args, **kwargs):
+            return subprocess.CompletedProcess(args, 0, stdout=payload, stderr="")
+
+        rel.run = fake_run
+        try:
+            return rel.svn_publication_log(version, candidate, run_id)
+        finally:
+            rel.run = original_run
+
+    valid = evaluate(
+        [
+            ("M", f"/{rel.SLUG}/trunk/readme.txt"),
+            ("A", f"/{rel.SLUG}/tags/{version}"),
+        ]
+    )
+    assert valid["plugin_relative_changed_paths"] == [f"/tags/{version}", "/trunk/readme.txt"]
+    assert valid["changed_paths"] == [
+        f"/{rel.SLUG}/tags/{version}",
+        f"/{rel.SLUG}/trunk/readme.txt",
+    ]
+
+    for invalid_paths, message_fragment in (
+        (
+            [
+                ("M", f"/{rel.SLUG}/trunk/readme.txt"),
+                ("A", f"/{rel.SLUG}/tags/{version}"),
+                ("M", f"/{rel.SLUG}/assets/banner-1544x500.png"),
+            ],
+            "changed assets",
+        ),
+        (
+            [
+                ("M", f"/{rel.SLUG}/trunk/readme.txt"),
+                ("A", f"/{rel.SLUG}/tags/{version}"),
+                ("M", "/another-plugin/trunk/readme.txt"),
+            ],
+            "outside yoohw-support-portal",
+        ),
+        (
+            [
+                ("M", f"/{rel.SLUG}/trunk/readme.txt"),
+                ("M", f"/{rel.SLUG}/tags/0.9.0/readme.txt"),
+            ],
+            "unexpected plugin path",
+        ),
+    ):
+        try:
+            evaluate(invalid_paths)
+        except rel.ReleaseError as error:
+            assert message_fragment in str(error)
+        else:
+            raise AssertionError(f"invalid SVN log paths were accepted: {invalid_paths}")
+
+
 def main() -> None:
     syntax_contract()
     workflow_contract()
@@ -250,6 +363,8 @@ def main() -> None:
     deterministic_package_contract()
     credential_environment_contract()
     full_prepare_contract()
+    svn_snapshot_scope_contract()
+    svn_log_namespace_contract()
     print("release-contracts-ok")
 
 
