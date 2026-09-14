@@ -19,20 +19,22 @@ Use one authority for each fact:
 
 Do not create another mutable task-state database, allocator, evidence ledger or approval parser.
 
-## Codex project binding
+## Local development model
 
-Codex executes repository work from the dedicated YoOhw Support Portal project. The project's configured source folder is the canonical local workspace; repository workflow files intentionally do not hardcode a host-specific absolute path.
+The dedicated YoOhw Support Portal Codex project opens the plugin source folder that is installed on the project's Local WordPress site.
 
-The configured folder must be the Git working tree for `yoohwz/yoohw-support-portal`. Before `Run`, `Continue` or `Technical Review`, Codex verifies that the Git toplevel matches the source folder supplied by the current project, checks `origin`, current branch/HEAD and working-tree status, then fetches current `origin`. A mismatch is a fail-closed `HUMAN_DECISION_REQUIRED`; Codex must not silently select another Local site, plugin folder or repository.
+Codex edits that plugin source directly during implementation. Because the same files are loaded by the Local site, relevant changes can be exercised immediately in the real Local WordPress environment without copying or deploying the plugin elsewhere first.
 
-Normal implementation and review use this same dedicated project and configured source folder. Do not create another clone or worktree merely to satisfy workflow ceremony. Disposable build/test outputs belong in external temporary directories. A separate checkout is exceptional and requires an explicit task-specific reason.
+Use this direct Local workflow by default:
 
-For independent review, isolation is **context isolation**, not mandatory filesystem duplication: start a fresh Codex review context in the same dedicated project, keep the canonical source tree read-only, bind the review to the exact candidate head/diff, and do not reuse the implementer's scratch reasoning or verdict. If a test intentionally mutates files under the repository root, use current CI evidence or an explicitly disposable external copy rather than mutating the canonical Codex project workspace.
+`edit plugin source -> run focused checks -> exercise relevant behavior on Local -> continue implementation`
+
+Do not create another clone or worktree for ordinary work. Local runtime checks are encouraged where they add useful evidence, but they are not mandatory ceremony for trivial docs or non-runtime changes.
 
 ## Create, Run, Finalize
 
 1. **Create** — ChatGPT reduces the request to goal, scope, acceptance, relevant invariants, expected validation and `STANDARD` or `CONTROLLED`. Use Issue `#N` as `YSP-N` when an Issue is warranted.
-2. **Run** — Codex recovers current Issue/PR/head/base from GitHub inside the dedicated project, implements on one task branch in the configured working tree, runs focused checks and maintains one draft PR. Do not wait for full final CI on every edit.
+2. **Run** — Codex recovers current Issue/PR/head/base from GitHub, implements directly in the project's Local plugin source folder, runs focused checks and maintains one draft PR. Do not wait for full final CI on every edit.
 3. **Finalize** — after the candidate is frozen, final CI and any required independent review must be current. Human `Finalize YSP-N` conditionally authorizes ChatGPT to perform final Acceptance and squash-merge only that unchanged acceptable candidate. GitHub makes the final merge/protection decision.
 
 `Continue YSP-N` means recover and resume; it never means restart the task or ask the Human to repeat GitHub-recoverable context.
@@ -94,13 +96,13 @@ Do not add a broad WordPress/PHP Cartesian runtime matrix to every PR. Add focus
 
 For CONTROLLED work, the independent reviewer:
 
-- starts in a fresh Codex review context inside the dedicated YoOhw Support Portal project and does not share the implementer's scratch reasoning;
-- verifies the configured source root, Git remote and exact candidate head before assessing the change;
-- reviews the complete exact candidate diff and task boundary;
-- keeps the canonical source working tree read-only; no source edits, commits, branch switching, reset, stash or clean are permitted during review;
+- starts in a fresh review context and does not reuse the implementer's verdict;
+- reviews the complete current candidate diff and task boundary;
 - checks the affected safety invariants and negative paths;
-- reruns relevant focused checks only when they can remain read-only with respect to the canonical source tree, otherwise relies on current CI or uses an explicitly disposable external copy;
-- records blockers or PASS against the exact reviewed head.
+- may use the same dedicated Codex project and Local WordPress environment for focused verification;
+- records blockers or PASS against the reviewed candidate.
+
+No separate local clone/worktree is required just to manufacture review isolation. Keep review lightweight and proportional to the risk.
 
 A head-changing correction invalidates the old terminal review. Keep corrections in the same PR. Repeated material blockers or a required architecture/scope change stop for a boundary decision instead of starting an unlimited review loop.
 
