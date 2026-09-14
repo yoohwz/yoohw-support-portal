@@ -24,6 +24,15 @@ runs:
         ref: ${{ env.CANDIDATE_SHA }}
         path: candidate-data
         persist-credentials: false
+    - name: Replace candidate staging helper with trusted control helper
+      shell: bash
+      run: |
+        set -euo pipefail
+        test -d candidate-data/scripts
+        test ! -L candidate-data/scripts
+        test -f candidate-data/scripts/stage-distribution.sh
+        test ! -L candidate-data/scripts/stage-distribution.sh
+        cp -- control/scripts/stage-distribution.sh candidate-data/scripts/stage-distribution.sh
     - name: Download immutable prepared release candidate
       uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
       with:
