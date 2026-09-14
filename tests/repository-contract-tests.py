@@ -44,6 +44,16 @@ def workflow_contract() -> None:
     ):
         assert required in agents or required in workflow, required
 
+    codex_root = "/Users/nguyenquocbao/Local Sites/workspace/app/public/wp-content/plugins/yoohw-support-portal"
+    assert codex_root in agents
+    assert codex_root in workflow
+    assert "yoohwz/yoohw-support-portal" in agents
+    assert "yoohwz/yoohw-support-portal" in workflow
+    assert "Do not create a second clone" in agents
+    assert "same dedicated project" in workflow
+    assert "fresh Codex review context" in workflow
+    assert "canonical source working tree read-only" in workflow
+
     for forbidden in (
         "DIRECT_YSP",
         "STANDARD_YSP",
