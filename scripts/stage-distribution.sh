@@ -73,6 +73,7 @@ fi
 rsync -a \
   --from0 \
   --files-from="$MANIFEST" \
+  --exclude-from="$SOURCE/.distignore" \
   "$SOURCE/" "$DESTINATION/"
 
 for forbidden in .git .github tests docs scripts AGENTS.md .distignore composer.json composer.lock phpunit.xml phpunit.xml.dist .env debug.log; do
