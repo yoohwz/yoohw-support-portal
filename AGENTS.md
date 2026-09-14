@@ -11,6 +11,27 @@ These instructions apply to the whole repository after the Foundation workflow i
 - A fresh independent Codex reviewer is required only for `CONTROLLED` work.
 - Git/GitHub own branch/head/base/diff/check/review/merge facts. Do not copy those facts into a second workflow state machine.
 
+## Dedicated Codex project and workspace
+
+Codex work for this repository runs inside the dedicated **YoOhw Support Portal** project. Its configured source folder is:
+
+`/Users/nguyenquocbao/Local Sites/workspace/app/public/wp-content/plugins/yoohw-support-portal`
+
+That directory is the canonical owner-side working tree for `yoohwz/yoohw-support-portal`.
+
+At the start of `Run`, `Continue` or `Technical Review`, verify the environment before changing anything:
+
+- `git rev-parse --show-toplevel` resolves to the exact source folder above;
+- `git remote get-url origin` points to `yoohwz/yoohw-support-portal`;
+- inspect current branch, HEAD and `git status --short`;
+- fetch current `origin` before deciding task/PR/head state.
+
+If the project root or Git remote does not match, stop with `HUMAN_DECISION_REQUIRED` instead of guessing another repository or workspace.
+
+Do not create a second clone, sibling worktree or alternate source copy by default. Implementation branches live in this configured working tree. Disposable build/test output may use OS temporary directories outside the source tree. A separate clone/worktree is exceptional and needs an explicit task-specific reason.
+
+Commands such as `Run YSP-N`, `Continue YSP-N` and `Technical Review YSP-N` are entered in this dedicated Codex project; the configured source folder supplies the repository context.
+
 ## Git safety
 
 - Start from current `origin/main`; inspect current branch and existing task/PR state before editing.
@@ -66,7 +87,8 @@ If STANDARD discovery finds a CONTROLLED trigger, stop before the sensitive chan
 ## Review and corrections
 
 - Codex performs repo-local self-review and focused tests for all work.
-- CONTROLLED candidates receive one fresh independent reviewer in an isolated/read-only source context. The reviewer receives task/PR/diff/evidence, not the implementer's scratch reasoning or seeded verdict.
+- CONTROLLED candidates receive one fresh independent reviewer context. Freshness means a new Codex review context, not a second local checkout. The reviewer uses the same dedicated Codex project and canonical source folder in source-read-only mode, receives task/PR/diff/evidence rather than implementer scratch reasoning, and verifies the exact current candidate before reviewing.
+- The independent reviewer must not edit repository source, commit, switch branches, reset, stash, clean or otherwise mutate the canonical working tree. Read-only Git/GitHub inspection and checks that write only to external disposable temporary directories are allowed. If a local test intentionally writes inside the source tree, rely on current CI evidence or run it only in an explicitly disposable external copy rather than mutating the canonical project workspace.
 - Review and final CI may run in parallel after the candidate is frozen.
 - Corrections stay in the same PR. A correction that changes the reviewed head requires refreshed affected CI/review.
 - Repeated material blockers or changed architecture/scope stop for ChatGPT/Human boundary review instead of creating an unbounded loop or replacement PR.
