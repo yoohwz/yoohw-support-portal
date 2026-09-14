@@ -31,7 +31,7 @@ class YoOhw_Support_Setup_Wizard {
 	public static function register_page(): void {
 		$hook = add_submenu_page(
 			null,
-			__( 'Set up YoOhw Support Portal', 'yoohw-support-portal' ),
+			__( 'Set up Support Portal', 'yoohw-support-portal' ),
 			__( 'Support Portal Setup', 'yoohw-support-portal' ),
 			YoOhw_Support_Capabilities::MANAGE_SETTINGS,
 			self::PAGE_SLUG,
@@ -68,7 +68,7 @@ class YoOhw_Support_Setup_Wizard {
 				<header class="yoohw-setup-header">
 					<span class="yoohw-setup-step"><?php esc_html_e( 'Initial setup', 'yoohw-support-portal' ); ?></span>
 					<h1><?php esc_html_e( 'Choose how your support data is stored', 'yoohw-support-portal' ); ?></h1>
-					<p><?php esc_html_e( 'YoOhw Support Portal can run independently alongside an existing website, or use native WordPress posts and comments on a dedicated support site.', 'yoohw-support-portal' ); ?></p>
+					<p><?php esc_html_e( 'Support Portal can run independently alongside an existing website, or use native WordPress posts and comments on a dedicated support site.', 'yoohw-support-portal' ); ?></p>
 				</header>
 
 				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
