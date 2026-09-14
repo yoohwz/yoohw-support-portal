@@ -6,6 +6,7 @@ critical structural guards until focused runtime tests are added by tasks touchi
 each boundary.
 """
 
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -16,15 +17,34 @@ def read(path: str) -> str:
 
 
 def require(path: str, *needles: str) -> None:
-    text = read(path)
-    missing = [needle for needle in needles if needle not in text]
+    source = read(path)
+    missing = [needle for needle in needles if needle not in source]
     assert not missing, f"{path}: missing safety contract fragments: {missing}"
 
 
 def forbid(path: str, *needles: str) -> None:
-    text = read(path)
-    present = [needle for needle in needles if needle in text]
+    source = read(path)
+    present = [needle for needle in needles if needle in source]
     assert not present, f"{path}: forbidden destructive fragments present: {present}"
+
+
+def function_body(path: str, name: str) -> str:
+    source = read(path)
+    match = re.search(rf"function\s+{re.escape(name)}\s*\([^)]*\)[^{{]*{{", source)
+    assert match, f"{path}: function {name} not found"
+
+    opening = source.find("{", match.start())
+    depth = 0
+    for index in range(opening, len(source)):
+        char = source[index]
+        if char == "{":
+            depth += 1
+        elif char == "}":
+            depth -= 1
+            if depth == 0:
+                return source[opening + 1 : index]
+
+    raise AssertionError(f"{path}: function {name} has no closing brace")
 
 
 def protected_attachment_contract() -> None:
@@ -33,15 +53,64 @@ def protected_attachment_contract() -> None:
         path,
         "admin_post_" + "' . self::ACTION",
         "admin_post_nopriv_" + "' . self::ACTION",
-        "wp_verify_nonce",
-        "current_user_can_access_topic",
-        "YoOhw_Support_Capabilities::MANAGE_TOPICS",
-        "post_author",
-        "'user_id' => $user_id",
         "wp_mkdir_p",
         "'.htaccess'",
         "'web.config'",
         "X-Content-Type-Options: nosniff",
+    )
+
+    serve = function_body(path, "serve")
+    for fragment in (
+        "wp_verify_nonce",
+        "topic_id_for_attachment",
+        "current_user_can_access_topic",
+        "self::deny_anonymous()",
+    ):
+        assert fragment in serve, f"serve(): missing {fragment}"
+
+    access = function_body(path, "current_user_can_access_topic")
+    for fragment in (
+        "get_current_user_id()",
+        "YoOhw_Support_Capabilities::MANAGE_TOPICS",
+        "user_can( $user_id, $capability )",
+        "post_author",
+        "'user_id' => $user_id",
+        "return ! empty( $reply_ids )",
+    ):
+        assert fragment in access, f"current_user_can_access_topic(): missing {fragment}"
+
+
+def private_topic_authorization_contract() -> None:
+    path = "inc/class-yoohw-support-controller.php"
+
+    allowed = function_body(path, "allowed_author_ids_for_current_user")
+    assert "return [ get_current_user_id() ];" in allowed
+
+    native = function_body(path, "current_user_can_view_topic")
+    for fragment in (
+        "current_user_can( YoOhw_Support_Capabilities::VIEW_ALL_TOPICS )",
+        "return true;",
+        "$post->post_author",
+        "self::allowed_author_ids_for_current_user()",
+        "in_array(",
+    ):
+        assert fragment in native, f"current_user_can_view_topic(): missing {fragment}"
+
+    isolated = function_body(path, "current_user_can_view_isolated_topic")
+    for fragment in (
+        "current_user_can( YoOhw_Support_Capabilities::VIEW_ALL_TOPICS )",
+        "return true;",
+        "$topic['author_id']",
+        "self::allowed_author_ids_for_current_user()",
+        "in_array(",
+    ):
+        assert fragment in isolated, f"current_user_can_view_isolated_topic(): missing {fragment}"
+
+    require(
+        path,
+        "! self::current_user_can_view_isolated_topic( $topic )",
+        "! self::current_user_can_view_topic( $post )",
+        "! $topic || ! self::current_user_can_view_isolated_topic( $topic ) || 'resolved' === $topic['status']",
     )
 
 
@@ -63,25 +132,24 @@ def rest_privacy_contract() -> None:
 
 def storage_contract() -> None:
     path = "inc/class-yoohw-support-database.php"
-    require(
-        path,
-        "Tables are intentionally installed lazily",
+    require(path, "Tables are intentionally installed lazily", "dbDelta", "VERSION_OPTION", "public_key")
+
+    maybe_upgrade = function_body(path, "maybe_upgrade")
+    for fragment in (
         "YoOhw_Support_Settings::uses_isolated_storage()",
-        "wp_yoohw_support",  # class owns prefix-derived table suffixes; see explicit table names below.
-    )
+        "self::VERSION !== (string) get_option( self::VERSION_OPTION, '' )",
+        "self::install();",
+    ):
+        assert fragment in maybe_upgrade, f"maybe_upgrade(): missing {fragment}"
 
-
-def storage_table_contract() -> None:
-    text = read("inc/class-yoohw-support-database.php")
-    assert "'yoohw_support_topics'" in text
-    assert "'yoohw_support_replies'" in text
-    assert "dbDelta" in text
-    assert "VERSION_OPTION" in text
-    assert "public_key" in text
+    topics_table = function_body(path, "topics_table")
+    replies_table = function_body(path, "replies_table")
+    assert "$wpdb->prefix . 'yoohw_support_topics'" in topics_table
+    assert "$wpdb->prefix . 'yoohw_support_replies'" in replies_table
 
     center = read("inc/class-yoohw-support-center.php")
-    assert "YoOhw_Support_Settings::uses_isolated_storage()" in center
     assert "class-yoohw-support-database.php" in center
+    assert "YoOhw_Support_Settings::uses_isolated_storage()" in center
     assert "if ( ! YoOhw_Support_Settings::uses_isolated_storage() )" in center
 
 
@@ -149,8 +217,9 @@ def readme_storage_contract() -> None:
 
 def main() -> None:
     protected_attachment_contract()
+    private_topic_authorization_contract()
     rest_privacy_contract()
-    storage_table_contract()
+    storage_contract()
     capability_contract()
     category_access_contract()
     destructive_cleanup_contract()
