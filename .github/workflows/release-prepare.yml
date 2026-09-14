@@ -60,6 +60,15 @@ jobs:
           ref: ${{ inputs.candidate_sha }}
           path: candidate-data
           persist-credentials: false
+      - name: Replace candidate staging helper with trusted control helper
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -d candidate-data/scripts
+          test ! -L candidate-data/scripts
+          test -f candidate-data/scripts/stage-distribution.sh
+          test ! -L candidate-data/scripts/stage-distribution.sh
+          cp -- control/scripts/stage-distribution.sh candidate-data/scripts/stage-distribution.sh
       - name: Install canonical staging dependency
         run: |
           sudo apt-get update -qq
