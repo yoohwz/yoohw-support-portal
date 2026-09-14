@@ -132,7 +132,14 @@ jobs:
           path: preflight
       - name: Fresh remote recheck after Human approval
         run: python3 control/.github/scripts/release_cli.py recheck
-      - name: Seal immutable release Git tag
+      - name: Assert production Environment configuration before mutation
+        env:
+          WPORG_SVN_USERNAME: ${{ vars.WPORG_SVN_USERNAME }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$WPORG_SVN_USERNAME" = yoohw
+      - name: Seal immutable annotated release Git tag
         env:
           GH_TOKEN: ${{ github.token }}
         run: python3 control/.github/scripts/release_cli.py seal
