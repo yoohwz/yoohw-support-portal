@@ -11,4 +11,7 @@
 /phpunit.xml.dist
 /.phpunit.result.cache
 /.DS_Store
+/.env
+/.env.*
+*.log
 *.zip
