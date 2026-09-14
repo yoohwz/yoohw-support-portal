@@ -65,7 +65,7 @@ while IFS= read -r -d '' path; do
   esac
 
   case "$path" in
-    assets/*|inc/*|templates/*|languages/*|yoohw-support-portal.php|readme.txt|third-party-licenses.txt|uninstall.php)
+    assets/*|inc/*|templates/*|languages/*|yoohw-support-portal.php|readme.txt|license.txt|third-party-licenses.txt|uninstall.php)
       printf '%s\0' "$path" >> "$MANIFEST"
       ;;
   esac
@@ -112,7 +112,7 @@ if find "$DESTINATION" -type f \( \
   exit 1
 fi
 
-for required in yoohw-support-portal.php readme.txt inc templates assets; do
+for required in yoohw-support-portal.php readme.txt license.txt inc templates assets; do
   if [[ ! -e "$DESTINATION/$required" ]]; then
     echo "distribution is missing required path: $required" >&2
     exit 1

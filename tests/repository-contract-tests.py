@@ -30,6 +30,23 @@ def version_contract() -> None:
     assert requires_php.group(1) == "7.4"
 
 
+def license_contract() -> None:
+    plugin = text("yoohw-support-portal.php")
+    readme = text("readme.txt")
+    license_text = text("license.txt")
+
+    assert re.search(r"^License:\s*GPL-2\.0-or-later\s*$", plugin, re.MULTILINE)
+    assert re.search(r"^License:\s*GPLv2 or later\s*$", readme, re.MULTILINE)
+    for fragment in (
+        "YoOhw Support Portal",
+        "Copyright (C) 2026 YoOhw",
+        "either version 2 of the License, or (at your option) any later version",
+        "GNU GENERAL PUBLIC LICENSE",
+        "Version 2, June 1991",
+    ):
+        assert fragment in license_text, fragment
+
+
 def workflow_contract() -> None:
     agents = text("AGENTS.md")
     workflow = text("docs/workflow.md")
@@ -129,6 +146,7 @@ def distribution_contract() -> None:
         "-iname '*.tar'",
         "yoohw-support-portal.php",
         "readme.txt",
+        "license.txt",
     ):
         assert fragment in stage, fragment
 
@@ -157,6 +175,8 @@ def distribution_adversarial_contract() -> None:
             assert result.returncode == 0, result.stderr or result.stdout
             assert (fresh / "yoohw-support-portal.php").is_file()
             assert (fresh / "readme.txt").is_file()
+            assert (fresh / "license.txt").is_file()
+            assert "GNU GENERAL PUBLIC LICENSE" in (fresh / "license.txt").read_text(encoding="utf-8")
             assert not (fresh / ".env").exists()
             assert not (fresh / "debug.log").exists()
 
@@ -200,6 +220,7 @@ def distribution_adversarial_contract() -> None:
             tracked_stage = temp / "tracked-stage"
             tracked_result = run_stage(tracked_stage, fixture)
             assert tracked_result.returncode == 0, tracked_result.stderr or tracked_result.stdout
+            assert (tracked_stage / "license.txt").is_file()
             for path in tracked_artifacts:
                 relative = path.relative_to(fixture)
                 assert not (tracked_stage / relative).exists(), relative
@@ -220,6 +241,7 @@ def foundation_scope_contract() -> None:
 
 def main() -> None:
     version_contract()
+    license_contract()
     workflow_contract()
     distribution_contract()
     distribution_adversarial_contract()
