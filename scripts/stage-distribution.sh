@@ -16,8 +16,7 @@ if [[ ! -f "$SOURCE/yoohw-support-portal.php" || ! -f "$SOURCE/.distignore" ]]; 
   exit 1
 fi
 
-REPO_ROOT="$(git -C "$SOURCE" rev-parse --show-toplevel 2>/dev/null || true)"
-if [[ -z "$REPO_ROOT" ]]; then
+if ! REPO_ROOT="$(git -C "$SOURCE" rev-parse --show-toplevel 2>/dev/null)"; then
   echo "source must be a Git worktree" >&2
   exit 1
 fi
