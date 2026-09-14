@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import re
+import shutil
 import subprocess
 import tempfile
 from pathlib import Path
@@ -77,10 +78,10 @@ def workflow_contract() -> None:
         assert forbidden not in ci, forbidden
 
 
-def run_stage(destination: Path) -> subprocess.CompletedProcess[str]:
+def run_stage(destination: Path, source: Path = ROOT) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
-        ["bash", str(ROOT / "scripts/stage-distribution.sh"), str(ROOT), str(destination)],
-        cwd=ROOT,
+        ["bash", str(ROOT / "scripts/stage-distribution.sh"), str(source), str(destination)],
+        cwd=source,
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -98,10 +99,18 @@ def distribution_contract() -> None:
         "/scripts",
         "/AGENTS.md",
         "/.distignore",
-        "/.env",
-        "/.env.*",
-        "*.log",
-        "*.zip",
+        ".DS_Store",
+        ".env",
+        ".env.*",
+        "*.[Ll][Oo][Gg]",
+        "*.[Zz][Ii][Pp]",
+        "*.[Rr][Aa][Rr]",
+        "*.7[Zz]",
+        "*.[Tt][Aa][Rr]",
+        "*.[Tt][Gg][Zz]",
+        "*.[Gg][Zz]",
+        "*.[Bb][Zz]2",
+        "*.[Xx][Zz]",
     }
     assert required.issubset(distignore), sorted(required - distignore)
 
@@ -113,8 +122,11 @@ def distribution_contract() -> None:
         "destination must not already exist",
         "forbidden development artifact",
         "symbolic links",
-        "nested ZIP archives",
-        "local environment or log artifacts",
+        "local artifacts or nested archives",
+        ".DS_Store|*/.DS_Store",
+        "*.[Zz][Ii][Pp]",
+        "-iname '*.zip'",
+        "-iname '*.tar'",
         "yoohw-support-portal.php",
         "readme.txt",
     ):
@@ -139,6 +151,7 @@ def distribution_adversarial_contract() -> None:
 
         with tempfile.TemporaryDirectory(prefix="ysp-distribution-") as temporary:
             temp = Path(temporary)
+
             fresh = temp / "fresh-stage"
             result = run_stage(fresh)
             assert result.returncode == 0, result.stderr or result.stdout
@@ -157,6 +170,39 @@ def distribution_adversarial_contract() -> None:
             assert "destination must not already exist" in blocked.stderr
             assert sentinel.read_text(encoding="utf-8") == "keep-me\n"
             assert not (existing / "yoohw-support-portal.php").exists()
+
+            # Build an isolated local Git worktree whose adversarial artifacts are
+            # genuinely tracked. This proves the manifest filter is the boundary,
+            # rather than relying on the cleanliness of the CI checkout.
+            fixture = temp / "tracked-fixture"
+            shutil.copytree(ROOT, fixture, ignore=shutil.ignore_patterns(".git"))
+            tracked_artifacts = {
+                fixture / "assets/.DS_Store": "finder metadata\n",
+                fixture / "assets/archive.ZIP": "nested zip placeholder\n",
+                fixture / "assets/cache.LOG": "local log placeholder\n",
+                fixture / "assets/package.tar.gz": "nested archive placeholder\n",
+            }
+            for path, contents in tracked_artifacts.items():
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(contents, encoding="utf-8")
+
+            subprocess.run(["git", "init", "-q"], cwd=fixture, check=True)
+            subprocess.run(["git", "add", "-f", "-A"], cwd=fixture, check=True)
+            for path in tracked_artifacts:
+                relative = path.relative_to(fixture).as_posix()
+                subprocess.run(
+                    ["git", "ls-files", "--error-unmatch", relative],
+                    cwd=fixture,
+                    check=True,
+                    stdout=subprocess.DEVNULL,
+                )
+
+            tracked_stage = temp / "tracked-stage"
+            tracked_result = run_stage(tracked_stage, fixture)
+            assert tracked_result.returncode == 0, tracked_result.stderr or tracked_result.stdout
+            for path in tracked_artifacts:
+                relative = path.relative_to(fixture)
+                assert not (tracked_stage / relative).exists(), relative
     finally:
         for path in created:
             path.unlink(missing_ok=True)
