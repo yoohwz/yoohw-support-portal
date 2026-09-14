@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 import re
+import subprocess
+import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -75,6 +77,17 @@ def workflow_contract() -> None:
         assert forbidden not in ci, forbidden
 
 
+def run_stage(destination: Path) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        ["bash", str(ROOT / "scripts/stage-distribution.sh"), str(ROOT), str(destination)],
+        cwd=ROOT,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+
+
 def distribution_contract() -> None:
     distignore = {line.strip() for line in text(".distignore").splitlines() if line.strip()}
     required = {
@@ -85,20 +98,68 @@ def distribution_contract() -> None:
         "/scripts",
         "/AGENTS.md",
         "/.distignore",
+        "/.env",
+        "/.env.*",
+        "*.log",
         "*.zip",
     }
     assert required.issubset(distignore), sorted(required - distignore)
 
     stage = text("scripts/stage-distribution.sh")
     for fragment in (
+        "git -C \"$SOURCE\" ls-files -z",
+        "--files-from=",
         "--exclude-from=",
+        "destination must not already exist",
         "forbidden development artifact",
         "symbolic links",
         "nested ZIP archives",
+        "local environment or log artifacts",
         "yoohw-support-portal.php",
         "readme.txt",
     ):
         assert fragment in stage, fragment
+
+    assert "rm -rf" not in stage
+    assert "|| true" not in stage
+
+
+def distribution_adversarial_contract() -> None:
+    artifacts = {
+        ROOT / ".env": "YSP_FOUNDATION_SECRET=must-not-ship\n",
+        ROOT / "debug.log": "private debug output\n",
+    }
+    created: list[Path] = []
+
+    try:
+        for path, contents in artifacts.items():
+            if not path.exists():
+                path.write_text(contents, encoding="utf-8")
+                created.append(path)
+
+        with tempfile.TemporaryDirectory(prefix="ysp-distribution-") as temporary:
+            temp = Path(temporary)
+            fresh = temp / "fresh-stage"
+            result = run_stage(fresh)
+            assert result.returncode == 0, result.stderr or result.stdout
+            assert (fresh / "yoohw-support-portal.php").is_file()
+            assert (fresh / "readme.txt").is_file()
+            assert not (fresh / ".env").exists()
+            assert not (fresh / "debug.log").exists()
+
+            existing = temp / "existing-destination"
+            existing.mkdir()
+            sentinel = existing / "sentinel.txt"
+            sentinel.write_text("keep-me\n", encoding="utf-8")
+
+            blocked = run_stage(existing)
+            assert blocked.returncode != 0
+            assert "destination must not already exist" in blocked.stderr
+            assert sentinel.read_text(encoding="utf-8") == "keep-me\n"
+            assert not (existing / "yoohw-support-portal.php").exists()
+    finally:
+        for path in created:
+            path.unlink(missing_ok=True)
 
 
 def foundation_scope_contract() -> None:
@@ -115,6 +176,7 @@ def main() -> None:
     version_contract()
     workflow_contract()
     distribution_contract()
+    distribution_adversarial_contract()
     foundation_scope_contract()
     print("repository-contracts-ok")
 
