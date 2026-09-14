@@ -16,10 +16,20 @@ def read(path: str) -> str:
     return (ROOT / path).read_text(encoding="utf-8")
 
 
+def compact(source: str) -> str:
+    return re.sub(r"\s+", " ", source).strip()
+
+
 def require(path: str, *needles: str) -> None:
     source = read(path)
     missing = [needle for needle in needles if needle not in source]
     assert not missing, f"{path}: missing safety contract fragments: {missing}"
+
+
+def require_compact(source: str, label: str, *snippets: str) -> None:
+    haystack = compact(source)
+    missing = [snippet for snippet in snippets if compact(snippet) not in haystack]
+    assert not missing, f"{label}: missing structural safety relationships: {missing}"
 
 
 def forbid(path: str, *needles: str) -> None:
@@ -60,62 +70,106 @@ def protected_attachment_contract() -> None:
     )
 
     serve = function_body(path, "serve")
-    for fragment in (
-        "wp_verify_nonce",
-        "topic_id_for_attachment",
-        "current_user_can_access_topic",
-        "self::deny_anonymous()",
-    ):
-        assert fragment in serve, f"serve(): missing {fragment}"
+    require_compact(
+        serve,
+        "serve()",
+        """
+        if ( ! $attachment_id || ! wp_verify_nonce( $nonce, self::ACTION . '_' . $attachment_id ) ) {
+        """,
+        """
+        if ( ! $topic_id || ! self::current_user_can_access_topic( $topic_id ) ) {
+            self::deny_anonymous();
+        }
+        """,
+    )
 
     access = function_body(path, "current_user_can_access_topic")
+    require_compact(
+        access,
+        "current_user_can_access_topic()",
+        """
+        if ( ! $user_id ) {
+            return false;
+        }
+        """,
+        """
+        if ( $capability && user_can( $user_id, $capability ) ) {
+            return true;
+        }
+        """,
+        """
+        if ( $topic && (int) $topic->post_author === $user_id ) {
+            return true;
+        }
+        """,
+        "return ! empty( $reply_ids );",
+    )
     for fragment in (
-        "get_current_user_id()",
         "YoOhw_Support_Capabilities::MANAGE_TOPICS",
-        "user_can( $user_id, $capability )",
-        "post_author",
+        "'post_id' => $topic_id",
         "'user_id' => $user_id",
-        "return ! empty( $reply_ids )",
+        "'status'  => 'all'",
+        "'fields'  => 'ids'",
     ):
         assert fragment in access, f"current_user_can_access_topic(): missing {fragment}"
 
 
 def private_topic_authorization_contract() -> None:
     path = "inc/class-yoohw-support-controller.php"
+    source = read(path)
 
     allowed = function_body(path, "allowed_author_ids_for_current_user")
-    assert "return [ get_current_user_id() ];" in allowed
+    require_compact(
+        allowed,
+        "allowed_author_ids_for_current_user()",
+        "return [ get_current_user_id() ];",
+    )
 
     native = function_body(path, "current_user_can_view_topic")
-    for fragment in (
-        "current_user_can( YoOhw_Support_Capabilities::VIEW_ALL_TOPICS )",
-        "return true;",
-        "$post->post_author",
-        "self::allowed_author_ids_for_current_user()",
-        "in_array(",
-    ):
-        assert fragment in native, f"current_user_can_view_topic(): missing {fragment}"
+    require_compact(
+        native,
+        "current_user_can_view_topic()",
+        """
+        if ( current_user_can( YoOhw_Support_Capabilities::VIEW_ALL_TOPICS ) ) {
+            return true;
+        }
+        """,
+        "return in_array( (int) $post->post_author, self::allowed_author_ids_for_current_user(), true );",
+    )
 
     isolated = function_body(path, "current_user_can_view_isolated_topic")
-    for fragment in (
-        "current_user_can( YoOhw_Support_Capabilities::VIEW_ALL_TOPICS )",
-        "return true;",
-        "$topic['author_id']",
-        "self::allowed_author_ids_for_current_user()",
-        "in_array(",
-    ):
-        assert fragment in isolated, f"current_user_can_view_isolated_topic(): missing {fragment}"
+    require_compact(
+        isolated,
+        "current_user_can_view_isolated_topic()",
+        """
+        if ( current_user_can( YoOhw_Support_Capabilities::VIEW_ALL_TOPICS ) ) {
+            return true;
+        }
+        """,
+        "return in_array( absint( $topic['author_id'] ?? 0 ), self::allowed_author_ids_for_current_user(), true );",
+    )
 
-    require(
+    require_compact(
+        source,
         path,
-        "! self::current_user_can_view_isolated_topic( $topic )",
-        "! self::current_user_can_view_topic( $post )",
-        "! $topic || ! self::current_user_can_view_isolated_topic( $topic ) || 'resolved' === $topic['status']",
+        """
+        if ( ! $topic || ! self::current_user_can_view_isolated_topic( $topic ) ) {
+            status_header( 404 );
+        """,
+        """
+        if ( ! $post || ! self::current_user_can_view_topic( $post ) ) {
+            status_header( 404 );
+        """,
+        """
+        if ( ! $topic || ! self::current_user_can_view_isolated_topic( $topic ) || 'resolved' === $topic['status'] ) {
+            wp_die(
+        """,
     )
 
 
 def rest_privacy_contract() -> None:
     path = "inc/class-yoohw-support-rest-security.php"
+    source = read(path)
     require(
         path,
         "'/wp/v2/posts'",
@@ -123,10 +177,60 @@ def rest_privacy_contract() -> None:
         "'/wp/v2/media'",
         "'/wp/v2/search'",
         "'/wp/v2/users'",
-        "yoohw_support_core_rest_comment_write_disabled",
-        "YoOhw_Support_Capabilities::VIEW_ALL_TOPICS",
-        "yoohw_support_rest_authentication_required",
-        "yoohw_support_rest_forbidden",
+    )
+
+    protect = function_body(path, "protect_core_routes")
+    require_compact(
+        protect,
+        "protect_core_routes()",
+        """
+        if ( ! self::is_private_route( $route ) ) {
+            return $result;
+        }
+        """,
+        """
+        if ( 'OPTIONS' === $method ) {
+            return $result;
+        }
+        """,
+        """
+        if ( self::is_core_comment_route( $route ) && ! in_array( $method, [ 'GET', 'HEAD' ], true ) ) {
+            return new WP_Error(
+                'yoohw_support_core_rest_comment_write_disabled',
+        """,
+        """
+        if ( current_user_can( YoOhw_Support_Capabilities::VIEW_ALL_TOPICS ) ) {
+            return $result;
+        }
+        """,
+        """
+        if ( ! is_user_logged_in() ) {
+            return new WP_Error(
+                'yoohw_support_rest_authentication_required',
+        """,
+        """
+        return new WP_Error(
+            'yoohw_support_rest_forbidden',
+        """,
+    )
+
+    private_route = function_body(path, "is_private_route")
+    require_compact(
+        private_route,
+        "is_private_route()",
+        """
+        if ( $route === $prefix || 0 === strpos( $route, $prefix . '/' ) ) {
+            return true;
+        }
+        """,
+        "return false;",
+    )
+
+    comment_route = function_body(path, "is_core_comment_route")
+    require_compact(
+        comment_route,
+        "is_core_comment_route()",
+        "return '/wp/v2/comments' === $route || 0 === strpos( $route, '/wp/v2/comments/' );",
     )
 
 
