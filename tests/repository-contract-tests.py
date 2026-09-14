@@ -74,7 +74,9 @@ def branding_contract() -> None:
 def license_contract() -> None:
     plugin = text("yoohw-support-portal.php")
     readme = text("readme.txt")
-    license_text = text("license.txt")
+    license_path = ROOT / "license.txt"
+    license_text = license_path.read_text(encoding="utf-8")
+    license_bytes = license_path.read_bytes()
 
     assert re.search(r"^License:\s*GPL-2\.0-or-later\s*$", plugin, re.MULTILINE)
     assert re.search(r"^License:\s*GPLv2 or later\s*$", readme, re.MULTILINE)
@@ -84,8 +86,21 @@ def license_contract() -> None:
         "either version 2 of the License, or (at your option) any later version",
         "GNU GENERAL PUBLIC LICENSE",
         "Version 2, June 1991",
+        "    b) You must cause any work that you distribute or publish, that in",
     ):
         assert fragment in license_text, fragment
+
+    # The rename is allowed to change only the product-name line. Lock the exact
+    # post-rename license bytes so the GPLv2 body and final newline cannot drift.
+    assert license_bytes.endswith(b"\n")
+    license_blob = subprocess.run(
+        ["git", "hash-object", "license.txt"],
+        cwd=ROOT,
+        text=True,
+        check=True,
+        stdout=subprocess.PIPE,
+    ).stdout.strip()
+    assert license_blob == "6a6b64a734602bf8865d7b348a6ff94dcc7b6251", license_blob
 
 
 def workflow_contract() -> None:
