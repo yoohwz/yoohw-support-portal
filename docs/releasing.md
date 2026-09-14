@@ -1,4 +1,4 @@
-# YoOhw Support Portal — WordPress.org release
+# Support Portal — WordPress.org release
 
 This is a release-only control plane. It does not replace normal YSP PR review,
 `YSP Required CI`, independent review for CONTROLLED work, or Human `Finalize`.
@@ -101,7 +101,7 @@ publication authority; fix through the normal task flow and create a new Prepare
 
 ## Step 2 — Dry-run publication
 
-Run **Publish YoOhw Support Portal to WordPress.org** with:
+Run **Publish Support Portal to WordPress.org** with:
 
 - `operation=publish`;
 - successful `preparation_run_id`;
