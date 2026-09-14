@@ -1,0 +1,14 @@
+/.git
+/.github
+/tests
+/docs
+/scripts
+/AGENTS.md
+/.distignore
+/composer.json
+/composer.lock
+/phpunit.xml
+/phpunit.xml.dist
+/.phpunit.result.cache
+/.DS_Store
+*.zip
