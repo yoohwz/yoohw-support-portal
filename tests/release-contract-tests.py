@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import ast
 import importlib.util
+import os
 from pathlib import Path
 import tempfile
 import zipfile
@@ -65,6 +66,7 @@ def workflow_contract() -> None:
     ):
         assert required in publish, required
 
+    # The SVN secret is scoped to exactly the single atomic commit step.
     assert publish.count("secrets.WPORG_SVN_PASSWORD") == 1
     assert "secrets.WPORG_SVN_PASSWORD" not in prepare
     assert "secrets.WPORG_SVN_PASSWORD" not in context
@@ -91,11 +93,18 @@ def implementation_contract() -> None:
         'REPOSITORY = "yoohwz/yoohw-support-portal"',
         'SLUG = "yoohw-support-portal"',
         'SVN_URL = f"https://plugins.svn.wordpress.org/{SLUG}"',
+        'EXPECTED_SVN_AUTHOR = "yoohw"',
         "scripts/stage-distribution.sh",
         "zipfile.ZIP_STORED",
         "date_time=(1980, 1, 1, 0, 0, 0)",
+        '"git/tags"',
+        '"tagger"',
+        "existing release tag is not annotated",
         "--password-from-stdin",
         "--no-auth-cache",
+        'remove_env={"WPORG_SVN_PASSWORD"}',
+        "unexpected WordPress.org SVN username",
+        "release was authored by an unexpected committer",
         "WordPress.org assets are immutable in normal publication",
         "SVN commit outcome is unknown; do not retry publication, use verify-only recovery",
         "downloads.wordpress.org/plugin/",
@@ -104,10 +113,20 @@ def implementation_contract() -> None:
     ):
         assert required in lib, required
 
+    # No credential is ever passed as a command-line --password argument.
     assert '"--password",' not in lib
-    assert "WPORG_SVN_PASSWORD" not in lib
 
-    for command in ("prepare", "context", "preflight", "recheck", "seal", "commit", "verify", "recover", "release"):
+    for command in (
+        "prepare",
+        "context",
+        "preflight",
+        "recheck",
+        "seal",
+        "commit",
+        "verify",
+        "recover",
+        "release",
+    ):
         assert f'"{command}":' in cli, command
     assert "PUBLISH_ENVIRONMENT" in cli
     assert "wordpress-org-production" in cli
@@ -169,12 +188,34 @@ def deterministic_package_contract() -> None:
             raise AssertionError("ZIP traversal fixture was not rejected")
 
 
+def credential_environment_contract() -> None:
+    rel = load_release_lib()
+    old = os.environ.get("WPORG_SVN_PASSWORD")
+    os.environ["WPORG_SVN_PASSWORD"] = "must-not-reach-child"
+    try:
+        result = rel.run(
+            [
+                "python3",
+                "-c",
+                "import os; print('present' if 'WPORG_SVN_PASSWORD' in os.environ else 'absent')",
+            ],
+            remove_env={"WPORG_SVN_PASSWORD"},
+        )
+        assert result.stdout.strip() == "absent"
+    finally:
+        if old is None:
+            os.environ.pop("WPORG_SVN_PASSWORD", None)
+        else:
+            os.environ["WPORG_SVN_PASSWORD"] = old
+
+
 def main() -> None:
     syntax_contract()
     workflow_contract()
     implementation_contract()
     documentation_contract()
     deterministic_package_contract()
+    credential_environment_contract()
     print("release-contracts-ok")
 
 
