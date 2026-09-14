@@ -20,7 +20,7 @@ class YoOhw_Support_Privacy {
 
 		$content = '<p class="privacy-policy-tutorial">'
 			. esc_html__(
-				'YoOhw Support Portal stores information submitted through support topics and replies. Review and adapt the suggested text to match your support and retention practices.',
+				'Support Portal stores information submitted through support topics and replies. Review and adapt the suggested text to match your support and retention practices.',
 				'yoohw-support-portal'
 			)
 			. '</p>'
@@ -47,7 +47,7 @@ class YoOhw_Support_Privacy {
 			. '</p>';
 
 		wp_add_privacy_policy_content(
-			__( 'YoOhw Support Portal', 'yoohw-support-portal' ),
+			__( 'Support Portal', 'yoohw-support-portal' ),
 			wp_kses_post( $content )
 		);
 	}

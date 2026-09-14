@@ -1,6 +1,6 @@
 # YSP Lean Delivery
 
-The workflow optimizes for fast implementation loops while keeping strong controls only where YoOhw Support Portal's private-data and safety boundaries justify them.
+The workflow optimizes for fast implementation loops while keeping strong controls only where Support Portal's private-data and safety boundaries justify them.
 
 ## Sources of truth
 
@@ -21,7 +21,7 @@ Do not create another mutable task-state database, allocator, evidence ledger or
 
 ## Local development model
 
-The dedicated YoOhw Support Portal Codex project opens the plugin source folder that is installed on the project's Local WordPress site.
+The dedicated Support Portal Codex project opens the plugin source folder that is installed on the project's Local WordPress site.
 
 Codex edits that plugin source directly during implementation. Because the same files are loaded by the Local site, relevant changes can be exercised immediately in the real Local WordPress environment without copying or deploying the plugin elsewhere first.
 

@@ -221,19 +221,19 @@ class YoOhw_Support_Site_Check {
 
 		if ( ! $mode_enabled ) {
 			$message = __(
-				'YoOhw Support Portal is active, but Dedicated Portal Mode is disabled. Review the site scan before allowing the plugin to take over the frontend.',
+				'Support Portal is active, but Dedicated Portal Mode is disabled. Review the site scan before allowing the plugin to take over the frontend.',
 				'yoohw-support-portal'
 			);
 			$class = 'notice notice-warning';
 		} elseif ( $starter_items && ! empty( $result['compatible'] ) ) {
 			$message = __(
-				'YoOhw Support Portal found WordPress starter content. This is normal on a new install; open setup if you want to remove it.',
+				'Support Portal found WordPress starter content. This is normal on a new install; open setup if you want to remove it.',
 				'yoohw-support-portal'
 			);
 			$class = 'notice notice-info';
 		} else {
 			$message = __(
-				'YoOhw Support Portal detected existing site content. This plugin is intended for a dedicated support portal site, so review the setup scan.',
+				'Support Portal detected existing site content. This plugin is intended for a dedicated support portal site, so review the setup scan.',
 				'yoohw-support-portal'
 			);
 			$class = 'notice notice-info';
@@ -241,7 +241,7 @@ class YoOhw_Support_Site_Check {
 
 		?>
 		<div class="<?php echo esc_attr( $class ); ?>">
-			<p><strong><?php esc_html_e( 'YoOhw Support Portal', 'yoohw-support-portal' ); ?>:</strong> <?php echo esc_html( $message ); ?></p>
+			<p><strong><?php esc_html_e( 'Support Portal', 'yoohw-support-portal' ); ?>:</strong> <?php echo esc_html( $message ); ?></p>
 			<div class="yoohw-site-check-notice-actions" style="display:flex;align-items:center;gap:6px;margin:0 0 12px;">
 				<a class="button button-primary" href="<?php echo esc_url( $setup_url ); ?>">
 					<?php esc_html_e( 'Open setup', 'yoohw-support-portal' ); ?>

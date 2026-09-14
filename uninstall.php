@@ -1,6 +1,6 @@
 <?php
 /**
- * Uninstall YoOhw Support Portal.
+ * Uninstall Support Portal.
  *
  * The plugin intentionally does not delete posts, comments, media, users,
  * categories, or access metadata because those are site-owned support records.

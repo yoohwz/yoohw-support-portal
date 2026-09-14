@@ -1,6 +1,6 @@
 <?php
 /*
-Plugin Name: YoOhw Support Portal
+Plugin Name: Support Portal
 Description: A dedicated support portal for customer conversations, private topics, replies, attachments, and support workflows.
 Version: 1.0.0
 Requires at least: 6.2

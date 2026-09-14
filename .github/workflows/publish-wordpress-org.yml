@@ -1,4 +1,4 @@
-name: Publish YoOhw Support Portal to WordPress.org
+name: Publish Support Portal to WordPress.org
 
 'on':
   workflow_dispatch:

@@ -323,7 +323,7 @@ class YoOhw_Support_Settings {
 
 	public static function register_options_page(): void {
 		add_options_page(
-			__( 'YoOhw Support Portal', 'yoohw-support-portal' ),
+			__( 'Support Portal', 'yoohw-support-portal' ),
 			__( 'Support Portal', 'yoohw-support-portal' ),
 			YoOhw_Support_Capabilities::MANAGE_SETTINGS,
 			'yoohw-support-portal',
@@ -643,7 +643,7 @@ class YoOhw_Support_Settings {
 
 		?>
 		<div class="wrap">
-			<h1><?php esc_html_e( 'YoOhw Support Portal', 'yoohw-support-portal' ); ?></h1>
+			<h1><?php esc_html_e( 'Support Portal', 'yoohw-support-portal' ); ?></h1>
 			<?php // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only success message flag. ?>
 			<?php if ( isset( $_GET['yoohw_portal_setup'] ) && 'wizard_complete' === sanitize_key( wp_unslash( $_GET['yoohw_portal_setup'] ) ) ) : ?>
 				<div class="notice notice-success is-dismissible">
