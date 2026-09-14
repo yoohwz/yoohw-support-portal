@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Trusted release-only primitives for YoOhw Support Portal.
 
-This module intentionally uses only the Python standard library and repository-owned
-staging. Candidate plugin code is treated as data; release control executes only
-from protected main.
+Only protected-main release control executes this module. Candidate plugin files are
+staged as data through the repository-owned distribution script; candidate PHP or
+plugin hooks are never imported by this control plane.
 """
 from __future__ import annotations
 
@@ -25,6 +25,7 @@ REPOSITORY = "yoohwz/yoohw-support-portal"
 SLUG = "yoohw-support-portal"
 PLUGIN_FILE = "yoohw-support-portal.php"
 SVN_URL = f"https://plugins.svn.wordpress.org/{SLUG}"
+EXPECTED_SVN_AUTHOR = "yoohw"
 PREPARE_WORKFLOW = ".github/workflows/release-prepare.yml"
 PUBLISH_WORKFLOW = ".github/workflows/publish-wordpress-org.yml"
 VERSION_RE = re.compile(r"^[0-9]+(?:\.[0-9]+){1,2}$")
@@ -66,11 +67,20 @@ def read_json(path: Path):
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def run(args, *, cwd: Path | None = None, input_text: str | None = None,
-        env: dict[str, str] | None = None, check: bool = True) -> subprocess.CompletedProcess[str]:
+def run(
+    args,
+    *,
+    cwd: Path | None = None,
+    input_text: str | None = None,
+    env: dict[str, str] | None = None,
+    remove_env: set[str] | None = None,
+    check: bool = True,
+) -> subprocess.CompletedProcess[str]:
     merged = os.environ.copy()
     if env:
         merged.update(env)
+    for key in remove_env or set():
+        merged.pop(key, None)
     result = subprocess.run(
         [str(item) for item in args],
         cwd=str(cwd) if cwd else None,
@@ -82,7 +92,9 @@ def run(args, *, cwd: Path | None = None, input_text: str | None = None,
         check=False,
     )
     if check and result.returncode != 0:
-        raise ReleaseError(f"command failed ({result.returncode}): {' '.join(map(str, args))}\n{result.stderr.strip()}")
+        raise ReleaseError(
+            f"command failed ({result.returncode}): {' '.join(map(str, args))}\n{result.stderr.strip()}"
+        )
     return result
 
 
@@ -112,11 +124,13 @@ def tree_entries(root: Path) -> list[dict[str, object]]:
             raise ReleaseError(f"symbolic link not allowed in product tree: {relative}")
         if not path.is_file():
             continue
-        entries.append({
-            "path": relative.as_posix(),
-            "size": path.stat().st_size,
-            "sha256": sha256_file(path),
-        })
+        entries.append(
+            {
+                "path": relative.as_posix(),
+                "size": path.stat().st_size,
+                "sha256": sha256_file(path),
+            }
+        )
     return entries
 
 
@@ -258,8 +272,10 @@ def load_prepared(prepared: Path, candidate_sha: str, version: str, preparation_
         require(manifest.get(key) == value, f"prepared manifest mismatch: {key}")
     require(record.get("state") == "RC_PREPARED", "preparation record is not terminal RC_PREPARED")
     require(record.get("run_id") == int(preparation_run_id), "preparation record run mismatch")
-    require(record.get("candidate_sha") == candidate_sha and record.get("version") == version,
-            "preparation record identity mismatch")
+    require(
+        record.get("candidate_sha") == candidate_sha and record.get("version") == version,
+        "preparation record identity mismatch",
+    )
     payload = prepared / "payload"
     require(tree_entries(payload) == manifest.get("files"), "prepared payload manifest mismatch")
     require(tree_digest(payload) == manifest.get("product_tree_sha256"), "prepared payload digest mismatch")
@@ -287,17 +303,19 @@ class GitHubAPI:
         }
         if headers:
             request_headers.update(headers)
-        req = urllib.request.Request(url, data=data, headers=request_headers, method=method)
+        request = urllib.request.Request(url, data=data, headers=request_headers, method=method)
         try:
-            with urllib.request.urlopen(req, timeout=30) as response:
+            with urllib.request.urlopen(request, timeout=30) as response:
                 body = response.read()
-                ctype = response.headers.get("Content-Type", "")
-                if "application/json" in ctype or body.startswith((b"{", b"[")):
+                content_type = response.headers.get("Content-Type", "")
+                if "application/json" in content_type or body.startswith((b"{", b"[")):
                     return json.loads(body.decode("utf-8"))
                 return body
         except urllib.error.HTTPError as error:
             detail = error.read().decode("utf-8", errors="replace")
-            raise ReleaseError(f"GitHub API {method} {url} failed: HTTP {error.code}: {detail[:500]}") from None
+            raise ReleaseError(
+                f"GitHub API {method} {url} failed: HTTP {error.code}: {detail[:500]}"
+            ) from None
 
     def get(self, path: str):
         return self._request("GET", self.base + "/" + path.lstrip("/"))
@@ -310,9 +328,9 @@ class GitHubAPI:
             "X-GitHub-Api-Version": "2022-11-28",
             "User-Agent": "ysp-release-publisher",
         }
-        req = urllib.request.Request(url, headers=headers, method="GET")
+        request = urllib.request.Request(url, headers=headers, method="GET")
         try:
-            with urllib.request.urlopen(req, timeout=30) as response:
+            with urllib.request.urlopen(request, timeout=30) as response:
                 return json.loads(response.read().decode("utf-8"))
         except urllib.error.HTTPError as error:
             if error.code == 404:
@@ -322,7 +340,10 @@ class GitHubAPI:
 
     def post(self, path: str, value):
         return self._request(
-            "POST", self.base + "/" + path.lstrip("/"), canonical(value), {"Content-Type": "application/json"}
+            "POST",
+            self.base + "/" + path.lstrip("/"),
+            canonical(value),
+            {"Content-Type": "application/json"},
         )
 
     def ensure_preparation_run(self, run_id: int, candidate_sha: str, artifact_name: str) -> None:
@@ -332,8 +353,10 @@ class GitHubAPI:
         require(run_data.get("head_branch") == "main", "preparation run was not on main")
         require(run_data.get("head_sha") == candidate_sha, "preparation run head does not match candidate")
         require(run_data.get("run_attempt") == 1, "preparation reruns are not accepted as release authority")
-        require(run_data.get("status") == "completed" and run_data.get("conclusion") == "success",
-                "preparation run did not complete successfully")
+        require(
+            run_data.get("status") == "completed" and run_data.get("conclusion") == "success",
+            "preparation run did not complete successfully",
+        )
         artifacts = self.get(f"actions/runs/{run_id}/artifacts?per_page=100").get("artifacts", [])
         matching = [item for item in artifacts if item.get("name") == artifact_name and not item.get("expired")]
         require(len(matching) == 1, "expected exactly one live immutable preparation artifact")
@@ -344,13 +367,18 @@ class GitHubAPI:
         current = branch["commit"]["sha"]
         if current != candidate_sha:
             compare = self.get(f"compare/{candidate_sha}...{current}")
-            require(compare.get("merge_base_commit", {}).get("sha") == candidate_sha,
-                    "prepared candidate is no longer accepted main ancestry")
+            require(
+                compare.get("merge_base_commit", {}).get("sha") == candidate_sha,
+                "prepared candidate is no longer accepted main ancestry",
+            )
             require(compare.get("status") == "ahead", "prepared candidate is not an ancestor of current main")
         return current
 
+    def tag_ref(self, version: str):
+        return self.get_optional(f"git/ref/tags/{urllib.parse.quote(version, safe='')}")
+
     def resolve_tag_commit(self, version: str) -> str | None:
-        ref = self.get_optional(f"git/ref/tags/{urllib.parse.quote(version, safe='')}")
+        ref = self.tag_ref(version)
         if ref is None:
             return None
         obj = ref.get("object", {})
@@ -358,26 +386,53 @@ class GitHubAPI:
             return obj.get("sha")
         if obj.get("type") == "tag":
             tag = self.get(f"git/tags/{obj.get('sha')}")
+            require(tag.get("tag") == version, "annotated release tag name mismatch")
+            require(tag.get("object", {}).get("type") == "commit", "annotated release tag does not target a commit")
             return tag.get("object", {}).get("sha")
         raise ReleaseError("unsupported existing Git tag object type")
 
     def seal_tag(self, version: str, candidate_sha: str) -> str:
-        existing = self.resolve_tag_commit(version)
-        if existing is not None:
-            require(existing == candidate_sha, "release Git tag already points to a different commit")
-            return existing
-        self.post("git/refs", {"ref": f"refs/tags/{version}", "sha": candidate_sha})
-        require(self.resolve_tag_commit(version) == candidate_sha, "release Git tag verification failed")
-        return candidate_sha
+        existing_ref = self.tag_ref(version)
+        if existing_ref is not None:
+            require(existing_ref.get("object", {}).get("type") == "tag", "existing release tag is not annotated")
+            require(self.resolve_tag_commit(version) == candidate_sha, "release Git tag points to a different commit")
+            return str(existing_ref["object"]["sha"])
+        tag_object = self.post(
+            "git/tags",
+            {
+                "tag": version,
+                "message": f"YoOhw Support Portal {version}",
+                "object": candidate_sha,
+                "type": "commit",
+                "tagger": {
+                    "name": "YoOhw Studio",
+                    "email": "152001663+yoohwz@users.noreply.github.com",
+                },
+            },
+        )
+        tag_sha = str(tag_object["sha"])
+        self.post("git/refs", {"ref": f"refs/tags/{version}", "sha": tag_sha})
+        require(self.resolve_tag_commit(version) == candidate_sha, "annotated release Git tag verification failed")
+        return tag_sha
 
     def _release_asset_bytes(self, asset_id: int) -> bytes:
         return self._request(
-            "GET", self.base + f"/releases/assets/{asset_id}", headers={"Accept": "application/octet-stream"}
+            "GET",
+            self.base + f"/releases/assets/{asset_id}",
+            headers={"Accept": "application/octet-stream"},
         )
 
     def _upload_asset(self, release_id: int, name: str, data: bytes, content_type: str) -> None:
-        url = f"https://uploads.github.com/repos/{REPOSITORY}/releases/{release_id}/assets?" + urllib.parse.urlencode({"name": name})
-        self._request("POST", url, data, {"Content-Type": content_type, "Accept": "application/vnd.github+json"})
+        url = (
+            f"https://uploads.github.com/repos/{REPOSITORY}/releases/{release_id}/assets?"
+            + urllib.parse.urlencode({"name": name})
+        )
+        self._request(
+            "POST",
+            url,
+            data,
+            {"Content-Type": content_type, "Accept": "application/vnd.github+json"},
+        )
 
     def create_or_reconcile_release(self, manifest: dict, prepared: Path) -> int:
         version = str(manifest["version"])
@@ -385,14 +440,19 @@ class GitHubAPI:
         require(self.resolve_tag_commit(version) == candidate_sha, "immutable release Git tag is missing")
         release = self.get_optional(f"releases/tags/{urllib.parse.quote(version, safe='')}")
         if release is None:
-            release = self.post("releases", {
-                "tag_name": version,
-                "target_commitish": candidate_sha,
-                "name": f"YoOhw Support Portal {version}",
-                "body": changelog_notes(prepared / "payload", version),
-                "draft": False,
-                "prerelease": False,
-            })
+            release = self.post(
+                "releases",
+                {
+                    "tag_name": version,
+                    "target_commitish": candidate_sha,
+                    "name": f"YoOhw Support Portal {version}",
+                    "body": changelog_notes(prepared / "payload", version),
+                    "draft": False,
+                    "prerelease": False,
+                },
+            )
+        require(release.get("draft") is False and release.get("prerelease") is False,
+                "existing GitHub Release has unexpected draft/prerelease state")
         release_id = int(release["id"])
         assets = self.get(f"releases/{release_id}/assets?per_page=100")
         by_name = {item["name"]: item for item in assets}
@@ -422,7 +482,10 @@ class SVNWorkspace:
             target = self.path / name
             if target.exists():
                 run(["svn", "update", "--set-depth", depth, name, "--non-interactive"], cwd=self.path)
-        require((self.path / "trunk").is_dir() and (self.path / "tags").is_dir(), "WordPress.org SVN layout is incomplete")
+        require(
+            (self.path / "trunk").is_dir() and (self.path / "tags").is_dir(),
+            "WordPress.org SVN layout is incomplete",
+        )
         return self
 
     def _revision(self, relative: str) -> str | None:
@@ -448,19 +511,28 @@ class SVNWorkspace:
         return current
 
     def _status(self) -> list[str]:
-        result = run(["svn", "status"], cwd=self.path)
-        return [line for line in result.stdout.splitlines() if line.strip()]
+        return [line for line in run(["svn", "status"], cwd=self.path).stdout.splitlines() if line.strip()]
 
     def stage(self, payload: Path, version: str, expected_snapshot: dict | None = None) -> dict:
         if expected_snapshot is not None:
             self.compare_snapshot(expected_snapshot, version)
         before = self.snapshot(version)
         require(before["target_tag_exists"] is False, f"WordPress.org tag {version} already exists")
-        run(["rsync", "-a", "--delete", "--exclude", ".svn/", f"{payload}/", f"{self.path / 'trunk'}/"])
+        run(
+            [
+                "rsync",
+                "-a",
+                "--delete",
+                "--exclude",
+                ".svn/",
+                f"{payload}/",
+                f"{self.path / 'trunk'}/",
+            ]
+        )
         for line in self._status():
             if line.startswith("!"):
-                path = line[8:].strip()
-                run(["svn", "rm", "--force", path], cwd=self.path)
+                missing = line[8:].strip()
+                run(["svn", "rm", "--force", missing], cwd=self.path)
         run(["svn", "add", "--force", "trunk"], cwd=self.path)
         run(["svn", "copy", "trunk", f"tags/{version}"], cwd=self.path)
         status = self._status()
@@ -468,16 +540,32 @@ class SVNWorkspace:
         paths: list[str] = []
         for line in status:
             require(line[0] not in {"C", "~"}, f"SVN conflict/obstruction: {line}")
-            path = line[8:].strip()
-            paths.append(path)
-            require(path == "trunk" or path.startswith("trunk/") or path == f"tags/{version}" or path.startswith(f"tags/{version}/"),
-                    f"publication attempted to mutate forbidden SVN path: {path}")
-            require(not (path == "assets" or path.startswith("assets/")), "WordPress.org assets are immutable in normal publication")
+            relative = line[8:].strip()
+            paths.append(relative)
+            require(
+                relative == "trunk"
+                or relative.startswith("trunk/")
+                or relative == f"tags/{version}"
+                or relative.startswith(f"tags/{version}/"),
+                f"publication attempted to mutate forbidden SVN path: {relative}",
+            )
+            require(
+                not (relative == "assets" or relative.startswith("assets/")),
+                "WordPress.org assets are immutable in normal publication",
+            )
         return {"before": before, "changed_paths": sorted(paths)}
 
-    def atomic_commit(self, version: str, candidate_sha: str, run_id: int, username: str, password: str,
-                      attempt_path: Path) -> int:
-        require(username.strip() != "" and password != "", "WordPress.org SVN credentials are required")
+    def atomic_commit(
+        self,
+        version: str,
+        candidate_sha: str,
+        run_id: int,
+        username: str,
+        password: str,
+        attempt_path: Path,
+    ) -> int:
+        require(username == EXPECTED_SVN_AUTHOR, "unexpected WordPress.org SVN username")
+        require(password != "", "WordPress.org SVN password is required")
         message = f"Release {SLUG} {version} from {candidate_sha} (GitHub run {run_id})"
         attempt = {
             "schema_version": 1,
@@ -489,19 +577,30 @@ class SVNWorkspace:
             "outcome": "UNKNOWN",
         }
         write_json(attempt_path, attempt)
-        env = os.environ.copy()
-        env.pop("WPORG_SVN_PASSWORD", None)
-        result = run([
-            "svn", "commit", "trunk", f"tags/{version}",
-            "--username", username,
-            "--password-from-stdin",
-            "--non-interactive",
-            "--no-auth-cache",
-            "-m", message,
-        ], cwd=self.path, input_text=password + "\n", env=env, check=False)
+        result = run(
+            [
+                "svn",
+                "commit",
+                "trunk",
+                f"tags/{version}",
+                "--username",
+                username,
+                "--password-from-stdin",
+                "--non-interactive",
+                "--no-auth-cache",
+                "-m",
+                message,
+            ],
+            cwd=self.path,
+            input_text=password + "\n",
+            remove_env={"WPORG_SVN_PASSWORD"},
+            check=False,
+        )
         if result.returncode != 0:
             write_json(attempt_path, {**attempt, "returncode": result.returncode})
-            raise ReleaseError("SVN commit outcome is unknown; do not retry publication, use verify-only recovery")
+            raise ReleaseError(
+                "SVN commit outcome is unknown; do not retry publication, use verify-only recovery"
+            )
         match = re.search(r"Committed revision\s+([0-9]+)\.", result.stdout)
         require(match is not None, "SVN commit succeeded without a parseable committed revision")
         revision = int(match.group(1))
@@ -511,26 +610,39 @@ class SVNWorkspace:
 
 def svn_publication_log(version: str, candidate_sha: str, run_id: int) -> dict:
     message = f"Release {SLUG} {version} from {candidate_sha} (GitHub run {run_id})"
-    raw = run(["svn", "log", "--xml", "-v", "-l", "100", SVN_URL, "--non-interactive"]).stdout
+    raw = run(
+        ["svn", "log", "--xml", "-v", "--search", message, SVN_URL, "--non-interactive"]
+    ).stdout
     root = ET.fromstring(raw)
     matches = []
     for entry in root.findall("logentry"):
-        msg = entry.findtext("msg") or ""
-        if msg != message:
+        if (entry.findtext("msg") or "") != message:
             continue
         paths = [item.text or "" for item in entry.findall("./paths/path")]
-        matches.append({
-            "revision": int(entry.attrib["revision"]),
-            "author": entry.findtext("author") or "",
-            "message": msg,
-            "changed_paths": sorted(paths),
-        })
+        matches.append(
+            {
+                "revision": int(entry.attrib["revision"]),
+                "author": entry.findtext("author") or "",
+                "message": message,
+                "changed_paths": sorted(paths),
+            }
+        )
     require(len(matches) == 1, "could not authenticate exactly one WordPress.org SVN publication revision")
     result = matches[0]
-    require(any(path == "/trunk" or path.startswith("/trunk/") for path in result["changed_paths"]), "SVN release revision did not change trunk")
+    require(result["author"] == EXPECTED_SVN_AUTHOR, "WordPress.org release was authored by an unexpected committer")
+    require(
+        any(path == "/trunk" or path.startswith("/trunk/") for path in result["changed_paths"]),
+        "SVN release revision did not change trunk",
+    )
     tag_prefix = f"/tags/{version}"
-    require(any(path == tag_prefix or path.startswith(tag_prefix + "/") for path in result["changed_paths"]), "SVN release revision did not create target tag")
-    require(not any(path == "/assets" or path.startswith("/assets/") for path in result["changed_paths"]), "SVN release revision changed assets")
+    require(
+        any(path == tag_prefix or path.startswith(tag_prefix + "/") for path in result["changed_paths"]),
+        "SVN release revision did not create target tag",
+    )
+    require(
+        not any(path == "/assets" or path.startswith("/assets/") for path in result["changed_paths"]),
+        "SVN release revision changed assets",
+    )
     return result
 
 
@@ -555,9 +667,9 @@ def verify_svn(manifest: dict, publish_run_id: int, work: Path) -> dict:
 
 def fetch_public_package(version: str, destination: Path) -> bool:
     url = f"https://downloads.wordpress.org/plugin/{SLUG}.{version}.zip"
-    req = urllib.request.Request(url, headers={"User-Agent": "ysp-release-verifier"})
+    request = urllib.request.Request(url, headers={"User-Agent": "ysp-release-verifier"})
     try:
-        with urllib.request.urlopen(req, timeout=45) as response:
+        with urllib.request.urlopen(request, timeout=45) as response:
             if response.status != 200:
                 return False
             destination.write_bytes(response.read())
@@ -586,7 +698,10 @@ def verify_publication(manifest: dict, publish_run_id: int, work: Path) -> dict:
         }
     with tempfile.TemporaryDirectory(prefix="ysp-public-") as temporary:
         extracted = safe_extract_product(public_zip, Path(temporary))
-        require(tree_digest(extracted) == manifest["product_tree_sha256"], "public WordPress.org package differs from prepared product")
+        require(
+            tree_digest(extracted) == manifest["product_tree_sha256"],
+            "public WordPress.org package differs from prepared product",
+        )
     return {
         "schema_version": 1,
         "state": "WPORG_PUBLIC_RELEASE_VERIFIED",
