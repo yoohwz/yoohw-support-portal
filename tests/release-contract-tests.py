@@ -43,6 +43,8 @@ def workflow_contract() -> None:
         trusted_stage,
         "release_cli.py prepare",
         "Plugin Check exact prepared WordPress.org payload",
+        "build-dir: ${{ runner.temp }}/ysp-release/rc/payload",
+        "include-hidden-files: true",
         "strict: false",
         "ysp-release/rc/*",
         "retention-days: 90",
@@ -146,11 +148,15 @@ def documentation_contract() -> None:
     for required in (
         "wordpress-org-production",
         "WPORG_SVN_USERNAME",
+        "exact value\n   `yoohw`",
         "WPORG_SVN_PASSWORD",
         "SVN-specific password",
+        "candidate staging helper with the trusted control-plane helper",
+        "annotated",
         "dry_run=true",
         "dry_run=false",
         "verify-only",
+        "release-confirmation",
         "SVN_COMMIT_OUTCOME_UNKNOWN",
         "WPORG_PROPAGATION_PENDING",
         "WPORG_PUBLIC_RELEASE_VERIFIED",
@@ -217,6 +223,25 @@ def credential_environment_contract() -> None:
             os.environ["WPORG_SVN_PASSWORD"] = old
 
 
+def full_prepare_contract() -> None:
+    rel = load_release_lib()
+    candidate_sha = rel.git_head(ROOT)
+    version = rel.version_from_tree(ROOT)
+    with tempfile.TemporaryDirectory(prefix="ysp-release-prepare-") as temporary:
+        work = Path(temporary)
+        artifact_name, manifest = rel.prepare_release(ROOT, work, candidate_sha, version, 123456)
+        prepared = work / "rc"
+        assert artifact_name == f"ysp-wporg-{version}-{candidate_sha}"
+        assert manifest["candidate_sha"] == candidate_sha
+        assert manifest["version"] == version
+        assert manifest["file_count"] > 0
+        assert (prepared / "payload/yoohw-support-portal.php").is_file()
+        assert (prepared / "payload/license.txt").is_file()
+        assert (prepared / manifest["package_name"]).is_file()
+        loaded = rel.load_prepared(prepared, candidate_sha, version, 123456)
+        assert loaded == manifest
+
+
 def main() -> None:
     syntax_contract()
     workflow_contract()
@@ -224,6 +249,7 @@ def main() -> None:
     documentation_contract()
     deterministic_package_contract()
     credential_environment_contract()
+    full_prepare_contract()
     print("release-contracts-ok")
 
 
