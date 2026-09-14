@@ -57,6 +57,25 @@ def function_body(path: str, name: str) -> str:
     raise AssertionError(f"{path}: function {name} has no closing brace")
 
 
+def braced_body(source: str, label: str, header: str) -> str:
+    pattern = r"\s+".join(re.escape(part) for part in header.split()) + r"\s*\{"
+    match = re.search(pattern, source)
+    assert match, f"{label}: guarded block not found: {compact(header)}"
+
+    opening = source.rfind("{", match.start(), match.end())
+    depth = 0
+    for index in range(opening, len(source)):
+        char = source[index]
+        if char == "{":
+            depth += 1
+        elif char == "}":
+            depth -= 1
+            if depth == 0:
+                return source[opening + 1 : index]
+
+    raise AssertionError(f"{label}: guarded block has no closing brace")
+
+
 def protected_attachment_contract() -> None:
     path = "inc/class-yoohw-protected-attachments.php"
     require(
@@ -70,17 +89,29 @@ def protected_attachment_contract() -> None:
     )
 
     serve = function_body(path, "serve")
-    require_compact(
+    invalid_nonce = braced_body(
         serve,
-        "serve()",
-        """
-        if ( ! $attachment_id || ! wp_verify_nonce( $nonce, self::ACTION . '_' . $attachment_id ) ) {
-        """,
-        """
-        if ( ! $topic_id || ! self::current_user_can_access_topic( $topic_id ) ) {
-            self::deny_anonymous();
-        }
-        """,
+        "serve() invalid attachment/nonce denial",
+        "if ( ! $attachment_id || ! wp_verify_nonce( $nonce, self::ACTION . '_' . $attachment_id ) )",
+    )
+    require_compact(
+        invalid_nonce,
+        "serve() invalid attachment/nonce denial",
+        "status_header( 403 );",
+        "nocache_headers();",
+        "wp_die(",
+        "[ 'response' => 403 ]",
+    )
+
+    topic_denial = braced_body(
+        serve,
+        "serve() topic authorization denial",
+        "if ( ! $topic_id || ! self::current_user_can_access_topic( $topic_id ) )",
+    )
+    require_compact(
+        topic_denial,
+        "serve() topic authorization denial",
+        "self::deny_anonymous();",
     )
 
     access = function_body(path, "current_user_can_access_topic")
@@ -116,7 +147,6 @@ def protected_attachment_contract() -> None:
 
 def private_topic_authorization_contract() -> None:
     path = "inc/class-yoohw-support-controller.php"
-    source = read(path)
 
     allowed = function_body(path, "allowed_author_ids_for_current_user")
     require_compact(
@@ -149,17 +179,37 @@ def private_topic_authorization_contract() -> None:
         "return in_array( absint( $topic['author_id'] ?? 0 ), self::allowed_author_ids_for_current_user(), true );",
     )
 
+    render_topic = function_body(path, "render_topic_single")
+    isolated_denial = braced_body(
+        render_topic,
+        "render_topic_single() isolated topic denial",
+        "if ( ! $topic || ! self::current_user_can_view_isolated_topic( $topic ) )",
+    )
+    require_compact(
+        isolated_denial,
+        "render_topic_single() isolated topic denial",
+        "status_header( 404 );",
+        "return self::render_template(",
+        "'status',",
+    )
+
+    native_denial = braced_body(
+        render_topic,
+        "render_topic_single() native topic denial",
+        "if ( ! $post || ! self::current_user_can_view_topic( $post ) )",
+    )
+    require_compact(
+        native_denial,
+        "render_topic_single() native topic denial",
+        "status_header( 404 );",
+        "return self::render_template(",
+        "'status',",
+    )
+
+    source = read(path)
     require_compact(
         source,
         path,
-        """
-        if ( ! $topic || ! self::current_user_can_view_isolated_topic( $topic ) ) {
-            status_header( 404 );
-        """,
-        """
-        if ( ! $post || ! self::current_user_can_view_topic( $post ) ) {
-            status_header( 404 );
-        """,
         """
         if ( ! $topic || ! self::current_user_can_view_isolated_topic( $topic ) || 'resolved' === $topic['status'] ) {
             wp_die(
@@ -169,7 +219,6 @@ def private_topic_authorization_contract() -> None:
 
 def rest_privacy_contract() -> None:
     path = "inc/class-yoohw-support-rest-security.php"
-    source = read(path)
     require(
         path,
         "'/wp/v2/posts'",
