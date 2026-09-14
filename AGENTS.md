@@ -1,4 +1,4 @@
-# YoOhw Support Portal — agent instructions
+# Support Portal — agent instructions
 
 These instructions apply to the whole repository after the Foundation workflow is accepted and merged.
 
@@ -13,7 +13,7 @@ These instructions apply to the whole repository after the Foundation workflow i
 
 ## Local development workspace
 
-Codex works directly in the source folder configured for the dedicated **YoOhw Support Portal** project. That folder is also the plugin installed on the project's Local WordPress site.
+Codex works directly in the source folder configured for the dedicated **Support Portal** project. That folder is also the plugin installed on the project's Local WordPress site.
 
 Implementation work should edit the plugin files directly in that configured folder. This is intentional: code changes are immediately available to the Local site, so Codex can use the Local environment for focused manual/runtime verification while implementing.
 
