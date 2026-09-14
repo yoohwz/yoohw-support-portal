@@ -47,10 +47,19 @@ def load_current() -> tuple[dict, Path, str, str, int, Path]:
 
 def prepare() -> None:
     candidate, version, _, work, candidate_dir, _ = settings()
-    rel.require(candidate == os.environ.get("GITHUB_SHA"), "Prepare may only package the exact protected-main workflow SHA")
+    rel.require(
+        candidate == os.environ.get("GITHUB_SHA"),
+        "Prepare may only package the exact protected-main workflow SHA",
+    )
     rel.require(os.environ.get("GITHUB_REF") == "refs/heads/main", "Prepare must run from main")
     rel.require(os.environ.get("GITHUB_REF_PROTECTED") == "true", "Prepare requires protected main")
-    artifact, manifest = rel.prepare_release(candidate_dir, work, candidate, version, int(os.environ["GITHUB_RUN_ID"]))
+    artifact, manifest = rel.prepare_release(
+        candidate_dir,
+        work,
+        candidate,
+        version,
+        int(os.environ["GITHUB_RUN_ID"]),
+    )
     output = os.environ.get("GITHUB_OUTPUT")
     if output:
         with open(output, "a", encoding="utf-8") as handle:
@@ -87,7 +96,10 @@ def context() -> None:
     rel.require(rel.git_head(candidate_dir) == candidate, "candidate checkout SHA mismatch")
     candidate_stage = work / "candidate-stage"
     digest = rel.stage(candidate_dir, candidate_stage)
-    rel.require(digest == manifest["product_tree_sha256"], "candidate product tree differs from prepared release")
+    rel.require(
+        digest == manifest["product_tree_sha256"],
+        "candidate product tree differs from prepared release",
+    )
     say(
         "PUBLISHER_CONTEXT_AUTHENTICATED",
         candidate_sha=candidate,
@@ -137,14 +149,20 @@ def approved_preflight(manifest: dict, candidate: str, version: str, preparation
     }
     for key, value in expected.items():
         rel.require(record.get(key) == value, f"preflight evidence mismatch: {key}")
-    rel.require(record.get("snapshot", {}).get("target_tag_exists") is False, "approved preflight did not prove target tag absence")
+    rel.require(
+        record.get("snapshot", {}).get("target_tag_exists") is False,
+        "approved preflight did not prove target tag absence",
+    )
     return record
 
 
 def recheck() -> None:
     manifest, prepared, candidate, version, preparation_run_id, work = load_current()
     approved = approved_preflight(manifest, candidate, version, preparation_run_id)
-    rel.require(approved["dry_run"] == (os.environ.get("DRY_RUN") == "true"), "publication intent changed after preflight")
+    rel.require(
+        approved["dry_run"] == (os.environ.get("DRY_RUN") == "true"),
+        "publication intent changed after preflight",
+    )
     repo = rel.SVNWorkspace(work / "svn-final").checkout()
     staged = repo.stage(prepared / "payload", version, approved["snapshot"])
     record = {
@@ -160,39 +178,77 @@ def recheck() -> None:
         "external_mutation": "NONE",
     }
     rel.write_json(work / "final-record.json", record)
-    say(record["state"], identity={"candidate_sha": candidate, "version": version}, EXTERNAL_MUTATION="NONE")
+    say(
+        record["state"],
+        identity={"candidate_sha": candidate, "version": version},
+        EXTERNAL_MUTATION="NONE",
+    )
 
 
-def mutation_guard(manifest: dict, candidate: str, version: str, preparation_run_id: int, work: Path) -> None:
+def mutation_guard(
+    manifest: dict,
+    candidate: str,
+    version: str,
+    preparation_run_id: int,
+    work: Path,
+) -> None:
     rel.require(os.environ.get("OPERATION") == "publish", "mutation is publish-only")
     rel.require(os.environ.get("DRY_RUN") == "false", "dry-run cannot mutate external state")
-    rel.require(os.environ.get("PUBLISH_ENVIRONMENT") == "wordpress-org-production", "production Environment boundary is required")
+    rel.require(
+        os.environ.get("PUBLISH_ENVIRONMENT") == "wordpress-org-production",
+        "production Environment boundary is required",
+    )
     record = rel.read_json(work / "final-record.json")
-    rel.require(record.get("state") == "FINAL_PRE_MUTATION_REMOTE_RECHECK", "final remote recheck evidence missing")
-    rel.require(record.get("candidate_sha") == candidate and record.get("version") == version,
-                "final remote recheck identity mismatch")
-    rel.require(record.get("preparation_run_id") == preparation_run_id, "final remote recheck preparation mismatch")
-    rel.require(record.get("product_tree_sha256") == manifest["product_tree_sha256"], "final remote recheck product mismatch")
+    rel.require(
+        record.get("state") == "FINAL_PRE_MUTATION_REMOTE_RECHECK",
+        "final remote recheck evidence missing",
+    )
+    rel.require(
+        record.get("candidate_sha") == candidate and record.get("version") == version,
+        "final remote recheck identity mismatch",
+    )
+    rel.require(
+        record.get("preparation_run_id") == preparation_run_id,
+        "final remote recheck preparation mismatch",
+    )
+    rel.require(
+        record.get("product_tree_sha256") == manifest["product_tree_sha256"],
+        "final remote recheck product mismatch",
+    )
 
 
 def seal() -> None:
     manifest, _, candidate, version, preparation_run_id, work = load_current()
     mutation_guard(manifest, candidate, version, preparation_run_id, work)
-    tag_commit = rel.GitHubAPI().seal_tag(version, candidate)
-    rel.write_json(work / "tag-record.json", {
-        "state": "TAG_SEALED",
-        "candidate_sha": candidate,
-        "version": version,
-        "tag_commit": tag_commit,
-    })
-    say("TAG_SEALED", candidate_sha=candidate, version=version, tag_commit=tag_commit)
+    tag_object_sha = rel.GitHubAPI().seal_tag(version, candidate)
+    rel.write_json(
+        work / "tag-record.json",
+        {
+            "state": "TAG_SEALED",
+            "candidate_sha": candidate,
+            "version": version,
+            "tag_object_sha": tag_object_sha,
+        },
+    )
+    say(
+        "TAG_SEALED",
+        candidate_sha=candidate,
+        version=version,
+        tag_object_sha=tag_object_sha,
+    )
 
 
 def commit() -> None:
     manifest, _, candidate, version, preparation_run_id, work = load_current()
     mutation_guard(manifest, candidate, version, preparation_run_id, work)
     tag = rel.read_json(work / "tag-record.json")
-    rel.require(tag.get("tag_commit") == candidate and tag.get("version") == version, "release Git tag seal missing")
+    rel.require(
+        tag.get("state") == "TAG_SEALED"
+        and tag.get("candidate_sha") == candidate
+        and tag.get("version") == version
+        and re.fullmatch(r"[0-9a-f]{40}", str(tag.get("tag_object_sha", ""))) is not None,
+        "annotated release Git tag seal missing",
+    )
     api = rel.GitHubAPI()
     rel.require(api.resolve_tag_commit(version) == candidate, "release Git tag changed before SVN commit")
 
@@ -208,19 +264,30 @@ def commit() -> None:
         password,
         work / "commit-attempt.json",
     )
-    say("SVN_ATOMIC_COMMIT_RECORDED", revision=revision, candidate_sha=candidate, version=version)
+    say(
+        "SVN_ATOMIC_COMMIT_RECORDED",
+        revision=revision,
+        candidate_sha=candidate,
+        version=version,
+    )
 
 
 def verify_for_run(publish_run_id: int) -> dict:
     manifest, _, candidate, version, _, work = load_current()
-    rel.require(rel.GitHubAPI().resolve_tag_commit(version) == candidate, "release Git tag is missing or changed")
+    rel.require(
+        rel.GitHubAPI().resolve_tag_commit(version) == candidate,
+        "release Git tag is missing or changed",
+    )
     record = rel.verify_publication(manifest, publish_run_id, work)
-    rel.write_json(work / "publication-record.json", {
-        **record,
-        "repository": rel.REPOSITORY,
-        "preparation_run_id": int(os.environ["PREPARATION_RUN_ID"]),
-        "publish_run_id": int(publish_run_id),
-    })
+    rel.write_json(
+        work / "publication-record.json",
+        {
+            **record,
+            "repository": rel.REPOSITORY,
+            "preparation_run_id": int(os.environ["PREPARATION_RUN_ID"]),
+            "publish_run_id": int(publish_run_id),
+        },
+    )
     say(record["state"], record=record)
     return record
 
@@ -229,25 +296,61 @@ def verify() -> None:
     verify_for_run(int(os.environ["GITHUB_RUN_ID"]))
 
 
-def authenticate_original_publish(original_run_id: int, manifest: dict, candidate: str, version: str, preparation_run_id: int) -> dict:
+def authenticate_original_publish(
+    original_run_id: int,
+    manifest: dict,
+    candidate: str,
+    version: str,
+    preparation_run_id: int,
+) -> dict:
     api = rel.GitHubAPI()
     run_data = api.get(f"actions/runs/{original_run_id}")
-    rel.require(run_data.get("path") == rel.PUBLISH_WORKFLOW, "original publication used the wrong workflow")
-    rel.require(run_data.get("event") == "workflow_dispatch", "original publication was not manually dispatched")
-    rel.require(run_data.get("head_branch") == "main" and run_data.get("run_attempt") == 1,
-                "original publication did not use accepted main attempt 1")
+    rel.require(
+        run_data.get("path") == rel.PUBLISH_WORKFLOW,
+        "original publication used the wrong workflow",
+    )
+    rel.require(
+        run_data.get("event") == "workflow_dispatch",
+        "original publication was not manually dispatched",
+    )
+    rel.require(
+        run_data.get("head_branch") == "main" and run_data.get("run_attempt") == 1,
+        "original publication did not use accepted main attempt 1",
+    )
+    inputs = run_data.get("inputs") or {}
+    if inputs:
+        rel.require(inputs.get("operation") == "publish", "original run was not a publish operation")
+        rel.require(str(inputs.get("dry_run")).lower() == "false", "original run was not production publication")
+        rel.require(str(inputs.get("preparation_run_id")) == str(preparation_run_id), "original preparation input mismatch")
+        rel.require(inputs.get("candidate_sha") == candidate, "original candidate input mismatch")
+        rel.require(inputs.get("version") == version, "original version input mismatch")
     preflight = approved_preflight(manifest, candidate, version, preparation_run_id)
-    rel.require(preflight.get("publish_run_id") == original_run_id, "original preflight run identity mismatch")
-    rel.require(preflight.get("dry_run") is False, "dry-run publication cannot be recovered as production")
+    rel.require(
+        preflight.get("publish_run_id") == original_run_id,
+        "original preflight run identity mismatch",
+    )
+    rel.require(
+        preflight.get("dry_run") is False,
+        "dry-run publication cannot be recovered as production",
+    )
     return run_data
 
 
 def recover() -> None:
     manifest, _, candidate, version, preparation_run_id, _ = load_current()
     raw = os.environ.get("ORIGINAL_PUBLISH_RUN_ID", "")
-    rel.require(re.fullmatch(r"[1-9][0-9]*", raw) is not None, "original publish run ID is required for verify-only")
+    rel.require(
+        re.fullmatch(r"[1-9][0-9]*", raw) is not None,
+        "original publish run ID is required for verify-only",
+    )
     original = int(raw)
-    authenticate_original_publish(original, manifest, candidate, version, preparation_run_id)
+    authenticate_original_publish(
+        original,
+        manifest,
+        candidate,
+        version,
+        preparation_run_id,
+    )
     verify_for_run(original)
 
 
@@ -255,14 +358,25 @@ def release() -> None:
     manifest, prepared, candidate, version, _, work = load_current()
     if os.environ.get("OPERATION") == "verify-only":
         raw = os.environ.get("ORIGINAL_PUBLISH_RUN_ID", "")
-        rel.require(re.fullmatch(r"[1-9][0-9]*", raw) is not None, "original publish run ID required")
+        rel.require(
+            re.fullmatch(r"[1-9][0-9]*", raw) is not None,
+            "original publish run ID required",
+        )
         publish_run_id = int(raw)
     else:
         publish_run_id = int(os.environ["GITHUB_RUN_ID"])
     record = rel.verify_publication(manifest, publish_run_id, work)
-    rel.require(record["state"] == "WPORG_PUBLIC_RELEASE_VERIFIED", "public WordPress.org release is not yet verified")
+    rel.require(
+        record["state"] == "WPORG_PUBLIC_RELEASE_VERIFIED",
+        "public WordPress.org release is not yet verified",
+    )
     release_id = rel.GitHubAPI().create_or_reconcile_release(manifest, prepared)
-    say("GITHUB_RELEASE_VERIFIED", release_id=release_id, candidate_sha=candidate, version=version)
+    say(
+        "GITHUB_RELEASE_VERIFIED",
+        release_id=release_id,
+        candidate_sha=candidate,
+        version=version,
+    )
 
 
 def main() -> int:
