@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Trusted release-only primitives for YoOhw Support Portal.
+"""Trusted release-only primitives for Support Portal.
 
 Only protected-main release control executes this module. Candidate plugin files are
 staged as data through the repository-owned distribution script; candidate PHP or
@@ -196,14 +196,14 @@ def changelog_notes(payload: Path, version: str) -> str:
     try:
         start = lines.index(heading) + 1
     except ValueError:
-        return f"YoOhw Support Portal {version}."
+        return f"Support Portal {version}."
     notes: list[str] = []
     for line in lines[start:]:
         if line.startswith("= ") and line.endswith(" ="):
             break
         if line.strip():
             notes.append(line.strip())
-    return "\n".join(notes) if notes else f"YoOhw Support Portal {version}."
+    return "\n".join(notes) if notes else f"Support Portal {version}."
 
 
 def prepare_release(candidate_dir: Path, work: Path, candidate_sha: str, version: str, run_id: int) -> tuple[str, dict]:
@@ -408,7 +408,7 @@ class GitHubAPI:
             "git/tags",
             {
                 "tag": version,
-                "message": f"YoOhw Support Portal {version}",
+                "message": f"Support Portal {version}",
                 "object": candidate_sha,
                 "type": "commit",
                 "tagger": {
@@ -452,7 +452,7 @@ class GitHubAPI:
                 {
                     "tag_name": version,
                     "target_commitish": candidate_sha,
-                    "name": f"YoOhw Support Portal {version}",
+                    "name": f"Support Portal {version}",
                     "body": changelog_notes(prepared / "payload", version),
                     "draft": False,
                     "prerelease": False,
