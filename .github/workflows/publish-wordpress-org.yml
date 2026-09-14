@@ -146,6 +146,7 @@ jobs:
       - name: Single atomic SVN commit attempt
         id: commit
         env:
+          GH_TOKEN: ${{ github.token }}
           WPORG_SVN_USERNAME: ${{ vars.WPORG_SVN_USERNAME }}
           WPORG_SVN_PASSWORD: ${{ secrets.WPORG_SVN_PASSWORD }}
         run: python3 control/.github/scripts/release_cli.py commit

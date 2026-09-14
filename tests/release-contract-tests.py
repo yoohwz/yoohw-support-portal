@@ -80,6 +80,19 @@ def workflow_contract() -> None:
     assert "secrets.WPORG_SVN_PASSWORD" not in context
     assert "WPORG_SVN_PASSWORD" not in context
 
+    # The commit command re-authenticates the immutable Git tag immediately
+    # before entering SVN mutation, so the same step must receive a GitHub token
+    # alongside the SVN identity/secret. This exact block prevents the production
+    # regression seen in the first 1.0.0 publication attempt.
+    commit_step = """      - name: Single atomic SVN commit attempt
+        id: commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          WPORG_SVN_USERNAME: ${{ vars.WPORG_SVN_USERNAME }}
+          WPORG_SVN_PASSWORD: ${{ secrets.WPORG_SVN_PASSWORD }}
+        run: python3 control/.github/scripts/release_cli.py commit"""
+    assert commit_step in publish
+
     for required in (
         "test \"$GITHUB_REPOSITORY\" = yoohwz/yoohw-support-portal",
         "test \"$GITHUB_REF\" = refs/heads/main",
