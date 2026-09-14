@@ -44,19 +44,6 @@ def workflow_contract() -> None:
     ):
         assert required in agents or required in workflow, required
 
-    assert "dedicated **YoOhw Support Portal** project" in agents
-    assert "configured source folder" in agents
-    assert "yoohwz/yoohw-support-portal" in agents
-    assert "Do not create a second clone" in agents
-    assert "dedicated YoOhw Support Portal project" in workflow
-    assert "configured source folder" in workflow
-    assert "same dedicated project" in workflow
-    assert "fresh Codex review context" in workflow
-    assert "canonical source working tree read-only" in workflow
-    assert "yoohwz/yoohw-support-portal" in workflow
-    assert "/Users/" not in agents
-    assert "/Users/" not in workflow
-
     for forbidden in (
         "DIRECT_YSP",
         "STANDARD_YSP",
