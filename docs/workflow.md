@@ -21,13 +21,11 @@ Do not create another mutable task-state database, allocator, evidence ledger or
 
 ## Codex project binding
 
-Codex executes repository work from the dedicated YoOhw Support Portal project. The owner-side source folder configured for that project is:
+Codex executes repository work from the dedicated YoOhw Support Portal project. The project's configured source folder is the canonical local workspace; repository workflow files intentionally do not hardcode a host-specific absolute path.
 
-`/Users/nguyenquocbao/Local Sites/workspace/app/public/wp-content/plugins/yoohw-support-portal`
+The configured folder must be the Git working tree for `yoohwz/yoohw-support-portal`. Before `Run`, `Continue` or `Technical Review`, Codex verifies that the Git toplevel matches the source folder supplied by the current project, checks `origin`, current branch/HEAD and working-tree status, then fetches current `origin`. A mismatch is a fail-closed `HUMAN_DECISION_REQUIRED`; Codex must not silently select another Local site, plugin folder or repository.
 
-The folder is expected to be the Git working tree for `yoohwz/yoohw-support-portal`. Before `Run`, `Continue` or `Technical Review`, Codex verifies the Git toplevel, `origin`, current branch/HEAD and working-tree status, then fetches current `origin`. A mismatch is a fail-closed `HUMAN_DECISION_REQUIRED`; Codex must not silently select another Local site, plugin folder or repository.
-
-Normal implementation and review use this same dedicated project and source folder. Do not create another clone or worktree merely to satisfy workflow ceremony. Disposable build/test outputs belong in external temporary directories. A separate checkout is exceptional and requires an explicit task-specific reason.
+Normal implementation and review use this same dedicated project and configured source folder. Do not create another clone or worktree merely to satisfy workflow ceremony. Disposable build/test outputs belong in external temporary directories. A separate checkout is exceptional and requires an explicit task-specific reason.
 
 For independent review, isolation is **context isolation**, not mandatory filesystem duplication: start a fresh Codex review context in the same dedicated project, keep the canonical source tree read-only, bind the review to the exact candidate head/diff, and do not reuse the implementer's scratch reasoning or verdict. If a test intentionally mutates files under the repository root, use current CI evidence or an explicitly disposable external copy rather than mutating the canonical Codex project workspace.
 
