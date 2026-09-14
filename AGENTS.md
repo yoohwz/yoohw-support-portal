@@ -11,24 +11,15 @@ These instructions apply to the whole repository after the Foundation workflow i
 - A fresh independent Codex reviewer is required only for `CONTROLLED` work.
 - Git/GitHub own branch/head/base/diff/check/review/merge facts. Do not copy those facts into a second workflow state machine.
 
-## Dedicated Codex project and workspace
+## Local development workspace
 
-Codex work for this repository runs inside the dedicated **YoOhw Support Portal** project. The project configuration supplies the canonical local source folder for this repository; do not hardcode a machine-specific absolute path into repository workflow files.
+Codex works directly in the source folder configured for the dedicated **YoOhw Support Portal** project. That folder is also the plugin installed on the project's Local WordPress site.
 
-That configured source folder must be the Git working tree for `yoohwz/yoohw-support-portal`.
+Implementation work should edit the plugin files directly in that configured folder. This is intentional: code changes are immediately available to the Local site, so Codex can use the Local environment for focused manual/runtime verification while implementing.
 
-At the start of `Run`, `Continue` or `Technical Review`, verify the environment before changing anything:
+Do not create another clone or worktree for normal implementation. Use the existing project source folder, Git branch and PR workflow. A separate checkout is only needed when a specific task genuinely requires one.
 
-- `git rev-parse --show-toplevel` resolves to the source folder configured by the current Codex project;
-- `git remote get-url origin` points to `yoohwz/yoohw-support-portal`;
-- inspect current branch, HEAD and `git status --short`;
-- fetch current `origin` before deciding task/PR/head state.
-
-If the project source root or Git remote does not match, stop with `HUMAN_DECISION_REQUIRED` instead of guessing another repository or workspace.
-
-Do not create a second clone, sibling worktree or alternate source copy by default. Implementation branches live in this configured working tree. Disposable build/test output may use OS temporary directories outside the source tree. A separate clone/worktree is exceptional and needs an explicit task-specific reason.
-
-Commands such as `Run YSP-N`, `Continue YSP-N` and `Technical Review YSP-N` are entered in this dedicated Codex project; the configured source folder supplies the repository context.
+For relevant changes, prefer testing the real plugin behavior on the Local WordPress site in addition to cheap automated checks. Keep Local verification proportional to the task; do not turn it into a mandatory ceremony for trivial documentation or non-runtime changes.
 
 ## Git safety
 
@@ -85,13 +76,12 @@ If STANDARD discovery finds a CONTROLLED trigger, stop before the sensitive chan
 ## Review and corrections
 
 - Codex performs repo-local self-review and focused tests for all work.
-- CONTROLLED candidates receive one fresh independent reviewer context. Freshness means a new Codex review context, not a second local checkout. The reviewer uses the same dedicated Codex project and configured source folder in source-read-only mode, receives task/PR/diff/evidence rather than implementer scratch reasoning, and verifies the exact current candidate before reviewing.
-- The independent reviewer must not edit repository source, commit, switch branches, reset, stash, clean or otherwise mutate the canonical working tree. Read-only Git/GitHub inspection and checks that write only to external disposable temporary directories are allowed. If a local test intentionally writes inside the source tree, rely on current CI evidence or run it only in an explicitly disposable external copy rather than mutating the canonical project workspace.
-- Review and final CI may run in parallel after the candidate is frozen.
+- CONTROLLED candidates receive one fresh independent reviewer context. The reviewer examines the current task, PR/diff and relevant evidence without reusing the implementer's verdict.
+- The reviewer may use the same dedicated Codex project and Local environment. No separate clone/worktree is required solely for review ceremony.
 - Corrections stay in the same PR. A correction that changes the reviewed head requires refreshed affected CI/review.
 - Repeated material blockers or changed architecture/scope stop for ChatGPT/Human boundary review instead of creating an unbounded loop or replacement PR.
 
-Useful handoff text is intentionally small: `READY_TO_FINALIZE`, and only when needed `PLAN_REVIEW_REQUIRED`, `TECHNICAL_REVIEW_REQUIRED` (fallback when independent review cannot be orchestrated), or `HUMAN_DECISION_REQUIRED`. These are navigation hints, not a machine-parsed lifecycle.
+Useful handoff text is intentionally small: `READY_TO_FINALIZE`, and only when needed `PLAN_REVIEW_REQUIRED`, `TECHNICAL_REVIEW_REQUIRED`, or `HUMAN_DECISION_REQUIRED`. These are navigation hints, not a machine-parsed lifecycle.
 
 ## CI policy
 
