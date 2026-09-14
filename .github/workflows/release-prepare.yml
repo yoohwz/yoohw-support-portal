@@ -79,7 +79,7 @@ jobs:
       - name: Plugin Check exact prepared WordPress.org payload
         uses: wordpress/plugin-check-action@10857da14b6c2246d15402b3e69f777edcf8c12e # v1.1.9
         with:
-          build-dir: ${{ runner.temp }}/ysp-release/stage-a
+          build-dir: ${{ runner.temp }}/ysp-release/rc/payload
           slug: yoohw-support-portal
           strict: false
       - name: Upload immutable prepared release candidate
@@ -88,5 +88,6 @@ jobs:
           name: ${{ steps.prepare.outputs.artifact_name }}
           path: ${{ runner.temp }}/ysp-release/rc/*
           if-no-files-found: error
+          include-hidden-files: true
           retention-days: 90
           overwrite: false
