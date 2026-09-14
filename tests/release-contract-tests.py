@@ -53,6 +53,7 @@ def workflow_contract() -> None:
         assert required in prepare, required
 
     for required in (
+        "name: Publish Support Portal to WordPress.org",
         "options: [publish, verify-only]",
         "default: true",
         "preparation_run_id:",
@@ -117,6 +118,7 @@ def implementation_contract() -> None:
         'SLUG = "yoohw-support-portal"',
         'SVN_URL = f"https://plugins.svn.wordpress.org/{SLUG}"',
         'EXPECTED_SVN_AUTHOR = "yoohw"',
+        'f"Support Portal {version}"',
         "SVN_APPROVAL_SNAPSHOT_KEYS",
         "svn_approval_identity",
         "plugin_relative_svn_path",
@@ -139,6 +141,9 @@ def implementation_contract() -> None:
         "WPORG_PUBLIC_RELEASE_VERIFIED",
     ):
         assert required in lib, required
+
+    legacy_name = "YoOhw" + " Support Portal"
+    assert legacy_name not in lib
 
     # Global plugins-repository revision must never be an approval equality key.
     assert '"root_revision"' not in lib
@@ -168,6 +173,8 @@ def implementation_contract() -> None:
 def documentation_contract() -> None:
     docs = text("docs/releasing.md")
     for required in (
+        "# Support Portal — WordPress.org release",
+        "Publish Support Portal to WordPress.org",
         "wordpress-org-production",
         "WPORG_SVN_USERNAME",
         "exact value\n   `yoohw`",
