@@ -59,6 +59,12 @@ git -C "$SOURCE" ls-files -z > "$TRACKED"
 
 while IFS= read -r -d '' path; do
   case "$path" in
+    .DS_Store|*/.DS_Store|.env|*/.env|.env.*|*/.env.*|*.[Ll][Oo][Gg]|*.[Zz][Ii][Pp]|*.[Rr][Aa][Rr]|*.7[Zz]|*.[Tt][Aa][Rr]|*.[Tt][Gg][Zz]|*.[Gg][Zz]|*.[Bb][Zz]2|*.[Xx][Zz])
+      continue
+      ;;
+  esac
+
+  case "$path" in
     assets/*|inc/*|templates/*|languages/*|yoohw-support-portal.php|readme.txt|third-party-licenses.txt|uninstall.php)
       printf '%s\0' "$path" >> "$MANIFEST"
       ;;
@@ -76,7 +82,7 @@ rsync -a \
   --exclude-from="$SOURCE/.distignore" \
   "$SOURCE/" "$DESTINATION/"
 
-for forbidden in .git .github tests docs scripts AGENTS.md .distignore composer.json composer.lock phpunit.xml phpunit.xml.dist .env debug.log; do
+for forbidden in .git .github tests docs scripts AGENTS.md .distignore composer.json composer.lock phpunit.xml phpunit.xml.dist; do
   if [[ -e "$DESTINATION/$forbidden" ]]; then
     echo "forbidden development artifact in distribution: $forbidden" >&2
     exit 1
@@ -88,13 +94,21 @@ if find "$DESTINATION" -type l -print -quit | grep -q .; then
   exit 1
 fi
 
-if find "$DESTINATION" -type f -name '*.zip' -print -quit | grep -q .; then
-  echo "distribution must not contain nested ZIP archives" >&2
-  exit 1
-fi
-
-if find "$DESTINATION" -type f \( -name '.env' -o -name '.env.*' -o -name '*.log' \) -print -quit | grep -q .; then
-  echo "distribution must not contain local environment or log artifacts" >&2
+if find "$DESTINATION" -type f \( \
+  -name '.DS_Store' -o \
+  -name '.env' -o \
+  -name '.env.*' -o \
+  -iname '*.log' -o \
+  -iname '*.zip' -o \
+  -iname '*.rar' -o \
+  -iname '*.7z' -o \
+  -iname '*.tar' -o \
+  -iname '*.tgz' -o \
+  -iname '*.gz' -o \
+  -iname '*.bz2' -o \
+  -iname '*.xz' \
+\) -print -quit | grep -q .; then
+  echo "distribution must not contain local artifacts or nested archives" >&2
   exit 1
 fi
 
