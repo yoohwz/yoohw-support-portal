@@ -8,11 +8,13 @@ Stable tag: 1.0.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Build a private customer support portal with secure conversations, protected attachments, access controls, and flexible storage.
+Build a private support portal with conversations, access controls, flexible storage, and protected attachments in posts/comments mode.
 
 == Description ==
 
-YoOhw Support Portal adds a private, account-based support area to WordPress. Customers can open support topics, exchange replies with authorized staff, upload protected attachments, and follow conversations from open to resolved.
+YoOhw Support Portal adds a private, account-based support area to WordPress. Customers can open support topics, exchange replies with authorized staff, and follow conversations from open to resolved.
+
+When the portal uses WordPress posts and comments storage, customers can also upload protected attachments that are delivered through authorization checks. Attachment uploads are not currently available in isolated support storage.
 
 The plugin is designed for sites that need customer support to stay separate from public content while remaining fully managed inside WordPress.
 
@@ -20,7 +22,7 @@ The plugin is designed for sites that need customer support to stay separate fro
 
 * Private support dashboard for customers and support staff.
 * Customer-created support topics with threaded replies.
-* Protected attachment delivery with authorization checks.
+* Protected attachment uploads and authorized delivery in WordPress posts/comments storage mode.
 * Open and resolved conversation workflow.
 * Category access by user role or access code.
 * Dedicated support capabilities for administrators, editors, and custom roles.
@@ -43,11 +45,15 @@ This mode is recommended for an existing website, store, content site, or commun
 
 Dedicated support tables are created lazily after isolated storage is selected and saved.
 
+Protected attachment uploads are not currently available in isolated support storage.
+
 = WordPress posts and comments =
 
 Support topics are stored as WordPress posts and replies as comments.
 
 This mode is best suited to a new or dedicated WordPress installation that is used primarily as a customer support portal.
+
+Protected attachment uploads and authorized attachment delivery are available in this storage mode.
 
 = Important storage note =
 
@@ -66,7 +72,7 @@ Switching modes does not migrate or delete either dataset. Each dataset remains 
 
 = Which storage mode should I use? =
 
-Use isolated support storage when the site already contains public posts, comments, products, pages, or community content. Use WordPress posts and comments when the installation is new or dedicated primarily to customer support.
+Use isolated support storage when the site already contains public posts, comments, products, pages, or community content. Use WordPress posts and comments when the installation is new or dedicated primarily to customer support, or when you need protected attachment uploads.
 
 = Are dedicated support tables created on every installation? =
 
@@ -86,7 +92,7 @@ Categories can be restricted by user role or by access code, depending on how th
 
 = Are uploaded support attachments public? =
 
-Support attachments handled by the protected attachment system are stored outside the public uploads path and served through an authorization check. Existing support-related attachments can be moved into protected storage as they are accessed through the portal.
+Protected attachment uploads are currently available only in WordPress posts/comments storage mode. In that mode, support attachments handled by the protected attachment system are stored outside the public uploads path and served through an authorization check. Existing support-related attachments can be moved into protected storage as they are accessed through the portal.
 
 = Does YoOhw receive my support conversations or attachments? =
 
@@ -102,7 +108,7 @@ The plugin removes its settings, scheduled hooks, and custom capabilities. Suppo
 
 == Privacy ==
 
-Support topics and replies may contain personal or confidential information, including account identifiers, message content, timestamps, categories, workflow status, and uploaded files.
+Support topics and replies may contain personal or confidential information, including account identifiers, message content, timestamps, categories, and workflow status. In WordPress posts/comments storage mode, support conversations may also include uploaded files.
 
 This information is stored on the WordPress site. YoOhw Support Portal does not transmit support conversations, attachments, or account data to YoOhw or another external service.
 
@@ -125,7 +131,7 @@ Third-party components and their license notices are documented in `third-party-
 = 1.0.0 =
 * Initial release.
 * Added private customer support topics and replies.
-* Added protected support attachments and authorization checks.
+* Added protected support attachments and authorization checks for WordPress posts/comments storage mode.
 * Added isolated support storage and native WordPress posts/comments storage modes.
 * Added role- and access-code-based category access.
 * Added dedicated support capabilities and customer visibility controls.
