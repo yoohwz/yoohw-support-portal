@@ -51,7 +51,7 @@ This mode is best suited to a new or dedicated WordPress installation that is us
 
 = Important storage note =
 
-Switching storage modes does not migrate, merge, or delete existing support data. Each dataset remains in its original storage system. Choose the appropriate mode before putting the portal into regular use.
+Switching modes does not migrate or delete either dataset. Each dataset remains in its original storage system. Choose the appropriate mode before putting the portal into regular use.
 
 == Installation ==
 
@@ -74,7 +74,7 @@ No. Dedicated topic and reply tables are created only after isolated support sto
 
 = Can I switch storage modes later? =
 
-Yes, but switching modes does not migrate or delete existing conversations. The portal begins reading and writing through the selected storage mode while the other dataset remains in place.
+Yes. Switching modes does not migrate or delete either dataset. The portal begins reading and writing through the selected storage mode while the other dataset remains in place.
 
 = Who can view a customer's support topic? =
 
@@ -86,11 +86,11 @@ Categories can be restricted by user role or by access code, depending on how th
 
 = Are uploaded support attachments public? =
 
-Support attachments handled by the protected attachment system are stored outside the normal public uploads path and served through an authorization check. Existing support-related attachments can be moved into protected storage as they are accessed through the portal.
+Support attachments handled by the protected attachment system are stored outside the public uploads path and served through an authorization check. Existing support-related attachments can be moved into protected storage as they are accessed through the portal.
 
 = Does YoOhw receive my support conversations or attachments? =
 
-No. YoOhw Support Portal does not transmit support conversations, attachments, or customer account data to YoOhw or another external service.
+No. YoOhw Support Portal does not transmit support conversations, attachments, or account data to YoOhw or another external service.
 
 = Does the plugin add a public YoOhw credit? =
 
@@ -104,7 +104,7 @@ The plugin removes its settings, scheduled hooks, and custom capabilities. Suppo
 
 Support topics and replies may contain personal or confidential information, including account identifiers, message content, timestamps, categories, workflow status, and uploaded files.
 
-This information is stored on the WordPress site. YoOhw Support Portal does not send support conversations, attachments, or account data to YoOhw or another external service.
+This information is stored on the WordPress site. YoOhw Support Portal does not transmit support conversations, attachments, or account data to YoOhw or another external service.
 
 The plugin adds suggested privacy-policy text to the WordPress privacy-policy guide. Site owners remain responsible for establishing appropriate retention periods, access policies, backups, and procedures for verified export or erasure requests.
 
