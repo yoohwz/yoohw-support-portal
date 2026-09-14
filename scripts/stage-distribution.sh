@@ -12,7 +12,7 @@ fi
 SOURCE="$(cd "$SOURCE_INPUT" && pwd -P)"
 
 if [[ ! -f "$SOURCE/yoohw-support-portal.php" || ! -f "$SOURCE/.distignore" ]]; then
-  echo "source is not a YoOhw Support Portal repository root" >&2
+  echo "source is not a Support Portal repository root" >&2
   exit 1
 fi
 
