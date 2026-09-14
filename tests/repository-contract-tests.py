@@ -30,6 +30,47 @@ def version_contract() -> None:
     assert requires_php.group(1) == "7.4"
 
 
+def branding_contract() -> None:
+    plugin = text("yoohw-support-portal.php")
+    readme = text("readme.txt")
+    license_text = text("license.txt")
+    release_lib = text(".github/scripts/release_lib.py")
+
+    assert re.search(r"^Plugin Name:\s*Support Portal\s*$", plugin, re.MULTILINE)
+    assert re.search(r"^=== Support Portal ===\s*$", readme, re.MULTILINE)
+    assert license_text.startswith("Support Portal\n")
+
+    # Brand rename must not change compatibility identifiers.
+    assert re.search(r"^Text Domain:\s*yoohw-support-portal\s*$", plugin, re.MULTILINE)
+    assert 'REPOSITORY = "yoohwz/yoohw-support-portal"' in release_lib
+    assert 'SLUG = "yoohw-support-portal"' in release_lib
+    assert 'SVN_URL = f"https://plugins.svn.wordpress.org/{SLUG}"' in release_lib
+
+    # Keep the retired public product name out of tracked text without embedding
+    # that stale literal contiguously in the contract itself.
+    legacy_name = "YoOhw" + " Support Portal"
+    tracked = subprocess.run(
+        ["git", "ls-files", "-z"],
+        cwd=ROOT,
+        check=True,
+        stdout=subprocess.PIPE,
+    ).stdout.split(b"\0")
+    stale = []
+    for raw in tracked:
+        if not raw:
+            continue
+        path = ROOT / raw.decode("utf-8")
+        if not path.is_file():
+            continue
+        try:
+            contents = path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            continue
+        if legacy_name in contents:
+            stale.append(path.relative_to(ROOT).as_posix())
+    assert not stale, stale
+
+
 def license_contract() -> None:
     plugin = text("yoohw-support-portal.php")
     readme = text("readme.txt")
@@ -38,7 +79,7 @@ def license_contract() -> None:
     assert re.search(r"^License:\s*GPL-2\.0-or-later\s*$", plugin, re.MULTILINE)
     assert re.search(r"^License:\s*GPLv2 or later\s*$", readme, re.MULTILINE)
     for fragment in (
-        "YoOhw Support Portal",
+        "Support Portal",
         "Copyright (C) 2026 YoOhw",
         "either version 2 of the License, or (at your option) any later version",
         "GNU GENERAL PUBLIC LICENSE",
@@ -241,6 +282,7 @@ def foundation_scope_contract() -> None:
 
 def main() -> None:
     version_contract()
+    branding_contract()
     license_contract()
     workflow_contract()
     distribution_contract()
