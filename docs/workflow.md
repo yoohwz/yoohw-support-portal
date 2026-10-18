@@ -13,6 +13,7 @@ Use one authority for each fact:
 | Diff and ancestry | Git |
 | CI | GitHub Actions/Checks |
 | Independent review | Exact-head PR review/comment when required |
+| Acceptance | SHA-bound ChatGPT record on the PR after successful final validation |
 | Merge | GitHub PR merge record |
 | Product safety | `docs/support-data-safety.md` |
 | Release/publication | Separate Human authorization |
@@ -31,11 +32,13 @@ Use this direct Local workflow by default:
 
 Do not create another clone or worktree for ordinary work. Local runtime checks are encouraged where they add useful evidence, but they are not mandatory ceremony for trivial docs or non-runtime changes.
 
-## Create, Run, Finalize
+## Create, Run, Acceptance Review, Merge
 
 1. **Create** — ChatGPT reduces the request to goal, scope, acceptance, relevant invariants, expected validation and `STANDARD` or `CONTROLLED`. Use Issue `#N` as `YSP-N` when an Issue is warranted.
-2. **Run** — Codex recovers current Issue/PR/head/base from GitHub, implements directly in the project's Local plugin source folder, runs focused checks and maintains one draft PR. Do not wait for full final CI on every edit.
-3. **Finalize** — after the candidate is frozen, final CI and any required independent review must be current. Human `Finalize YSP-N` conditionally authorizes ChatGPT to perform final Acceptance and squash-merge only that unchanged acceptable candidate. GitHub makes the final merge/protection decision.
+2. **Run** — Codex recovers current Issue/PR/head/base from GitHub, implements directly in the project's Local plugin source folder, runs focused checks and maintains one Draft PR. Do not wait for full final CI on every edit.
+3. **Plan Review / Review** — `Plan Review YSP-N` resolves only an actual unresolved product/security/data/architecture/compatibility decision. For `CONTROLLED`, a fresh independent Technical Review of the frozen candidate is required; `Review YSP-N` is a standalone fallback, not an extra mandatory process for `STANDARD`.
+4. **Acceptance Review YSP-N** — ChatGPT first performs an exact-candidate precheck while the PR is Draft. If blocker-free, it marks the unchanged PR Ready, observes final `YSP Required CI` on the current candidate to a terminal result, fresh-verifies head/base and any required review, and records explicit SHA-bound Acceptance PASS in the PR only if all requirements pass. It never merges.
+5. **Merge YSP-N** — only a subsequent explicit Human instruction authorizes merge of the unchanged accepted candidate. ChatGPT rechecks exact SHA, current CI, required review, mergeability and blockers. GitHub makes the final merge/protection decision. It does not authorize release or deployment.
 
 `Continue YSP-N` means recover and resume; it never means restart the task or ask the Human to repeat GitHub-recoverable context.
 
@@ -47,7 +50,7 @@ Use for ordinary bounded work that does not change sensitive-data or safety-cont
 
 Flow:
 
-`Create/brief -> Run -> draft PR -> focused checks -> Iteration Gate -> freeze candidate -> YSP Required CI -> READY_TO_FINALIZE -> Finalize`
+`Create/brief -> Run -> draft PR -> focused checks -> Iteration Gate -> freeze candidate -> Acceptance Review (precheck -> YSP Required CI -> SHA-bound Acceptance) -> READY_TO_MERGE -> Merge`
 
 Independent review is optional and should not be added merely because runtime code changed.
 
@@ -55,7 +58,7 @@ Independent review is optional and should not be added merely because runtime co
 
 Use when work materially affects authentication, authorization, private visibility, protected files, REST/AJAX/admin-post security, persistence/schema/storage semantics, privacy, email recipients/private disclosure, destructive cleanup, uninstall retention, distribution/release safety or equivalent architecture.
 
-CONTROLLED uses the same flow plus exactly one fresh independent technical review of the frozen candidate. Review and final CI should run in parallel when practical.
+CONTROLLED uses the same flow plus exactly one fresh independent technical review of the frozen candidate, normally before the internal Acceptance precheck. A head-changing correction requires refreshed affected review and CI evidence before final Acceptance.
 
 A separate Plan Review is required only when the task boundary is not sufficient to decide a product/architecture/data/permission/compatibility question. A fully bounded CONTROLLED bug/fix may implement directly.
 
@@ -73,7 +76,7 @@ Run fast checks only:
 - JavaScript syntax;
 - source-level safety characterization.
 
-Superseded runs for the same PR are cancelled.
+Superseded runs for the same PR are cancelled. Keep the PR Draft during implementation, corrections, Technical Review and the internal Acceptance precheck; Ready starts final-candidate validation.
 
 `Iteration Gate` is feedback only and must never satisfy branch protection.
 
@@ -106,17 +109,19 @@ No separate local clone/worktree is required just to manufacture review isolatio
 
 A head-changing correction invalidates the old terminal review. Keep corrections in the same PR. Repeated material blockers or a required architecture/scope change stop for a boundary decision instead of starting an unlimited review loop.
 
-## Finalize contract
+## Acceptance Review and Merge contract
 
-Before merge, ChatGPT verifies at least:
+For `Acceptance Review YSP-N`, ChatGPT checks the current Issue/scope, frozen PR head and base, focused validation and any required independent review while the PR is still Draft. This internal precheck is not final Acceptance. If no blocker remains, mark the **unchanged** PR Ready and observe its `YSP Required CI` on the current candidate to a terminal result. Recheck head/base compatibility, review and blockers after CI. Only then record explicit SHA-bound Acceptance PASS on the PR and report `READY_TO_MERGE`. A missing, stale, queued, cancelled or failed check never produces Acceptance PASS; report the precise blocker or pending state instead.
 
-- the PR head is the candidate identified to the Human;
-- current target `main` is compatible and the native PR merge candidate has current `YSP Required CI` success;
-- any required independent review covers the current head or only an explicitly verified non-semantic documentation delta remains;
-- no unresolved blocking finding or unapproved scope drift exists;
-- release/publication was not smuggled into merge authority.
+For `Merge YSP-N`, the Human's separate command authorizes only the accepted, unchanged candidate. Immediately before merging, ChatGPT verifies:
 
-If the candidate changes, do not merge under the old Finalize authority.
+- the current PR head exactly matches the SHA recorded in final Acceptance;
+- current target `main` is compatible and GitHub reports the required `YSP Required CI` success for the current PR candidate;
+- the required independent Technical Review is current for `CONTROLLED` work;
+- there is no unresolved material blocker or scope drift and the PR is mergeable;
+- merge is not treated as permission to version, tag, package, publish or deploy.
+
+A changed candidate head invalidates previous Technical Review, CI and Acceptance evidence as applicable; return to Draft for corrections and repeat affected review/Acceptance. A moved target base requires a fresh compatibility and CI assessment before merge. Neither `Run`, `Review` nor `Acceptance Review` grants merge authority.
 
 ## Distribution
 

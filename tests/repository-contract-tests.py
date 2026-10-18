@@ -111,7 +111,9 @@ def workflow_contract() -> None:
     for required in (
         "STANDARD",
         "CONTROLLED",
-        "READY_TO_FINALIZE",
+        "READY_TO_MERGE",
+        "Acceptance Review YSP-N",
+        "Merge YSP-N",
         "YSP Required CI",
         "Iteration Gate",
         "Git/GitHub",
