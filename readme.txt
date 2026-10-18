@@ -156,7 +156,7 @@ Third-party components and their license notices are documented in `third-party-
 * New: Embed topic submission, login, password recovery, and authorized topic lists in regular WordPress theme pages using shortcodes.
 * New: Configure attachments for new topics and replies separately, including file count, file-size limits, permitted image/video/ZIP types, and protected preview or download-link display.
 * New: Configure reply-history batch size, topics per page, and WordPress avatars or initials.
-* Improved: Conversations align your replies on the right, show recent replies first, and let you expand older messages without additional requests; full history remains available without JavaScript.
+* Improved: Conversations align your replies on the right, initially show the newest reply batch in chronological order, and let you reveal older messages without extra requests; the full history remains available without JavaScript.
 * Improved: Narrow-screen topic forms, editor toolbars, long titles, dashboard cards, and administration settings are easier to use, with visible keyboard focus.
 * Improved: Text, links, inputs, and buttons remain readable with configured dark backgrounds or light primary colors.
 * Fixed: Category role selection no longer triggers recursive focus errors, and unavailable site icons no longer show broken images.
