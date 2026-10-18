@@ -68,7 +68,7 @@ Before selecting **any future version**, Codex reads the actual latest
 [WordPress.org plugin listing](https://wordpress.org/plugins/yoohw-support-portal/),
 versioned public download, target
 [WordPress.org SVN](https://plugins.svn.wordpress.org/yoohw-support-portal/),
-and relevant GitHub tag/release. Use the last **actually published** WordPress.org
+and relevant GitHub tag/release. Use the last actually published WordPress.org
 version as the comparison baseline, not the current source version, an
 unpublished PR or an earlier prepared artifact. If the public, SVN or Git tag
 identities conflict or target version/tag already exists, stop and report the
