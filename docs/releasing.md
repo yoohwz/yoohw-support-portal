@@ -1,7 +1,7 @@
 # Support Portal — WordPress.org release
 
 This is a release-only control plane. It does not replace normal YSP PR review,
-`YSP Required CI`, independent review for CONTROLLED work, or Human `Finalize`.
+`YSP Required CI`, independent review for CONTROLLED work, recorded SHA-bound Acceptance, or separate Human `Merge YSP-N` authorization.
 Merging a release-tooling change never grants publication authority.
 
 The design follows the proven `wc-order-splitter` publisher pattern while keeping
