@@ -2,6 +2,8 @@
 
 The dedicated portal keeps its existing routes, layout, permissions, and submission handlers. Shortcodes add individual support components to a regular WordPress page. The active theme provides the page header, footer, and surrounding layout; the component uses the portal's configured colors and fonts within its own container.
 
+A compact **Shortcodes** section below **Support features** in **Settings > Support Portal** opens the built-in shortcode guide in a WordPress ThickBox dialog.
+
 ## Setup
 
 1. Create a normal WordPress page with a unique slug, such as `customer-help`. Do not reuse a portal route such as `/topics/`, `/new/`, `/login/`, or `/support/`.

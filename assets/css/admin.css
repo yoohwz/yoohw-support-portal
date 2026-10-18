@@ -48,3 +48,13 @@
 .yoohw-feature-options fieldset { display: grid; gap: 8px; }
 .yoohw-feature-options select { max-width: 100%; }
 .yoohw-feature-options[disabled] { opacity: 0.65; }
+
+#TB_window.yoohw-shortcode-modal { box-sizing: border-box; top: 50%; left: 50%; width: min(760px, calc(100vw - 32px)) !important; height: min(640px, calc(100vh - 48px)); margin: 0 !important; transform: translate(-50%, -50%); }
+.yoohw-shortcode-modal #TB_ajaxContent { box-sizing: border-box; width: 100% !important; height: calc(100% - 30px) !important; padding: 8px 24px 20px; overflow: auto; }
+.yoohw-shortcode-guide { color: #1d2327; font-size: 13px; line-height: 1.6; }
+.yoohw-shortcode-list { display: grid; gap: 10px; }
+.yoohw-shortcode-list > div { padding: 12px 14px; border: 1px solid #dcdcde; border-radius: 4px; background: #f6f7f7; }
+.yoohw-shortcode-list code { padding: 0; background: transparent; overflow-wrap: anywhere; }
+.yoohw-shortcode-list dt { margin-bottom: 4px; font-weight: 600; }
+.yoohw-shortcode-list dd { margin: 0; }
+.yoohw-shortcode-guide li { margin-bottom: 8px; }

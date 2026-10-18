@@ -28,6 +28,8 @@ class YoOhw_Support_Settings {
 			return;
 		}
 
+		add_thickbox();
+
 		$css_path = YOOHW_SUPPORT_PORTAL_PATH . 'assets/css/admin.css';
 		$js_path  = YOOHW_SUPPORT_PORTAL_PATH . 'assets/js/admin.js';
 
@@ -40,7 +42,7 @@ class YoOhw_Support_Settings {
 		wp_enqueue_script(
 			'yoohw-support-portal-admin',
 			YOOHW_SUPPORT_PORTAL_URL . 'assets/js/admin.js',
-			[],
+			[ 'thickbox' ],
 			file_exists( $js_path ) ? (string) filemtime( $js_path ) : YOOHW_SUPPORT_PORTAL_VERSION,
 			true
 		);
@@ -453,6 +455,8 @@ class YoOhw_Support_Settings {
 		add_settings_section( 'yoohw_support_portal_features', __( 'Support features', 'yoohw-support-portal' ), '__return_false', 'yoohw-support-portal' );
 		add_settings_field( 'attachment_options', __( 'Attachments', 'yoohw-support-portal' ), [ __CLASS__, 'render_attachment_options' ], 'yoohw-support-portal', 'yoohw_support_portal_features' );
 		add_settings_field( 'conversation_options', __( 'Conversations and lists', 'yoohw-support-portal' ), [ __CLASS__, 'render_conversation_options' ], 'yoohw-support-portal', 'yoohw_support_portal_features' );
+
+		add_settings_section( 'yoohw_support_portal_shortcodes', __( 'Shortcodes', 'yoohw-support-portal' ), [ __CLASS__, 'render_shortcode_guide' ], 'yoohw-support-portal' );
 	}
 
 	public static function register_options_page(): void {
@@ -788,6 +792,41 @@ class YoOhw_Support_Settings {
 		}
 
 		return '.yoohw-support-body,.yoohw-support{' . $declarations . '}';
+	}
+
+	public static function render_shortcode_guide(): void {
+		$shortcodes = [
+			'yoohw_post_form'          => __( 'New-topic form with category selection and attachments when enabled. Guests see a login prompt.', 'yoohw-support-portal' ),
+			'yoohw_login_form'         => __( 'Login form using the existing authentication and SSO rules.', 'yoohw-support-portal' ),
+			'yoohw_lost_password_form' => __( 'Password-recovery form. Reset links continue to use the portal.', 'yoohw-support-portal' ),
+			'yoohw_support_topics'     => __( 'Topic list with search, filters, and pagination. Customers see their own topics; staff access follows existing permissions.', 'yoohw-support-portal' ),
+		];
+		?>
+		<p><?php esc_html_e( 'Embed support forms and topic lists in pages using your theme. The existing portal stays available.', 'yoohw-support-portal' ); ?></p>
+		<p><button type="button" class="button" id="yoohw-shortcode-guide-open" data-dialog-title="<?php esc_attr_e( 'Shortcode guide', 'yoohw-support-portal' ); ?>" aria-haspopup="dialog"><?php esc_html_e( 'View shortcode guide', 'yoohw-support-portal' ); ?></button></p>
+		<div id="yoohw-shortcode-guide" hidden>
+			<div class="yoohw-shortcode-guide">
+				<p><?php esc_html_e( 'Add a Shortcode block to a regular WordPress page, then paste one of these tags. No attributes are required.', 'yoohw-support-portal' ); ?></p>
+				<dl class="yoohw-shortcode-list">
+					<?php foreach ( $shortcodes as $tag => $description ) : ?>
+						<div><dt><code><?php echo esc_html( '[' . $tag . ']' ); ?></code></dt><dd><?php echo esc_html( $description ); ?></dd></div>
+					<?php endforeach; ?>
+				</dl>
+				<h3><?php esc_html_e( 'Use your theme', 'yoohw-support-portal' ); ?></h3>
+				<ol>
+					<li><?php esc_html_e( 'Choose a unique page slug, such as customer-help. Avoid portal routes such as /topics/, /new/, /login/, and /support/.', 'yoohw-support-portal' ); ?></li>
+					<li><?php esc_html_e( 'With WordPress posts/comments storage, turn off the WordPress pages option under Plugin UI and use pretty permalinks. The homepage remains the portal dashboard. In isolated storage, regular pages already use your theme.', 'yoohw-support-portal' ); ?></li>
+					<li><?php esc_html_e( 'Use each shortcode at most once per page. Place login and password-recovery forms on separate pages. Add headings using your page editor.', 'yoohw-support-portal' ); ?></li>
+				</ol>
+				<h3><?php esc_html_e( 'Keep in mind', 'yoohw-support-portal' ); ?></h3>
+				<ul class="ul-disc">
+					<li><?php esc_html_e( 'Exclude these pages from page, CDN, and builder caches for every visitor. Builders must render shortcodes on the server before footer scripts; cached HTML and client-side insertion are not supported.', 'yoohw-support-portal' ); ?></li>
+					<li><?php esc_html_e( 'Topic details, replies, new-topic links, and successful topic submissions open the existing portal. Authentication rules and redirects remain unchanged.', 'yoohw-support-portal' ); ?></li>
+					<li><?php esc_html_e( 'Portal and embedded components share Support features settings, colors, and fonts. Isolated storage does not support file uploads.', 'yoohw-support-portal' ); ?></li>
+				</ul>
+			</div>
+		</div>
+		<?php
 	}
 
 	public static function render_options_page(): void {
