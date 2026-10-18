@@ -103,6 +103,7 @@ Read `docs/support-data-safety.md` before changes involving support data, identi
 
 - Repository-only development files must not enter the WordPress.org payload. Use `.distignore` and `scripts/stage-distribution.sh`.
 - Merge permission never grants version/tag/release/publication/deployment permission.
+- For an actual WordPress.org release, use the existing `docs/releasing.md` and two manual GitHub Actions. Human chooses the new version; verify the last actually published baseline, newest changelog and exact prepared artifact before a separately approved production publication.
 - Do not build a release ledger, publisher state machine or release-cert framework until a concrete release task demonstrates the need.
 
 ## Explicit non-goals
