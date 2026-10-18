@@ -58,6 +58,20 @@
     });
   }
 
+  function setupBrandIcon() {
+    var image = document.querySelector(".yoohw-brand-icon");
+
+    if (!image) return;
+
+    function hideUnavailableIcon() {
+      var mark = image.closest(".yoohw-brand-mark");
+      if (mark) mark.remove();
+    }
+
+    image.addEventListener("error", hideUnavailableIcon, { once: true });
+    if (image.complete && image.naturalWidth === 0) hideUnavailableIcon();
+  }
+
   function setupPasswordToggles() {
     document.querySelectorAll(".yoohw-password-toggle").forEach(function (button) {
       button.addEventListener("click", function () {
@@ -330,6 +344,7 @@
   }
 
   document.addEventListener("DOMContentLoaded", function () {
+    setupBrandIcon();
     setupNavigation();
     setupPasswordToggles();
     setupPasswordStrength();
