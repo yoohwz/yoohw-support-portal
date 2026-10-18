@@ -340,10 +340,6 @@ class YoOhw_Support_Settings {
 			[ 'key' => 'dedicated_portal_mode' ]
 		);
 
-		add_settings_section( 'yoohw_support_portal_features', __( 'Support features', 'yoohw-support-portal' ), '__return_false', 'yoohw-support-portal' );
-		add_settings_field( 'attachment_options', __( 'Attachments', 'yoohw-support-portal' ), [ __CLASS__, 'render_attachment_options' ], 'yoohw-support-portal', 'yoohw_support_portal_features' );
-		add_settings_field( 'conversation_options', __( 'Conversations and lists', 'yoohw-support-portal' ), [ __CLASS__, 'render_conversation_options' ], 'yoohw-support-portal', 'yoohw_support_portal_features' );
-
 		add_settings_section(
 			'yoohw_support_portal_links',
 			__( 'Support links', 'yoohw-support-portal' ),
@@ -453,6 +449,10 @@ class YoOhw_Support_Settings {
 				]
 			);
 		}
+
+		add_settings_section( 'yoohw_support_portal_features', __( 'Support features', 'yoohw-support-portal' ), '__return_false', 'yoohw-support-portal' );
+		add_settings_field( 'attachment_options', __( 'Attachments', 'yoohw-support-portal' ), [ __CLASS__, 'render_attachment_options' ], 'yoohw-support-portal', 'yoohw_support_portal_features' );
+		add_settings_field( 'conversation_options', __( 'Conversations and lists', 'yoohw-support-portal' ), [ __CLASS__, 'render_conversation_options' ], 'yoohw-support-portal', 'yoohw_support_portal_features' );
 	}
 
 	public static function register_options_page(): void {
