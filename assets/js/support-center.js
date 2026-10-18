@@ -390,28 +390,30 @@
         button.disabled = true;
         history.setAttribute("aria-busy", "true");
         label.textContent = message("revealingReplies", "Showing older replies…");
-        // Yield to the browser once; there is no network request or timed wait.
+        // Let the browser paint the busy state before revealing content; no timed wait.
         window.requestAnimationFrame(function () {
-          var previousFirst = firstVisible;
-          firstVisible = Math.max(0, firstVisible - 5);
-          update();
-          replies.slice(firstVisible, previousFirst).forEach(function (reply) {
-            reply.classList.add("is-newly-revealed");
-            reply.addEventListener("animationend", function () {
-              reply.classList.remove("is-newly-revealed");
-            }, { once: true });
+          window.requestAnimationFrame(function () {
+            var previousFirst = firstVisible;
+            firstVisible = Math.max(0, firstVisible - 5);
+            update();
+            replies.slice(firstVisible, previousFirst).forEach(function (reply) {
+              reply.classList.add("is-newly-revealed");
+              reply.addEventListener("animationend", function () {
+                reply.classList.remove("is-newly-revealed");
+              }, { once: true });
+            });
+            history.removeAttribute("aria-busy");
+            button.disabled = false;
+            status.textContent = firstVisible === 0
+              ? message("allRepliesShown", "All %d replies are now shown.").replace("%d", replies.length)
+              : progress.textContent;
+            // Keep keyboard focus useful when the final batch removes the control.
+            var first = replies[firstVisible];
+            if (first) {
+              first.tabIndex = -1;
+              first.focus({ preventScroll: true });
+            }
           });
-          history.removeAttribute("aria-busy");
-          button.disabled = false;
-          status.textContent = firstVisible === 0
-            ? message("allRepliesShown", "All %d replies are now shown.").replace("%d", replies.length)
-            : progress.textContent;
-          // Keep keyboard focus useful when the final batch removes the control.
-          var first = replies[firstVisible];
-          if (first) {
-            first.tabIndex = -1;
-            first.focus({ preventScroll: true });
-          }
         });
       });
       update();
