@@ -67,6 +67,19 @@ class YoOhw_Support_Assets {
 					'submitting'      => __( 'Submitting. Please wait...', 'yoohw-support-portal' ),
 					'copied'          => __( 'Copied', 'yoohw-support-portal' ),
 					'copy'            => __( 'Copy', 'yoohw-support-portal' ),
+					/* translators: %d: Number of hidden older replies. */
+					'olderReply'      => __( '%d older reply available', 'yoohw-support-portal' ),
+					/* translators: %d: Number of hidden older replies. */
+					'olderReplies'    => __( '%d older replies available', 'yoohw-support-portal' ),
+					/* translators: 1: Visible reply count, 2: Total reply count. */
+					'replyProgress'   => __( 'Showing %1$d of %2$d replies', 'yoohw-support-portal' ),
+					/* translators: %d: Number of older replies revealed by the next click. */
+					'showOlderReply'  => __( 'Show %d older reply', 'yoohw-support-portal' ),
+					/* translators: %d: Number of older replies revealed by the next click. */
+					'showOlderReplies' => __( 'Show %d older replies', 'yoohw-support-portal' ),
+					'revealingReplies' => __( 'Showing older replies…', 'yoohw-support-portal' ),
+					/* translators: %d: Total reply count. */
+					'allRepliesShown' => __( 'All %d replies are now shown.', 'yoohw-support-portal' ),
 					'passwordStrengthEmpty'    => __( 'Password strength', 'yoohw-support-portal' ),
 					'passwordStrengthShort'    => __( 'Very weak', 'yoohw-support-portal' ),
 					'passwordStrengthBad'      => __( 'Weak', 'yoohw-support-portal' ),

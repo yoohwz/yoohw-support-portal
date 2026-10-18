@@ -354,15 +354,24 @@
   function setupReplyHistory() {
     document.querySelectorAll(".yoohw-replies").forEach(function (section) {
       var list = section.querySelector(".yoohw-reply-list");
-      var button = section.querySelector(".yoohw-reply-history");
+      var history = section.querySelector(".yoohw-reply-history");
+      var button = history ? history.querySelector("button") : null;
       if (!list || !button) return;
+      var count = history.querySelector("[data-reply-history-count]");
+      var progress = history.querySelector("[data-reply-history-progress]");
+      var label = history.querySelector("[data-reply-history-label]");
+      var status = section.querySelector("[data-reply-history-status]");
 
       var replies = Array.prototype.slice.call(list.children);
       var firstVisible = Math.max(0, replies.length - 5);
 
       function update() {
         replies.forEach(function (reply, index) { reply.hidden = index < firstVisible; });
-        button.hidden = firstVisible === 0;
+        history.hidden = firstVisible === 0;
+        var nextCount = Math.min(5, firstVisible);
+        count.textContent = message(firstVisible === 1 ? "olderReply" : "olderReplies", firstVisible === 1 ? "%d older reply available" : "%d older replies available").replace("%d", firstVisible);
+        progress.textContent = message("replyProgress", "Showing %1$d of %2$d replies").replace("%1$d", replies.length - firstVisible).replace("%2$d", replies.length);
+        label.textContent = message(nextCount === 1 ? "showOlderReply" : "showOlderReplies", nextCount === 1 ? "Show %d older reply" : "Show %d older replies").replace("%d", nextCount);
       }
 
       function revealLinkedReply() {
@@ -377,14 +386,33 @@
       }
 
       button.addEventListener("click", function () {
-        firstVisible = Math.max(0, firstVisible - 5);
-        update();
-        // Keep keyboard focus useful when the final batch removes the button.
-        var first = replies[firstVisible];
-        if (first) {
-          first.tabIndex = -1;
-          first.focus({ preventScroll: true });
-        }
+        if (button.disabled) return;
+        button.disabled = true;
+        history.setAttribute("aria-busy", "true");
+        label.textContent = message("revealingReplies", "Showing older replies…");
+        // Yield to the browser once; there is no network request or timed wait.
+        window.requestAnimationFrame(function () {
+          var previousFirst = firstVisible;
+          firstVisible = Math.max(0, firstVisible - 5);
+          update();
+          replies.slice(firstVisible, previousFirst).forEach(function (reply) {
+            reply.classList.add("is-newly-revealed");
+            reply.addEventListener("animationend", function () {
+              reply.classList.remove("is-newly-revealed");
+            }, { once: true });
+          });
+          history.removeAttribute("aria-busy");
+          button.disabled = false;
+          status.textContent = firstVisible === 0
+            ? message("allRepliesShown", "All %d replies are now shown.").replace("%d", replies.length)
+            : progress.textContent;
+          // Keep keyboard focus useful when the final batch removes the control.
+          var first = replies[firstVisible];
+          if (first) {
+            first.tabIndex = -1;
+            first.focus({ preventScroll: true });
+          }
+        });
       });
       update();
       revealLinkedReply();

@@ -59,7 +59,7 @@ $labels      = YoOhw_Support_Settings::reply_side_labels();
 		<a class="yoohw-button yoohw-button-secondary" href="<?php echo esc_url( YoOhw_Support_Router::url( 'topics' ) ); ?>"><?php YoOhw_Support_Icons::output( 'chevron-left' ); ?> <?php esc_html_e( 'All topics', 'yoohw-support-portal' ); ?></a>
 	</div>
 	<?php if ( ! empty( $replies ) ) : ?>
-		<button type="button" class="yoohw-button yoohw-button-secondary yoohw-reply-history" aria-controls="yoohw-reply-list" hidden><?php esc_html_e( 'Show older replies', 'yoohw-support-portal' ); ?></button>
+		<?php echo YoOhw_Support_Controller::render_template( 'reply-history' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Shared template escapes its output. ?>
 		<div class="yoohw-reply-list" id="yoohw-reply-list">
 			<?php foreach ( $replies as $reply ) : ?>
 				<?php

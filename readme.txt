@@ -90,7 +90,7 @@ Customers can view their own topics. Users with the plugin's dedicated support c
 
 Your own replies appear on the right; other accounts' replies appear on the left. Support and customer colors and configurable labels remain tied to the author's support classification. WordPress account avatars, including compatible local-avatar filters and Gravatar, are shown when available; initials remain the fallback, and the WordPress avatar visibility setting is respected.
 
-The conversation initially shows the five newest replies in chronological order. "Show older replies" reveals five more above them each time. This expands replies already present on the authorized page, without a separate data request. Direct links to older replies reveal their target. With JavaScript disabled, the full conversation remains readable. The original topic body, total reply count, and reply form stay in place.
+The conversation initially shows the five newest replies in chronological order. A highlighted history panel shows the number of older replies remaining and how many replies are visible. Its button reveals up to five more above them each time, with an immediate busy state and a short reveal animation that respects reduced-motion preferences. There is no artificial timed wait. This expands replies already present on the authorized page, without a separate data request. Direct links to older replies reveal their target. With JavaScript disabled, the full conversation remains readable. The original topic body, total reply count, and reply form stay in place.
 
 = Can I embed support components in my theme? =
 
