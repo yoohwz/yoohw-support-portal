@@ -131,7 +131,7 @@ Do not create ZIPs in normal PR CI.
 
 ## Release boundary
 
-Merge is not release. Version changes, release packaging, tags, GitHub Releases, WordPress.org publication and deployment require separate explicit Human authority. Add heavier release tooling only when a real release workflow requires it.
+Merge is not release. Use the **existing** [WordPress.org release runbook](releasing.md) after a separate Human-selected version/release-notes task is accepted and merged: verify the last actually published WordPress.org baseline, prepare the immutable candidate, run dry-run SVN preflight, obtain separate Human production authorization, and verify the public release. Current version metadata on `main` is not evidence of a newly published version. Release packaging, tags, publication and deployment never follow automatically from Merge or Acceptance. Keep the existing publisher and recovery controls; do not add another release process or redundant certification matrix.
 
 ## Workflow evolution
 
