@@ -211,9 +211,9 @@ def release_changelog_contract() -> None:
     rel = load_release_lib()
     with tempfile.TemporaryDirectory(prefix="ysp-release-notes-") as temporary:
         source = Path(temporary)
-        (source / rel.PLUGIN_FILE).write_text("Version: 1.0.1\\n", encoding="utf-8")
-        stable = "Stable tag: 1.0.1\\n\\n"
-        valid = "== Changelog ==\\n\\n= 1.0.1 =\\n* Added one shipped feature.\\n\\n= 1.0.0 =\\n* Previous release.\\n"
+        (source / rel.PLUGIN_FILE).write_text("Version: 1.0.1\n", encoding="utf-8")
+        stable = "Stable tag: 1.0.1\n\n"
+        valid = "== Changelog ==\n\n= 1.0.1 =\n* Added one shipped feature.\n\n= 1.0.0 =\n* Previous release.\n"
 
         def check(readme: str, expected: str | None) -> None:
             (source / "readme.txt").write_text(stable + readme, encoding="utf-8")
@@ -227,10 +227,10 @@ def release_changelog_contract() -> None:
             assert rel.changelog_notes(source, "1.0.1") == expected
 
         check(valid, "* Added one shipped feature.")
-        check("A readme without a Changelog section.\\n", None)
-        check("== Changelog ==\\n\\n= 1.0.0 =\\n* Previous release.\\n= 1.0.1 =\\n* Later entry.\\n", None)
-        check("== Changelog ==\\n\\n= 1.0.1 =\\n\\n= 1.0.0 =\\n* Previous release.\\n", None)
-        check("== Changelog ==\\n\\n= 1.0.1 =\\nNot a release bullet.\\n", None)
+        check("A readme without a Changelog section.\n", None)
+        check("== Changelog ==\n\n= 1.0.0 =\n* Previous release.\n= 1.0.1 =\n* Later entry.\n", None)
+        check("== Changelog ==\n\n= 1.0.1 =\n\n= 1.0.0 =\n* Previous release.\n", None)
+        check("== Changelog ==\n\n= 1.0.1 =\nNot a release bullet.\n", None)
 
 
 def deterministic_package_contract() -> None:
