@@ -190,7 +190,9 @@ def documentation_contract() -> None:
         "WPORG_PROPAGATION_PENDING",
         "WPORG_PUBLIC_RELEASE_VERIFIED",
         "GitHub Release",
-        "does not publish version 1.0.0",
+        "initial 1.0.0 release",
+        "last actually published",
+        "newest",
     ):
         assert required in docs, required
 
@@ -202,6 +204,33 @@ def load_release_lib():
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+
+def release_changelog_contract() -> None:
+    rel = load_release_lib()
+    with tempfile.TemporaryDirectory(prefix="ysp-release-notes-") as temporary:
+        source = Path(temporary)
+        (source / rel.PLUGIN_FILE).write_text("Version: 1.0.1\\n", encoding="utf-8")
+        stable = "Stable tag: 1.0.1\\n\\n"
+        valid = "== Changelog ==\\n\\n= 1.0.1 =\\n* Added one shipped feature.\\n\\n= 1.0.0 =\\n* Previous release.\\n"
+
+        def check(readme: str, expected: str | None) -> None:
+            (source / "readme.txt").write_text(stable + readme, encoding="utf-8")
+            if expected is None:
+                try:
+                    rel.version_from_tree(source)
+                except rel.ReleaseError:
+                    return
+                raise AssertionError("invalid newest changelog was accepted")
+            assert rel.version_from_tree(source) == "1.0.1"
+            assert rel.changelog_notes(source, "1.0.1") == expected
+
+        check(valid, "* Added one shipped feature.")
+        check("A readme without a Changelog section.\\n", None)
+        check("== Changelog ==\\n\\n= 1.0.0 =\\n* Previous release.\\n= 1.0.1 =\\n* Later entry.\\n", None)
+        check("== Changelog ==\\n\\n= 1.0.1 =\\n\\n= 1.0.0 =\\n* Previous release.\\n", None)
+        check("== Changelog ==\\n\\n= 1.0.1 =\\nNot a release bullet.\\n", None)
 
 
 def deterministic_package_contract() -> None:
@@ -380,6 +409,7 @@ def main() -> None:
     workflow_contract()
     implementation_contract()
     documentation_contract()
+    release_changelog_contract()
     deterministic_package_contract()
     credential_environment_contract()
     full_prepare_contract()
