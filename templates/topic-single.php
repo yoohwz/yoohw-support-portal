@@ -107,7 +107,7 @@ $reply_side_labels = YoOhw_Support_Settings::reply_side_labels();
 				<article id="comment-<?php echo esc_attr( $comment->comment_ID ); ?>" class="yoohw-reply <?php echo $reply_is_support ? 'is-support' : 'is-customer'; ?> <?php echo $reply_is_own ? 'is-own' : ''; ?>">
 					<div class="yoohw-reply-rail" aria-hidden="true">
 						<div class="yoohw-avatar" aria-hidden="true">
-							<span><?php echo esc_html( strtoupper( substr( $author_text, 0, 1 ) ) ); ?></span>
+							<span class="yoohw-avatar-initial"><?php echo esc_html( strtoupper( substr( $author_text, 0, 1 ) ) ); ?></span>
 							<?php
 							if ( $reply_author ) {
 								echo get_avatar( $reply_author->ID, 44, '404', '', [ 'class' => 'yoohw-reply-avatar', 'loading' => 'lazy' ] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- WordPress generates avatar markup and applies site avatar filters.

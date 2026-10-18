@@ -345,9 +345,20 @@
 
   function setupReplyAvatars() {
     document.querySelectorAll(".yoohw-reply-avatar").forEach(function (image) {
-      function showInitial() { image.remove(); }
+      var initial = image.closest(".yoohw-avatar").querySelector(".yoohw-avatar-initial");
+      function showAvatar() {
+        if (initial) initial.hidden = true;
+      }
+      function showInitial() {
+        if (initial) initial.hidden = false;
+        image.remove();
+      }
+      image.addEventListener("load", showAvatar, { once: true });
       image.addEventListener("error", showInitial, { once: true });
-      if (image.complete && image.naturalWidth === 0) showInitial();
+      if (image.complete) {
+        if (image.naturalWidth > 0) showAvatar();
+        else showInitial();
+      }
     });
   }
 
