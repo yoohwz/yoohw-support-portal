@@ -179,7 +179,7 @@
   }
 
   function setupAttachmentValidation() {
-    document.querySelectorAll('input[type="file"][data-max-files]').forEach(function (input) {
+    document.querySelectorAll('.yoohw-support input[type="file"][data-max-files]').forEach(function (input) {
       var dropzone = document.querySelector('label[for="' + input.id + '"].yoohw-upload-dropzone');
 
       input.addEventListener("change", function () {
@@ -264,7 +264,7 @@
   }
 
   function setupSubmitLocks() {
-    document.querySelectorAll("form[data-yoohw-form], form#commentform").forEach(function (form) {
+    document.querySelectorAll(".yoohw-support form[data-yoohw-form], .yoohw-support form#commentform").forEach(function (form) {
       if (form.id === "commentform") {
         form.noValidate = true;
         form.setAttribute("enctype", "multipart/form-data");

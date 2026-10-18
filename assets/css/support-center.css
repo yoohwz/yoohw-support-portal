@@ -1838,7 +1838,7 @@
 	height: 17px;
 }
 
-#cancel-comment-reply-link {
+.yoohw-support #cancel-comment-reply-link {
 	margin-left: 10px;
 	color: var(--yoohw-muted);
 	font-size: 13px;
@@ -1846,8 +1846,8 @@
 	text-decoration: none;
 }
 
-#cancel-comment-reply-link:hover,
-#cancel-comment-reply-link:focus {
+.yoohw-support #cancel-comment-reply-link:hover,
+.yoohw-support #cancel-comment-reply-link:focus {
 	color: var(--yoohw-primary-link);
 	text-decoration: none;
 }
@@ -2648,4 +2648,35 @@
 		width: 100%;
 		white-space: normal;
 	}
+}
+
+/* Shortcodes keep the theme shell and contain the plugin palette. */
+.yoohw-support.yoohw-support-embed {
+	min-height: 0;
+	padding: clamp(16px, 3vw, 28px);
+	border-radius: 12px;
+	line-height: 1.5;
+	text-align: start;
+}
+
+.yoohw-support-embed .screen-reader-text {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+}
+
+/* A theme column can be narrow even on a desktop viewport. */
+.yoohw-support-embed .yoohw-filter-form {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	flex-wrap: wrap;
+}
+
+.yoohw-support-embed .yoohw-filter-form > :where(.yoohw-search-field, select) {
+	flex: 1 1 180px;
+	width: 100%;
+	min-width: 0;
 }

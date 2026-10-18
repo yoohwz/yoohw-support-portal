@@ -86,6 +86,14 @@ Yes. Switching modes does not migrate or delete either dataset. The portal begin
 
 Customers can view their own topics. Users with the plugin's dedicated support capabilities can view and manage the topics permitted by those capabilities. Custom roles can also be granted the relevant capabilities.
 
+= Can I embed support components in my theme? =
+
+Yes. Add a Shortcode block to a regular WordPress page with [yoohw_post_form], [yoohw_login_form], [yoohw_lost_password_form], or [yoohw_support_topics]. Use one copy of each shortcode per page, and put login and lost-password forms on separate pages. Topic details and replies continue to open the dedicated portal.
+
+In WordPress posts/comments storage mode, disable "Render standard WordPress pages with the plugin UI" to use the theme on those pages. In isolated mode, regular pages already use the theme. Use a page slug outside the portal routes. The list's filters and pagination stay on that page.
+
+Exclude all shortcode pages from page, CDN, and fragment caches, including for guests. The plugin sends no-cache signals, but an upstream cache can respond before WordPress runs. Builders must render the shortcodes server-side before footer scripts.
+
 = How is category access controlled? =
 
 Categories can be restricted by user role or by access code, depending on how the portal is configured.

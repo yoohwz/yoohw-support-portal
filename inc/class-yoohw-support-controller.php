@@ -223,13 +223,24 @@ class YoOhw_Support_Controller {
 		return $workspace;
 	}
 
-	public static function render_topics(): string {
+	public static function render_topics( bool $embedded = false ): string {
+		$base_url = $embedded ? get_permalink( get_queried_object_id() ) : YoOhw_Support_Router::url( 'topics' );
+		$page_key = $embedded ? 'yoohw_page' : 'support_page';
+		$filter_names = $embedded
+			? [ 'search' => 'yoohw_search', 'category' => 'yoohw_category', 'status' => 'yoohw_status' ]
+			: [ 'search' => 's', 'category' => 'category', 'status' => 'status' ];
 		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only filters used to render the topic list; no state is changed.
-		$paged       = max( 1, absint( $_GET['support_page'] ?? 1 ) );
-		$search      = isset( $_GET['s'] ) ? sanitize_text_field( wp_unslash( $_GET['s'] ) ) : '';
-		$category_id = isset( $_GET['category'] ) ? absint( $_GET['category'] ) : 0;
-		$status      = isset( $_GET['status'] ) ? sanitize_key( wp_unslash( $_GET['status'] ) ) : '';
+		$paged       = max( 1, absint( is_scalar( $_GET[ $page_key ] ?? 1 ) ? ( $_GET[ $page_key ] ?? 1 ) : 1 ) );
+		$search      = isset( $_GET[ $filter_names['search'] ] ) && is_string( $_GET[ $filter_names['search'] ] ) ? sanitize_text_field( wp_unslash( $_GET[ $filter_names['search'] ] ) ) : '';
+		$category_id = absint( is_scalar( $_GET[ $filter_names['category'] ] ?? 0 ) ? ( $_GET[ $filter_names['category'] ] ?? 0 ) : 0 );
+		$status      = isset( $_GET[ $filter_names['status'] ] ) && is_string( $_GET[ $filter_names['status'] ] ) ? sanitize_key( wp_unslash( $_GET[ $filter_names['status'] ] ) ) : '';
 		// phpcs:enable WordPress.Security.NonceVerification.Recommended
+		$pagination_url = add_query_arg(
+			[ $filter_names['search'] => $search, $filter_names['category'] => $category_id, $filter_names['status'] => $status ],
+			$base_url
+		);
+		$form_query = [];
+		wp_parse_str( (string) wp_parse_url( $base_url, PHP_URL_QUERY ), $form_query );
 		$statuses    = self::public_topic_statuses();
 		$user_id     = get_current_user_id();
 		$user_codes  = YoOhw_Shortcode::get_user_access_codes( $user_id );
@@ -278,13 +289,18 @@ class YoOhw_Support_Controller {
 			return self::render_template(
 				'topics-isolated',
 				[
-					'topics'      => $result['items'],
-					'max_pages'   => $result['max_pages'],
-					'search'      => $search,
-					'category_id' => $category_id,
-					'status'      => $status,
-					'categories'  => $categories,
-					'paged'       => $paged,
+					'topics'          => $result['items'],
+					'max_pages'       => $result['max_pages'],
+					'search'          => $search,
+					'category_id'     => $category_id,
+					'status'          => $status,
+					'categories'      => $categories,
+					'base_url'        => $base_url,
+					'pagination_url'  => $pagination_url,
+					'page_key'        => $page_key,
+					'filter_names'    => $filter_names,
+					'form_query'      => $form_query,
+					'paged'           => $paged,
 				]
 			);
 		}
@@ -311,12 +327,17 @@ class YoOhw_Support_Controller {
 		return self::render_template(
 			'topics',
 			[
-				'query'       => $query,
-				'search'      => $search,
-				'category_id' => $category_id,
-				'status'      => $status,
-				'categories'  => $categories,
-				'paged'       => $paged,
+				'query'           => $query,
+				'search'          => $search,
+				'category_id'     => $category_id,
+				'status'          => $status,
+				'categories'      => $categories,
+				'base_url'        => $base_url,
+				'pagination_url'  => $pagination_url,
+				'page_key'        => $page_key,
+				'filter_names'    => $filter_names,
+				'form_query'      => $form_query,
+				'paged'           => $paged,
 			]
 		);
 	}
