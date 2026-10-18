@@ -343,8 +343,59 @@
     document.querySelectorAll(".yoohw-topic-body, .yoohw-reply-content").forEach(enhanceCodeBlocks);
   }
 
+  function setupReplyAvatars() {
+    document.querySelectorAll(".yoohw-reply-avatar").forEach(function (image) {
+      function showInitial() { image.remove(); }
+      image.addEventListener("error", showInitial, { once: true });
+      if (image.complete && image.naturalWidth === 0) showInitial();
+    });
+  }
+
+  function setupReplyHistory() {
+    document.querySelectorAll(".yoohw-replies").forEach(function (section) {
+      var list = section.querySelector(".yoohw-reply-list");
+      var button = section.querySelector(".yoohw-reply-history");
+      if (!list || !button) return;
+
+      var replies = Array.prototype.slice.call(list.children);
+      var firstVisible = Math.max(0, replies.length - 5);
+
+      function update() {
+        replies.forEach(function (reply, index) { reply.hidden = index < firstVisible; });
+        button.hidden = firstVisible === 0;
+      }
+
+      function revealLinkedReply() {
+        var id;
+        try { id = decodeURIComponent(window.location.hash.slice(1)); } catch (error) { return; }
+        var index = replies.findIndex(function (reply) { return reply.id === id; });
+        if (index >= 0 && index < firstVisible) {
+          firstVisible = index;
+          update();
+          replies[index].scrollIntoView();
+        }
+      }
+
+      button.addEventListener("click", function () {
+        firstVisible = Math.max(0, firstVisible - 5);
+        update();
+        // Keep keyboard focus useful when the final batch removes the button.
+        var first = replies[firstVisible];
+        if (first) {
+          first.tabIndex = -1;
+          first.focus({ preventScroll: true });
+        }
+      });
+      update();
+      revealLinkedReply();
+      window.addEventListener("hashchange", revealLinkedReply);
+    });
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
     setupBrandIcon();
+    setupReplyAvatars();
+    setupReplyHistory();
     setupNavigation();
     setupPasswordToggles();
     setupPasswordStrength();

@@ -89,7 +89,8 @@ $reply_side_labels = YoOhw_Support_Settings::reply_side_labels();
 	</div>
 
 	<?php if ( ! empty( $comments ) ) : ?>
-		<div class="yoohw-reply-list">
+		<button type="button" class="yoohw-button yoohw-button-secondary yoohw-reply-history" aria-controls="yoohw-reply-list" hidden><?php esc_html_e( 'Show older replies', 'yoohw-support-portal' ); ?></button>
+		<div class="yoohw-reply-list" id="yoohw-reply-list">
 			<?php foreach ( $comments as $comment ) : ?>
 				<?php
 				$author_html = get_comment_author( $comment );
@@ -100,11 +101,19 @@ $reply_side_labels = YoOhw_Support_Settings::reply_side_labels();
 					? get_author_posts_url( $reply_author->ID, $reply_author->user_nicename )
 					: '';
 				$reply_is_support = ( $reply_author && user_can( $reply_author->ID, YoOhw_Support_Capabilities::MANAGE_TOPICS ) );
+				$reply_is_own = get_current_user_id() > 0 && $reply_author_id === get_current_user_id();
 				$reply_is_support = (bool) apply_filters( 'yoohw_support_is_support_comment', $reply_is_support, $comment );
 				?>
-				<article id="comment-<?php echo esc_attr( $comment->comment_ID ); ?>" class="yoohw-reply <?php echo $reply_is_support ? 'is-support' : 'is-customer'; ?>">
+				<article id="comment-<?php echo esc_attr( $comment->comment_ID ); ?>" class="yoohw-reply <?php echo $reply_is_support ? 'is-support' : 'is-customer'; ?> <?php echo $reply_is_own ? 'is-own' : ''; ?>">
 					<div class="yoohw-reply-rail" aria-hidden="true">
-						<div class="yoohw-avatar" aria-hidden="true"><?php echo esc_html( strtoupper( substr( $author_text, 0, 1 ) ) ); ?></div>
+						<div class="yoohw-avatar" aria-hidden="true">
+							<span><?php echo esc_html( strtoupper( substr( $author_text, 0, 1 ) ) ); ?></span>
+							<?php
+							if ( $reply_author ) {
+								echo get_avatar( $reply_author->ID, 44, '404', '', [ 'class' => 'yoohw-reply-avatar', 'loading' => 'lazy' ] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- WordPress generates avatar markup and applies site avatar filters.
+							}
+							?>
+						</div>
 					</div>
 
 					<div class="yoohw-reply-bubble">

@@ -86,6 +86,12 @@ Yes. Switching modes does not migrate or delete either dataset. The portal begin
 
 Customers can view their own topics. Users with the plugin's dedicated support capabilities can view and manage the topics permitted by those capabilities. Custom roles can also be granted the relevant capabilities.
 
+= How are topic replies displayed? =
+
+Your own replies appear on the right; other accounts' replies appear on the left. Support and customer colors and configurable labels remain tied to the author's support classification. WordPress account avatars, including compatible local-avatar filters and Gravatar, are shown when available; initials remain the fallback, and the WordPress avatar visibility setting is respected.
+
+The conversation initially shows the five newest replies in chronological order. "Show older replies" reveals five more above them each time. This expands replies already present on the authorized page, without a separate data request. Direct links to older replies reveal their target. With JavaScript disabled, the full conversation remains readable. The original topic body, total reply count, and reply form stay in place.
+
 = Can I embed support components in my theme? =
 
 Yes. Add a Shortcode block to a regular WordPress page with [yoohw_post_form], [yoohw_login_form], [yoohw_lost_password_form], or [yoohw_support_topics]. Use one copy of each shortcode per page, and put login and lost-password forms on separate pages. Topic details and replies continue to open the dedicated portal.
