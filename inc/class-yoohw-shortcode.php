@@ -221,6 +221,10 @@ class YoOhw_Shortcode {
 				wp_die( esc_html( sprintf( __( 'Unsupported attachment type. Allowed file types: %s.', 'yoohw-support-portal' ), YoOhw_Support_Settings::attachment_type_label() ) ), '', [ 'response' => 400 ] );
 			}
 		}
+		$storage = YoOhw_Support_Private_Storage::upload_directory( wp_get_upload_dir() );
+		if ( ! empty( $storage['error'] ) ) {
+			wp_die( esc_html__( 'Private attachment storage is unavailable. Contact the site administrator before retrying.', 'yoohw-support-portal' ), '', [ 'response' => 503 ] );
+		}
 		// phpcs:enable WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 	}
 
@@ -287,6 +291,10 @@ class YoOhw_Shortcode {
 
 			unset( $_FILES['yoohw_single_attachment'] );
 
+			if ( is_wp_error( $attachment_id ) ) {
+				update_option( YoOhw_Support_Private_Storage::ERROR_OPTION, $attachment_id->get_error_message(), false );
+				wp_die( esc_html__( 'The private attachment could not be stored. Contact the site administrator before retrying.', 'yoohw-support-portal' ), '', [ 'response' => 503 ] );
+			}
 			if ( ! is_wp_error( $attachment_id ) ) {
 				update_post_meta( $attachment_id, '_yoohw_original_filename', sanitize_file_name( $original_name ) );
 				YoOhw_Protected_Attachments::protect( $attachment_id );

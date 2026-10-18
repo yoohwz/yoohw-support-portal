@@ -4,7 +4,7 @@ Tags: customer support, help desk, support portal, ticket system, private suppor
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.0.0
+Stable tag: 1.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -116,7 +116,7 @@ Categories can be restricted by user role or by access code, depending on how th
 
 = Are uploaded support attachments public? =
 
-Protected attachment uploads are currently available only in WordPress posts/comments storage mode. In that mode, support attachments handled by the protected attachment system are stored outside the public uploads path and served through an authorization check. Existing support-related attachments can be moved into protected storage as they are accessed through the portal.
+Protected attachment uploads are currently available only in WordPress posts/comments storage mode. In that mode, support attachments handled by the protected attachment system are stored outside the public uploads path and served through an authorization check. Upgrading from 1.0.0 requires the administrator to secure existing support attachments explicitly. Activation does not move or delete files. See the attachment storage guide included in the plugin and the Upgrade Notice below.
 
 = Does YoOhw receive my support conversations or attachments? =
 
@@ -152,6 +152,17 @@ Third-party components and their license notices are documented in `third-party-
 
 == Changelog ==
 
+= 1.1.0 =
+* Security: New support attachments and image variants use private filesystem storage outside the web document root, with upload rejection when storage verification fails. Existing installations must explicitly secure old support files; see the Upgrade Notice.
+* New: Embed topic submission, login, password recovery, and authorized topic lists in regular WordPress theme pages using shortcodes.
+* New: Configure attachments for new topics and replies separately, including file count, file-size limits, permitted image/video/ZIP types, and protected preview or download-link display.
+* New: Configure reply-history batch size, topics per page, and WordPress avatars or initials.
+* Improved: Conversations align your replies on the right, initially show the newest reply batch in chronological order, and let you reveal older messages without extra requests; the full history remains available without JavaScript.
+* Improved: Narrow-screen topic forms, editor toolbars, long titles, dashboard cards, and administration settings are easier to use, with visible keyboard focus.
+* Improved: Text, links, inputs, and buttons remain readable with configured dark backgrounds or light primary colors.
+* Fixed: Category role selection no longer triggers recursive focus errors, and unavailable site icons no longer show broken images.
+* Important: Exclude pages using personalized support shortcodes from page/CDN caches. Theme embeds in WordPress posts/comments storage require pretty permalinks.
+
 = 1.0.0 =
 * Initial release.
 * Added private customer support topics and replies.
@@ -161,3 +172,8 @@ Third-party components and their license notices are documented in `third-party-
 * Added dedicated support capabilities and customer visibility controls.
 * Added configurable portal appearance, labels, identity, and account flows.
 * Added first-run setup guidance, privacy-policy guidance, and compatibility checks.
+
+== Upgrade Notice ==
+
+= 1.1.0 =
+Before upgrading from 1.0.0, block public access to old support files and relocate owned attachments with `wp ysp attachments secure <id>`. New uploads require verified private storage. Back up files/database and follow `inc/attachment-storage.md`; activation does not migrate files.
