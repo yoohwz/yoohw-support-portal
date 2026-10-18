@@ -315,6 +315,7 @@ class YoOhw_Comment_Editor {
 
 		<?php do_action( 'yoohw_support_reply_form_after_editor' ); ?>
 
+		<?php if ( YoOhw_Support_Settings::uploads_enabled( 'reply' ) ) : ?>
 		<div class="comment-form-yoohw-attachments yoohw-reply-upload">
 			<div class="yoohw-reply-upload-heading">
 				<span class="yoohw-reply-field-label">
@@ -326,16 +327,16 @@ class YoOhw_Comment_Editor {
 					printf(
 						/* translators: 1: Maximum attachment count, 2: Maximum size per attachment. */
 						esc_html__( 'Up to %1$d files, %2$s each', 'yoohw-support-portal' ),
-						absint( self::MAX_ATTACHMENT_COUNT ),
-						esc_html( size_format( self::MAX_ATTACHMENT_BYTES ) )
+						absint( YoOhw_Support_Settings::attachment_max_count() ),
+						esc_html( size_format( YoOhw_Support_Settings::attachment_max_bytes() ) )
 					);
 					?>
 				</span>
 			</div>
 			<label class="yoohw-upload-dropzone" for="yoohw_comment_attachments">
 				<span class="yoohw-upload-dropzone-icon"><?php YoOhw_Support_Icons::output( 'paperclip' ); ?></span>
-				<span class="yoohw-upload-dropzone-title"><?php esc_html_e( 'Choose or drop screenshots, videos, or ZIP files', 'yoohw-support-portal' ); ?></span>
-				<span class="yoohw-upload-dropzone-note"><?php esc_html_e( 'JPG, PNG, WebP, GIF, MP4, WebM, MOV, ZIP', 'yoohw-support-portal' ); ?></span>
+				<span class="yoohw-upload-dropzone-title"><?php esc_html_e( 'Choose or drop files', 'yoohw-support-portal' ); ?></span>
+				<span class="yoohw-upload-dropzone-note"><?php echo esc_html( YoOhw_Support_Settings::attachment_type_label() ); ?></span>
 			</label>
 			<input
 				type="file"
@@ -343,9 +344,9 @@ class YoOhw_Comment_Editor {
 				id="yoohw_comment_attachments"
 				name="yoohw_attachments[]"
 				multiple
-				accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime,application/zip,.zip"
-				data-max-files="<?php echo esc_attr( self::MAX_ATTACHMENT_COUNT ); ?>"
-				data-max-size="<?php echo esc_attr( self::MAX_ATTACHMENT_BYTES ); ?>"
+				accept="<?php echo esc_attr( YoOhw_Support_Settings::attachment_accept() ); ?>"
+				data-max-files="<?php echo esc_attr( YoOhw_Support_Settings::attachment_max_count() ); ?>"
+				data-max-size="<?php echo esc_attr( YoOhw_Support_Settings::attachment_max_bytes() ); ?>"
 				aria-describedby="yoohw_comment_attachments_selected"
 			>
 			<div
@@ -357,6 +358,7 @@ class YoOhw_Comment_Editor {
 				<?php esc_html_e( 'No files selected', 'yoohw-support-portal' ); ?>
 			</div>
 		</div>
+		<?php endif; ?>
 		<?php
 
 		$args['comment_field'] = ob_get_clean();
@@ -385,18 +387,7 @@ class YoOhw_Comment_Editor {
 	}
 
 	private static function get_allowed_attachment_mimes() {
-		return [
-			'jpg|jpeg' => 'image/jpeg',
-			'png'      => 'image/png',
-			'webp'     => 'image/webp',
-			'gif'      => 'image/gif',
-			'mp4'      => 'video/mp4',
-			'webm'     => 'video/webm',
-			'mov|qt'   => 'video/quicktime',
-
-			// Archives
-			'zip'      => 'application/zip',
-		];
+		return YoOhw_Support_Settings::attachment_mimes();
 	}
 
 	public static function validate_comment_attachments( $commentdata ) {
@@ -405,75 +396,7 @@ class YoOhw_Comment_Editor {
 	}
 
 	private static function validate_attachment_uploads( $field_name = 'yoohw_attachments' ) {
-		// phpcs:disable WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Core verifies the comment nonce/state; WordPress media APIs require the original upload array.
-		if ( empty( $_FILES[ $field_name ] ) || empty( $_FILES[ $field_name ]['name'] ) ) {
-			return;
-		}
-
-		$files = $_FILES[ $field_name ];
-		$names = is_array( $files['name'] ) ? $files['name'] : [ $files['name'] ];
-
-		$uploaded_count = 0;
-
-		foreach ( $names as $index => $name ) {
-			if ( empty( $name ) ) {
-				continue;
-			}
-
-			$error = is_array( $files['error'] ) ? (int) $files['error'][ $index ] : (int) $files['error'];
-
-			if ( UPLOAD_ERR_NO_FILE === $error ) {
-				continue;
-			}
-
-			$uploaded_count++;
-		}
-
-		if ( $uploaded_count > self::MAX_ATTACHMENT_COUNT ) {
-			wp_die(
-				esc_html(
-					sprintf(
-					/* translators: %d: Maximum number of attachments. */
-						__( 'You can upload a maximum of %d attachments per comment.', 'yoohw-support-portal' ),
-						self::MAX_ATTACHMENT_COUNT
-					)
-				)
-			);
-		}
-		// phpcs:enable WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-
-		foreach ( $names as $index => $name ) {
-			if ( empty( $name ) ) {
-				continue;
-			}
-
-			$error = is_array( $files['error'] ) ? (int) $files['error'][ $index ] : (int) $files['error'];
-			$size  = is_array( $files['size'] ) ? (int) $files['size'][ $index ] : (int) $files['size'];
-			$tmp   = is_array( $files['tmp_name'] ) ? $files['tmp_name'][ $index ] : $files['tmp_name'];
-
-			if ( UPLOAD_ERR_NO_FILE === $error ) {
-				continue;
-			}
-
-			if ( UPLOAD_ERR_OK !== $error ) {
-				wp_die( esc_html__( 'One of the attachments could not be uploaded. Please try again.', 'yoohw-support-portal' ) );
-			}
-
-			if ( $size > self::MAX_ATTACHMENT_BYTES ) {
-				wp_die( esc_html__( 'One of the attachments is too large. Maximum size is 5 MB per file.', 'yoohw-support-portal' ) );
-			}
-
-			$check = wp_check_filetype_and_ext( $tmp, $name, self::get_allowed_attachment_mimes() );
-
-			if ( empty( $check['type'] ) ) {
-				wp_die(
-					esc_html__(
-						'Unsupported attachment type. Please upload JPG, PNG, WebP, GIF, MP4, WebM, MOV, or ZIP files only.',
-						'yoohw-support-portal'
-					)
-				);
-			}
-		}
+		YoOhw_Shortcode::validate_attachment_uploads( $field_name, 'reply' );
 	}
 
 	private static function generate_safe_attachment_filename( $filename ) {
@@ -487,6 +410,7 @@ class YoOhw_Comment_Editor {
 	}
 
 	private static function handle_attachment_uploads( $parent_id, $field_name = 'yoohw_attachments' ) {
+		self::validate_attachment_uploads( $field_name );
 		// phpcs:disable WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Core verifies the comment submission; media_handle_sideload() requires original upload fields.
 		if ( empty( $_FILES[ $field_name ] ) || empty( $_FILES[ $field_name ]['name'] ) ) {
 			return [];
@@ -594,14 +518,14 @@ class YoOhw_Comment_Editor {
 				continue;
 			}
 
-			if ( 0 === strpos( $mime, 'image/' ) ) {
+			if ( YoOhw_Support_Settings::attachment_previews_enabled() && 0 === strpos( $mime, 'image/' ) ) {
 				$alt   = get_post_meta( $attachment_id, '_wp_attachment_image_alt', true );
 				$image = '<img class="yoohw-attachment-image" src="' . esc_url( $url ) . '" alt="' . esc_attr( $alt ) . '" loading="lazy" decoding="async">';
 
 				if ( $image ) {
 					$html .= '<figure class="yoohw-attachment yoohw-attachment--image"><a href="' . esc_url( $url ) . '" target="_blank" rel="noopener noreferrer">' . $image . '</a></figure>';
 				}
-			} elseif ( 0 === strpos( $mime, 'video/' ) ) {
+			} elseif ( YoOhw_Support_Settings::attachment_previews_enabled() && 0 === strpos( $mime, 'video/' ) ) {
 				$html .= '<figure class="yoohw-attachment yoohw-attachment--video"><video class="yoohw-attachment-video" controls preload="metadata" src="' . esc_url( $url ) . '"></video></figure>';
 			} else {
 				$original_name = get_post_meta( $attachment_id, '_yoohw_original_filename', true );
@@ -623,7 +547,7 @@ class YoOhw_Comment_Editor {
 				$html .= '<span class="yoohw-attachment-file-meta">' . esc_html( $file_ext );
 
 				if ( $file_size ) {
-					$html .= ' archive · ' . esc_html( size_format( $file_size ) );
+					$html .= ( 'application/zip' === $mime ? ' archive' : '' ) . ' · ' . esc_html( size_format( $file_size ) );
 				}
 
 				$html .= '</span>';

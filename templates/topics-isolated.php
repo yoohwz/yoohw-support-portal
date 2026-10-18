@@ -5,20 +5,22 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 // phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Variables are intentionally scoped to this rendered template.
 
-$base_url = YoOhw_Support_Router::url( 'topics' );
 ?>
 <section class="yoohw-panel yoohw-topic-toolbar" aria-label="<?php esc_attr_e( 'Topic filters', 'yoohw-support-portal' ); ?>">
 	<form class="yoohw-filter-form" action="<?php echo esc_url( $base_url ); ?>" method="get">
+		<?php foreach ( $form_query as $name => $value ) : ?>
+			<input type="hidden" name="<?php echo esc_attr( $name ); ?>" value="<?php echo esc_attr( $value ); ?>">
+		<?php endforeach; ?>
 		<div class="yoohw-search-field">
 			<?php YoOhw_Support_Icons::output( 'search' ); ?>
-			<input type="search" name="s" value="<?php echo esc_attr( $search ); ?>" placeholder="<?php esc_attr_e( 'Search topics', 'yoohw-support-portal' ); ?>">
+			<input type="search" name="<?php echo esc_attr( $filter_names[ 'search' ] ); ?>" value="<?php echo esc_attr( $search ); ?>" placeholder="<?php esc_attr_e( 'Search topics', 'yoohw-support-portal' ); ?>">
 		</div>
-		<select class="yoohw-filter-status" name="status" aria-label="<?php esc_attr_e( 'Filter by status', 'yoohw-support-portal' ); ?>">
+		<select class="yoohw-filter-status" name="<?php echo esc_attr( $filter_names[ 'status' ] ); ?>" aria-label="<?php esc_attr_e( 'Filter by status', 'yoohw-support-portal' ); ?>">
 			<option value=""><?php esc_html_e( 'All statuses', 'yoohw-support-portal' ); ?></option>
 			<option value="publish" <?php selected( $status, 'publish' ); ?>><?php esc_html_e( 'Open', 'yoohw-support-portal' ); ?></option>
 			<option value="resolved" <?php selected( $status, 'resolved' ); ?>><?php esc_html_e( 'Resolved', 'yoohw-support-portal' ); ?></option>
 		</select>
-		<select class="yoohw-filter-category" name="category" aria-label="<?php esc_attr_e( 'Filter by category', 'yoohw-support-portal' ); ?>">
+		<select class="yoohw-filter-category" name="<?php echo esc_attr( $filter_names[ 'category' ] ); ?>" aria-label="<?php esc_attr_e( 'Filter by category', 'yoohw-support-portal' ); ?>">
 			<option value="0"><?php esc_html_e( 'All categories', 'yoohw-support-portal' ); ?></option>
 			<?php foreach ( $categories as $category ) : ?>
 				<?php $term = $category['term'] ?? null; ?>
@@ -62,7 +64,7 @@ $base_url = YoOhw_Support_Router::url( 'topics' );
 		<?php
 		$pagination = paginate_links(
 			[
-				'base'      => add_query_arg( 'support_page', '%#%', $base_url ),
+				'base'      => add_query_arg( $page_key, '%#%', $pagination_url ),
 				'format'    => '',
 				'current'   => $paged,
 				'total'     => max( 1, (int) $max_pages ),

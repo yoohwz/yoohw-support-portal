@@ -16,7 +16,8 @@
 .yoohw-portal-identity-preview strong,
 .yoohw-portal-identity-preview strong + span { display: block; }
 .yoohw-storage-mode-options { display: grid; gap: 10px; max-width: 680px; }
-.form-table .yoohw-storage-mode-option { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; padding: 12px 14px; border: 1px solid #c3c4c7; border-radius: 4px; background: #fff; }
+.form-table .yoohw-storage-mode-option { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 10px; padding: 12px 14px; border: 1px solid #c3c4c7; border-radius: 4px; background: #fff; }
+.yoohw-storage-mode-option > input[type="radio"] { margin: 0; }
 .yoohw-storage-mode-option:has(input:checked) { border-color: var(--wp-admin-theme-color, #3858e9); box-shadow: 0 0 0 1px var(--wp-admin-theme-color, #3858e9); }
 .yoohw-storage-mode-recommendation { display: inline-flex; margin-left: 6px; padding: 2px 7px; border-radius: 999px; background: #eef4ff; color: #183ad6; font-size: 11px; }
 .yoohw-color-field { display: inline-flex; align-items: center; gap: 8px; }
@@ -42,3 +43,19 @@
 	.yoohw-site-check-header,
 	.yoohw-site-check-grid { flex-direction: column; }
 }
+
+.yoohw-feature-options { display: grid; gap: 12px; max-width: 680px; }
+.yoohw-feature-options > label { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.yoohw-feature-options fieldset { display: grid; gap: 8px; }
+.yoohw-feature-options select { max-width: 100%; }
+.yoohw-feature-options[disabled] { opacity: 0.65; }
+
+#TB_window.yoohw-shortcode-modal { box-sizing: border-box; top: 50%; left: 50%; width: min(760px, calc(100vw - 32px)) !important; height: min(640px, calc(100vh - 48px)); margin: 0 !important; transform: translate(-50%, -50%); }
+.yoohw-shortcode-modal #TB_ajaxContent { box-sizing: border-box; width: 100% !important; height: calc(100% - 30px) !important; padding: 8px 24px 20px; overflow: auto; }
+.yoohw-shortcode-guide { color: #1d2327; font-size: 13px; line-height: 1.6; }
+.yoohw-shortcode-list { display: grid; gap: 10px; }
+.yoohw-shortcode-list > div { padding: 12px 14px; border: 1px solid #dcdcde; border-radius: 4px; background: #f6f7f7; }
+.yoohw-shortcode-list code { padding: 0; background: transparent; overflow-wrap: anywhere; }
+.yoohw-shortcode-list dt { margin-bottom: 4px; font-weight: 600; }
+.yoohw-shortcode-list dd { margin: 0; }
+.yoohw-shortcode-guide li { margin-bottom: 8px; }

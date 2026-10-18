@@ -179,7 +179,7 @@
   }
 
   function setupAttachmentValidation() {
-    document.querySelectorAll('input[type="file"][data-max-files]').forEach(function (input) {
+    document.querySelectorAll('.yoohw-support input[type="file"][data-max-files]').forEach(function (input) {
       var dropzone = document.querySelector('label[for="' + input.id + '"].yoohw-upload-dropzone');
 
       input.addEventListener("change", function () {
@@ -264,7 +264,7 @@
   }
 
   function setupSubmitLocks() {
-    document.querySelectorAll("form[data-yoohw-form], form#commentform").forEach(function (form) {
+    document.querySelectorAll(".yoohw-support form[data-yoohw-form], .yoohw-support form#commentform").forEach(function (form) {
       if (form.id === "commentform") {
         form.noValidate = true;
         form.setAttribute("enctype", "multipart/form-data");
@@ -343,8 +343,102 @@
     document.querySelectorAll(".yoohw-topic-body, .yoohw-reply-content").forEach(enhanceCodeBlocks);
   }
 
+  function setupReplyAvatars() {
+    document.querySelectorAll(".yoohw-reply-avatar").forEach(function (image) {
+      var initial = image.closest(".yoohw-avatar").querySelector(".yoohw-avatar-initial");
+      function showAvatar() {
+        if (initial) initial.hidden = true;
+      }
+      function showInitial() {
+        if (initial) initial.hidden = false;
+        image.remove();
+      }
+      image.addEventListener("load", showAvatar, { once: true });
+      image.addEventListener("error", showInitial, { once: true });
+      if (image.complete) {
+        if (image.naturalWidth > 0) showAvatar();
+        else showInitial();
+      }
+    });
+  }
+
+  function setupReplyHistory() {
+    document.querySelectorAll(".yoohw-replies").forEach(function (section) {
+      var list = section.querySelector(".yoohw-reply-list");
+      var history = section.querySelector(".yoohw-reply-history");
+      var button = history ? history.querySelector("button") : null;
+      if (!list || !button) return;
+      var count = history.querySelector("[data-reply-history-count]");
+      var progress = history.querySelector("[data-reply-history-progress]");
+      var label = history.querySelector("[data-reply-history-label]");
+      var status = section.querySelector("[data-reply-history-status]");
+
+      var replies = Array.prototype.slice.call(list.children);
+      var historyConfig = config().conversation || {};
+      var batchSize = Math.max(1, Math.min(100, parseInt(historyConfig.replyBatchSize, 10) || 5));
+      var firstVisible = historyConfig.collapseReplies === false ? 0 : Math.max(0, replies.length - batchSize);
+
+      function update() {
+        replies.forEach(function (reply, index) { reply.hidden = index < firstVisible; });
+        history.hidden = firstVisible === 0;
+        var nextCount = Math.min(batchSize, firstVisible);
+        count.textContent = message(firstVisible === 1 ? "olderReply" : "olderReplies", firstVisible === 1 ? "%d older reply available" : "%d older replies available").replace("%d", firstVisible);
+        progress.textContent = message("replyProgress", "Showing %1$d of %2$d replies").replace("%1$d", replies.length - firstVisible).replace("%2$d", replies.length);
+        label.textContent = message(nextCount === 1 ? "showOlderReply" : "showOlderReplies", nextCount === 1 ? "Show %d older reply" : "Show %d older replies").replace("%d", nextCount);
+      }
+
+      function revealLinkedReply() {
+        var id;
+        try { id = decodeURIComponent(window.location.hash.slice(1)); } catch (error) { return; }
+        var index = replies.findIndex(function (reply) { return reply.id === id; });
+        if (index >= 0 && index < firstVisible) {
+          firstVisible = index;
+          update();
+          replies[index].scrollIntoView();
+        }
+      }
+
+      button.addEventListener("click", function () {
+        if (button.disabled) return;
+        button.disabled = true;
+        history.setAttribute("aria-busy", "true");
+        label.textContent = message("revealingReplies", "Showing older replies…");
+        // Let the browser paint the busy state before revealing content; no timed wait.
+        window.requestAnimationFrame(function () {
+          window.requestAnimationFrame(function () {
+            var previousFirst = firstVisible;
+            firstVisible = Math.max(0, firstVisible - batchSize);
+            update();
+            replies.slice(firstVisible, previousFirst).forEach(function (reply) {
+              reply.classList.add("is-newly-revealed");
+              reply.addEventListener("animationend", function () {
+                reply.classList.remove("is-newly-revealed");
+              }, { once: true });
+            });
+            history.removeAttribute("aria-busy");
+            button.disabled = false;
+            status.textContent = firstVisible === 0
+              ? message("allRepliesShown", "All %d replies are now shown.").replace("%d", replies.length)
+              : progress.textContent;
+            // Keep keyboard focus useful when the final batch removes the control.
+            var first = replies[firstVisible];
+            if (first) {
+              first.tabIndex = -1;
+              first.focus({ preventScroll: true });
+            }
+          });
+        });
+      });
+      update();
+      revealLinkedReply();
+      window.addEventListener("hashchange", revealLinkedReply);
+    });
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
     setupBrandIcon();
+    setupReplyAvatars();
+    setupReplyHistory();
     setupNavigation();
     setupPasswordToggles();
     setupPasswordStrength();

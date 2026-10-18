@@ -28,6 +28,8 @@ class YoOhw_Support_Settings {
 			return;
 		}
 
+		add_thickbox();
+
 		$css_path = YOOHW_SUPPORT_PORTAL_PATH . 'assets/css/admin.css';
 		$js_path  = YOOHW_SUPPORT_PORTAL_PATH . 'assets/js/admin.js';
 
@@ -40,7 +42,7 @@ class YoOhw_Support_Settings {
 		wp_enqueue_script(
 			'yoohw-support-portal-admin',
 			YOOHW_SUPPORT_PORTAL_URL . 'assets/js/admin.js',
-			[],
+			[ 'thickbox' ],
 			file_exists( $js_path ) ? (string) filemtime( $js_path ) : YOOHW_SUPPORT_PORTAL_VERSION,
 			true
 		);
@@ -60,6 +62,16 @@ class YoOhw_Support_Settings {
 
 	public static function defaults(): array {
 		$defaults = [
+			'allow_topic_attachments'    => '1',
+			'allow_reply_attachments'    => '1',
+			'attachment_max_count'       => 5,
+			'attachment_max_size_mb'     => 5,
+			'attachment_types'           => [ 'images', 'video', 'zip' ],
+			'attachment_display'         => 'preview',
+			'collapse_older_replies'     => '1',
+			'reply_batch_size'           => 5,
+			'topics_per_page'            => 8,
+			'reply_avatar_mode'          => 'wordpress',
 			'docs_url'                   => self::default_site_url( '/docs/' ),
 			'dedicated_portal_mode'      => self::STORAGE_WORDPRESS,
 			'enable_page_ui'             => '1',
@@ -91,6 +103,126 @@ class YoOhw_Support_Settings {
 		}
 
 		return array_merge( self::defaults(), $settings );
+	}
+
+	public static function feature_enabled( string $key ): bool {
+		return in_array( self::get()[ $key ] ?? false, [ '1', 1, true ], true );
+	}
+
+	private static function bounded_number( $value, int $default, int $maximum ): int {
+		return is_scalar( $value ) && is_numeric( $value ) ? max( 1, min( $maximum, (int) $value ) ) : $default;
+	}
+
+	public static function attachment_max_count(): int {
+		$limit = self::bounded_number( self::get()['attachment_max_count'], 5, 20 );
+		$server_limit = ini_get( 'max_file_uploads' );
+		return is_numeric( $server_limit ) ? max( 0, min( $limit, (int) $server_limit ) ) : $limit;
+	}
+
+	public static function attachment_max_bytes(): int {
+		$mb = self::bounded_number( self::get()['attachment_max_size_mb'], 5, 1024 );
+		return max( 0, min( $mb * MB_IN_BYTES, wp_max_upload_size() ) );
+	}
+
+	public static function topics_per_page(): int {
+		return self::bounded_number( self::get()['topics_per_page'], 8, 100 );
+	}
+
+	public static function reply_batch_size(): int {
+		return self::bounded_number( self::get()['reply_batch_size'], 5, 100 );
+	}
+
+	public static function attachment_mimes(): array {
+		$groups = [
+			'images' => [ 'jpg|jpeg' => 'image/jpeg', 'png' => 'image/png', 'webp' => 'image/webp', 'gif' => 'image/gif' ],
+			'video'  => [ 'mp4' => 'video/mp4', 'webm' => 'video/webm', 'mov|qt' => 'video/quicktime' ],
+			'zip'    => [ 'zip' => 'application/zip' ],
+		];
+		$selected = self::get()['attachment_types'];
+		$mimes = [];
+		foreach ( is_array( $selected ) ? $selected : [] as $group ) {
+			if ( is_string( $group ) && isset( $groups[ $group ] ) ) {
+				$mimes = array_merge( $mimes, $groups[ $group ] );
+			}
+		}
+		return $mimes;
+	}
+
+	public static function uploads_enabled( string $context ): bool {
+		return in_array( $context, [ 'topic', 'reply' ], true )
+			&& ! self::uses_isolated_storage()
+			&& self::feature_enabled( 'allow_' . $context . '_attachments' )
+			&& self::attachment_max_count() > 0 && self::attachment_max_bytes() > 0
+			&& ! empty( self::attachment_mimes() );
+	}
+
+	public static function attachment_accept(): string {
+		$mimes = self::attachment_mimes();
+		return implode( ',', array_values( $mimes ) ) . ( isset( $mimes['zip'] ) ? ',.zip' : '' );
+	}
+
+	public static function attachment_type_label(): string {
+		return strtoupper( str_replace( '|', ', ', implode( ', ', array_keys( self::attachment_mimes() ) ) ) );
+	}
+
+	public static function attachment_previews_enabled(): bool {
+		return 'links' !== self::get()['attachment_display'];
+	}
+
+	public static function wordpress_reply_avatars_enabled(): bool {
+		return 'initials' !== self::get()['reply_avatar_mode'];
+	}
+
+	public static function render_attachment_options(): void {
+		$settings = self::get();
+		$name = self::OPTION_NAME;
+		?>
+		<p class="description"><?php esc_html_e( 'Uploads are available only with WordPress posts/comments storage. Disabling new uploads does not remove or hide existing files. Existing files keep their protected download links.', 'yoohw-support-portal' ); ?></p>
+		<fieldset class="yoohw-feature-options" <?php disabled( self::uses_isolated_storage() ); ?>>
+			<legend class="screen-reader-text"><?php esc_html_e( 'Attachment options', 'yoohw-support-portal' ); ?></legend>
+			<?php foreach ( [ 'allow_topic_attachments' => __( 'Allow attachments in new topics', 'yoohw-support-portal' ), 'allow_reply_attachments' => __( 'Allow attachments in replies', 'yoohw-support-portal' ) ] as $key => $label ) : ?>
+				<label><input type="hidden" name="<?php echo esc_attr( $name . '[' . $key . ']' ); ?>" value="0"><input type="checkbox" name="<?php echo esc_attr( $name . '[' . $key . ']' ); ?>" value="1" <?php checked( self::feature_enabled( $key ) ); ?>> <?php echo esc_html( $label ); ?></label>
+			<?php endforeach; ?>
+			<label><?php esc_html_e( 'Maximum files per submission', 'yoohw-support-portal' ); ?> <input type="number" class="small-text" name="<?php echo esc_attr( $name . '[attachment_max_count]' ); ?>" min="1" max="20" step="1" value="<?php echo esc_attr( self::bounded_number( $settings['attachment_max_count'], 5, 20 ) ); ?>"></label>
+			<label><?php esc_html_e( 'Maximum size per file (MB)', 'yoohw-support-portal' ); ?> <input type="number" class="small-text" name="<?php echo esc_attr( $name . '[attachment_max_size_mb]' ); ?>" min="1" max="1024" step="1" value="<?php echo esc_attr( self::bounded_number( $settings['attachment_max_size_mb'], 5, 1024 ) ); ?>"></label>
+			<p class="description"><?php /* translators: 1: Effective file count, 2: Effective file-size limit. */ echo esc_html( sprintf( __( 'Current effective limit: %1$d files, %2$s each. WordPress/PHP limits can lower your configured limits.', 'yoohw-support-portal' ), self::attachment_max_count(), size_format( self::attachment_max_bytes() ) ) ); ?></p>
+			<fieldset>
+				<legend><?php esc_html_e( 'Allowed file groups', 'yoohw-support-portal' ); ?></legend>
+				<input type="hidden" name="<?php echo esc_attr( $name . '[attachment_types][]' ); ?>" value="">
+				<?php foreach ( [ 'images' => __( 'Images (JPG, PNG, WebP, GIF)', 'yoohw-support-portal' ), 'video' => __( 'Videos (MP4, WebM, MOV)', 'yoohw-support-portal' ), 'zip' => __( 'ZIP archives', 'yoohw-support-portal' ) ] as $key => $label ) : ?>
+					<label><input type="checkbox" name="<?php echo esc_attr( $name . '[attachment_types][]' ); ?>" value="<?php echo esc_attr( $key ); ?>" <?php checked( in_array( $key, (array) $settings['attachment_types'], true ) ); ?>> <?php echo esc_html( $label ); ?></label>
+				<?php endforeach; ?>
+				<p class="description"><?php esc_html_e( 'Select at least one group to accept new files. These choices do not change access to existing files.', 'yoohw-support-portal' ); ?></p>
+			</fieldset>
+			<div>
+				<label for="yoohw-attachment-display"><?php esc_html_e( 'Display existing attachments', 'yoohw-support-portal' ); ?></label>
+				<select id="yoohw-attachment-display" name="<?php echo esc_attr( $name . '[attachment_display]' ); ?>">
+					<option value="preview" <?php selected( self::attachment_previews_enabled() ); ?>><?php esc_html_e( 'Preview images and videos', 'yoohw-support-portal' ); ?></option>
+					<option value="links" <?php selected( ! self::attachment_previews_enabled() ); ?>><?php esc_html_e( 'Download links only', 'yoohw-support-portal' ); ?></option>
+				</select>
+			</div>
+		</fieldset>
+		<?php
+	}
+
+	public static function render_conversation_options(): void {
+		$name = self::OPTION_NAME;
+		?>
+		<fieldset class="yoohw-feature-options">
+			<legend class="screen-reader-text"><?php esc_html_e( 'Conversation options', 'yoohw-support-portal' ); ?></legend>
+			<label><input type="hidden" name="<?php echo esc_attr( $name . '[collapse_older_replies]' ); ?>" value="0"><input type="checkbox" name="<?php echo esc_attr( $name . '[collapse_older_replies]' ); ?>" value="1" <?php checked( self::feature_enabled( 'collapse_older_replies' ) ); ?>> <?php esc_html_e( 'Collapse older replies', 'yoohw-support-portal' ); ?></label>
+			<label><?php esc_html_e( 'Replies shown initially and per expansion', 'yoohw-support-portal' ); ?> <input type="number" class="small-text" name="<?php echo esc_attr( $name . '[reply_batch_size]' ); ?>" min="1" max="100" step="1" value="<?php echo esc_attr( self::reply_batch_size() ); ?>"></label>
+			<label><?php esc_html_e( 'Topics per page', 'yoohw-support-portal' ); ?> <input type="number" class="small-text" name="<?php echo esc_attr( $name . '[topics_per_page]' ); ?>" min="1" max="100" step="1" value="<?php echo esc_attr( self::topics_per_page() ); ?>"></label>
+			<div>
+				<label for="yoohw-reply-avatar-mode"><?php esc_html_e( 'Reply avatars', 'yoohw-support-portal' ); ?></label>
+				<select id="yoohw-reply-avatar-mode" name="<?php echo esc_attr( $name . '[reply_avatar_mode]' ); ?>">
+					<option value="wordpress" <?php selected( self::wordpress_reply_avatars_enabled() ); ?>><?php esc_html_e( 'Use WordPress avatars', 'yoohw-support-portal' ); ?></option>
+					<option value="initials" <?php selected( ! self::wordpress_reply_avatars_enabled() ); ?>><?php esc_html_e( 'Initials only', 'yoohw-support-portal' ); ?></option>
+				</select>
+			</div>
+			<p class="description"><?php esc_html_e( 'WordPress avatars also respect the WordPress Show Avatars setting. Topic limits apply to the portal, embedded lists, and customer profiles.', 'yoohw-support-portal' ); ?></p>
+		</fieldset>
+		<?php
 	}
 
 	public static function get_url( string $key ): string {
@@ -319,6 +451,12 @@ class YoOhw_Support_Settings {
 				]
 			);
 		}
+
+		add_settings_section( 'yoohw_support_portal_features', __( 'Support features', 'yoohw-support-portal' ), '__return_false', 'yoohw-support-portal' );
+		add_settings_field( 'attachment_options', __( 'Attachments', 'yoohw-support-portal' ), [ __CLASS__, 'render_attachment_options' ], 'yoohw-support-portal', 'yoohw_support_portal_features' );
+		add_settings_field( 'conversation_options', __( 'Conversations and lists', 'yoohw-support-portal' ), [ __CLASS__, 'render_conversation_options' ], 'yoohw-support-portal', 'yoohw_support_portal_features' );
+
+		add_settings_section( 'yoohw_support_portal_shortcodes', __( 'Shortcodes', 'yoohw-support-portal' ), [ __CLASS__, 'render_shortcode_guide' ], 'yoohw-support-portal' );
 	}
 
 	public static function register_options_page(): void {
@@ -375,6 +513,20 @@ class YoOhw_Support_Settings {
 
 			$clean[ $key ] = '' !== $label ? $label : $default;
 		}
+
+		// Preserve omitted feature fields (for example the disabled isolated-storage fieldset).
+		$current = self::get();
+		foreach ( [ 'allow_topic_attachments', 'allow_reply_attachments', 'collapse_older_replies' ] as $key ) {
+			$raw = $value[ $key ] ?? $current[ $key ];
+			$clean[ $key ] = in_array( $raw, [ '1', 1, true ], true ) ? '1' : '0';
+		}
+		foreach ( [ 'attachment_max_count' => 20, 'attachment_max_size_mb' => 1024, 'reply_batch_size' => 100, 'topics_per_page' => 100 ] as $key => $maximum ) {
+			$clean[ $key ] = self::bounded_number( $value[ $key ] ?? $current[ $key ], (int) $defaults[ $key ], $maximum );
+		}
+		$types = $value['attachment_types'] ?? $current['attachment_types'];
+		$clean['attachment_types'] = array_values( array_intersect( [ 'images', 'video', 'zip' ], is_array( $types ) ? array_filter( $types, 'is_string' ) : [] ) );
+		$clean['attachment_display'] = 'links' === ( $value['attachment_display'] ?? $current['attachment_display'] ) ? 'links' : 'preview';
+		$clean['reply_avatar_mode'] = 'initials' === ( $value['reply_avatar_mode'] ?? $current['reply_avatar_mode'] ) ? 'initials' : 'wordpress';
 
 		return $clean;
 	}
@@ -640,6 +792,41 @@ class YoOhw_Support_Settings {
 		}
 
 		return '.yoohw-support-body,.yoohw-support{' . $declarations . '}';
+	}
+
+	public static function render_shortcode_guide(): void {
+		$shortcodes = [
+			'yoohw_post_form'          => __( 'New-topic form with category selection and attachments when enabled. Guests see a login prompt.', 'yoohw-support-portal' ),
+			'yoohw_login_form'         => __( 'Login form using the existing authentication and SSO rules.', 'yoohw-support-portal' ),
+			'yoohw_lost_password_form' => __( 'Password-recovery form. Reset links continue to use the portal.', 'yoohw-support-portal' ),
+			'yoohw_support_topics'     => __( 'Topic list with search, filters, and pagination. Customers see their own topics; staff access follows existing permissions.', 'yoohw-support-portal' ),
+		];
+		?>
+		<p><?php esc_html_e( 'Embed support forms and topic lists in pages using your theme. The existing portal stays available.', 'yoohw-support-portal' ); ?></p>
+		<p><button type="button" class="button" id="yoohw-shortcode-guide-open" data-dialog-title="<?php esc_attr_e( 'Shortcode guide', 'yoohw-support-portal' ); ?>" aria-haspopup="dialog"><?php esc_html_e( 'View shortcode guide', 'yoohw-support-portal' ); ?></button></p>
+		<div id="yoohw-shortcode-guide" hidden>
+			<div class="yoohw-shortcode-guide">
+				<p><?php esc_html_e( 'Add a Shortcode block to a regular WordPress page, then paste one of these tags. No attributes are required.', 'yoohw-support-portal' ); ?></p>
+				<dl class="yoohw-shortcode-list">
+					<?php foreach ( $shortcodes as $tag => $description ) : ?>
+						<div><dt><code><?php echo esc_html( '[' . $tag . ']' ); ?></code></dt><dd><?php echo esc_html( $description ); ?></dd></div>
+					<?php endforeach; ?>
+				</dl>
+				<h3><?php esc_html_e( 'Use your theme', 'yoohw-support-portal' ); ?></h3>
+				<ol>
+					<li><?php esc_html_e( 'Choose a unique page slug, such as customer-help. Avoid portal routes such as /topics/, /new/, /login/, and /support/.', 'yoohw-support-portal' ); ?></li>
+					<li><?php esc_html_e( 'With WordPress posts/comments storage, turn off the WordPress pages option under Plugin UI and use pretty permalinks. The homepage remains the portal dashboard. In isolated storage, regular pages already use your theme.', 'yoohw-support-portal' ); ?></li>
+					<li><?php esc_html_e( 'Use each shortcode at most once per page. Place login and password-recovery forms on separate pages. Add headings using your page editor.', 'yoohw-support-portal' ); ?></li>
+				</ol>
+				<h3><?php esc_html_e( 'Keep in mind', 'yoohw-support-portal' ); ?></h3>
+				<ul class="ul-disc">
+					<li><?php esc_html_e( 'Exclude these pages from page, CDN, and builder caches for every visitor. Builders must render shortcodes on the server before footer scripts; cached HTML and client-side insertion are not supported.', 'yoohw-support-portal' ); ?></li>
+					<li><?php esc_html_e( 'Topic details, replies, new-topic links, and successful topic submissions open the existing portal. Authentication rules and redirects remain unchanged.', 'yoohw-support-portal' ); ?></li>
+					<li><?php esc_html_e( 'Portal and embedded components share Support features settings, colors, and fonts. Isolated storage does not support file uploads.', 'yoohw-support-portal' ); ?></li>
+				</ul>
+			</div>
+		</div>
+		<?php
 	}
 
 	public static function render_options_page(): void {

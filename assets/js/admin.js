@@ -9,6 +9,30 @@
 	}
 
 	document.addEventListener("DOMContentLoaded", function () {
+		var guideButton = document.getElementById("yoohw-shortcode-guide-open");
+		if (guideButton && typeof window.tb_show === "function") {
+			guideButton.addEventListener("click", function () {
+				window.tb_show(guideButton.dataset.dialogTitle, "#TB_inline?inlineId=yoohw-shortcode-guide&width=700&height=560");
+				var dialog = document.getElementById("TB_window");
+				if (!dialog) return;
+				dialog.classList.add("yoohw-shortcode-modal");
+				dialog.setAttribute("role", "dialog");
+				dialog.setAttribute("aria-modal", "true");
+				dialog.setAttribute("aria-labelledby", "TB_ajaxWindowTitle");
+				document.getElementById("TB_ajaxContent").tabIndex = 0;
+				// Keep keyboard navigation inside the dialog, including its scrollable guide.
+				dialog.addEventListener("keydown", function (event) {
+					if (event.key === "Tab") {
+						event.preventDefault();
+						var close = document.getElementById("TB_closeWindowButton");
+						var guide = document.getElementById("TB_ajaxContent");
+						(document.activeElement === close ? guide : close).focus();
+					}
+				});
+				window.jQuery(dialog).one("tb_unload", function () { guideButton.focus(); });
+			});
+		}
+
 		document.querySelectorAll("[data-yoohw-color-field]").forEach(function (field) {
 			var picker = field.querySelector("[data-yoohw-color-picker]");
 			var hex = field.querySelector("[data-yoohw-color-hex]");

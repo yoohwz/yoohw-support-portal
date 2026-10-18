@@ -164,90 +164,64 @@ class YoOhw_Shortcode {
 	}
 
 	public static function get_allowed_attachment_mimes() {
-		return [
-			'jpg|jpeg' => 'image/jpeg',
-			'png'      => 'image/png',
-			'webp'     => 'image/webp',
-			'gif'      => 'image/gif',
-			'mp4'      => 'video/mp4',
-			'webm'     => 'video/webm',
-			'mov|qt'   => 'video/quicktime',
-
-			// ZIP archives
-			'zip'      => 'application/zip',
-		];
+		return YoOhw_Support_Settings::attachment_mimes();
 	}
 
-	public static function validate_attachment_uploads( $field_name = 'yoohw_attachments' ) {
-		// phpcs:disable WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- The submission handler verifies the nonce; WordPress media APIs require the original upload array.
-		if ( empty( $_FILES[ $field_name ] ) || empty( $_FILES[ $field_name ]['name'] ) ) {
+	public static function validate_attachment_uploads( $field_name = 'yoohw_attachments', string $context = 'topic' ) {
+		// phpcs:disable WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- The caller verifies identity/nonce; PHP supplies the multipart upload fields.
+		if ( empty( $_FILES[ $field_name ] ) ) {
 			return;
 		}
-
 		$files = $_FILES[ $field_name ];
-		$names = is_array( $files['name'] ) ? $files['name'] : [ $files['name'] ];
-
-		$uploaded_count = 0;
-
-		foreach ( $names as $index => $name ) {
-			if ( empty( $name ) ) {
-				continue;
-			}
-
-			$error = is_array( $files['error'] ) ? (int) $files['error'][ $index ] : (int) $files['error'];
-
-			if ( UPLOAD_ERR_NO_FILE === $error ) {
-				continue;
-			}
-
-			$uploaded_count++;
+		if ( ! is_array( $files ) || ! isset( $files['name'] ) ) {
+			wp_die( esc_html__( 'Invalid attachment upload.', 'yoohw-support-portal' ), '', [ 'response' => 400 ] );
 		}
-
-		if ( $uploaded_count > self::MAX_ATTACHMENTS ) {
-				wp_die(
-					esc_html(
-						sprintf(
-						/* translators: %d: Maximum number of attachments. */
-							__( 'You can upload a maximum of %d attachments per topic.', 'yoohw-support-portal' ),
-							self::MAX_ATTACHMENTS
-						)
-					)
-			);
+		$names = is_array( $files['name'] ) ? $files['name'] : [ $files['name'] ];
+		if ( array_keys( $names ) !== range( 0, count( $names ) - 1 ) && ! empty( $names ) ) {
+			wp_die( esc_html__( 'Invalid attachment upload.', 'yoohw-support-portal' ), '', [ 'response' => 400 ] );
+		}
+		$uploads = [];
+		foreach ( $names as $index => $name ) {
+			$file = [];
+			foreach ( [ 'name', 'type', 'tmp_name', 'error', 'size' ] as $key ) {
+				$value = isset( $files[ $key ] ) && is_array( $files[ $key ] ) ? ( $files[ $key ][ $index ] ?? null ) : ( $files[ $key ] ?? null );
+				if ( ! is_scalar( $value ) ) {
+					wp_die( esc_html__( 'Invalid attachment upload.', 'yoohw-support-portal' ), '', [ 'response' => 400 ] );
+				}
+				$file[ $key ] = $value;
+			}
+			if ( '' === $file['name'] || UPLOAD_ERR_NO_FILE === (int) $file['error'] ) {
+				continue;
+			}
+			$uploads[] = $file;
+		}
+		if ( empty( $uploads ) ) {
+			return;
+		}
+		if ( ! YoOhw_Support_Settings::uploads_enabled( $context ) ) {
+			wp_die( esc_html__( 'Attachments are disabled for this submission.', 'yoohw-support-portal' ), '', [ 'response' => 403 ] );
+		}
+		if ( count( $uploads ) > YoOhw_Support_Settings::attachment_max_count() ) {
+			/* translators: %d: Maximum attachment count. */
+			wp_die( esc_html( sprintf( __( 'You can upload a maximum of %d attachments per submission.', 'yoohw-support-portal' ), YoOhw_Support_Settings::attachment_max_count() ) ), '', [ 'response' => 400 ] );
+		}
+		foreach ( $uploads as $file ) {
+			if ( UPLOAD_ERR_OK !== (int) $file['error'] || ! is_file( $file['tmp_name'] ) || ! is_readable( $file['tmp_name'] ) ) {
+				wp_die( esc_html__( 'One of the attachments could not be uploaded. Please try again.', 'yoohw-support-portal' ), '', [ 'response' => 400 ] );
+			}
+			if ( max( (int) $file['size'], (int) filesize( $file['tmp_name'] ) ) > YoOhw_Support_Settings::attachment_max_bytes() ) {
+				/* translators: %s: Effective maximum size per file. */
+				wp_die( esc_html( sprintf( __( 'One of the attachments is too large. Maximum size is %s per file.', 'yoohw-support-portal' ), size_format( YoOhw_Support_Settings::attachment_max_bytes() ) ) ), '', [ 'response' => 400 ] );
+			}
+			$mimes = self::get_allowed_attachment_mimes();
+			$extension = wp_check_filetype( $file['name'], $mimes );
+			$check = wp_check_filetype_and_ext( $file['tmp_name'], $file['name'], $mimes );
+			if ( empty( $extension['type'] ) || empty( $check['type'] ) || ! in_array( $check['type'], $mimes, true ) ) {
+				/* translators: %s: Allowed attachment extensions. */
+				wp_die( esc_html( sprintf( __( 'Unsupported attachment type. Allowed file types: %s.', 'yoohw-support-portal' ), YoOhw_Support_Settings::attachment_type_label() ) ), '', [ 'response' => 400 ] );
+			}
 		}
 		// phpcs:enable WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-
-		foreach ( $names as $index => $name ) {
-			if ( empty( $name ) ) {
-				continue;
-			}
-
-			$error = is_array( $files['error'] ) ? (int) $files['error'][ $index ] : (int) $files['error'];
-			$size  = is_array( $files['size'] ) ? (int) $files['size'][ $index ] : (int) $files['size'];
-			$tmp   = is_array( $files['tmp_name'] ) ? $files['tmp_name'][ $index ] : $files['tmp_name'];
-
-			if ( UPLOAD_ERR_NO_FILE === $error ) {
-				continue;
-			}
-
-			if ( UPLOAD_ERR_OK !== $error ) {
-				wp_die( esc_html__( 'One of the attachments could not be uploaded. Please try again.', 'yoohw-support-portal' ) );
-			}
-
-			if ( $size > self::MAX_ATTACHMENT_BYTES ) {
-				wp_die( esc_html__( 'One of the attachments is too large. Maximum size is 5 MB per file.', 'yoohw-support-portal' ) );
-			}
-
-			$check = wp_check_filetype_and_ext( $tmp, $name, self::get_allowed_attachment_mimes() );
-
-			if ( empty( $check['type'] ) ) {
-				wp_die(
-					esc_html__(
-						'Unsupported attachment type. Please upload JPG, PNG, WebP, GIF, MP4, WebM, MOV, or ZIP files only.',
-						'yoohw-support-portal'
-					)
-				);
-			}
-		}
 	}
 
 	private static function generate_safe_attachment_filename( $filename ) {
@@ -261,6 +235,7 @@ class YoOhw_Shortcode {
 	}
 
 	public static function handle_attachment_uploads( $parent_id, $field_name = 'yoohw_attachments' ) {
+		self::validate_attachment_uploads( $field_name );
 		// phpcs:disable WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- The submission handler verifies the nonce; media_handle_sideload() requires the original upload fields.
 		if ( empty( $_FILES[ $field_name ] ) || empty( $_FILES[ $field_name ]['name'] ) ) {
 			return [];
@@ -340,14 +315,14 @@ class YoOhw_Shortcode {
 				continue;
 			}
 
-			if ( 0 === strpos( $mime, 'image/' ) ) {
+			if ( YoOhw_Support_Settings::attachment_previews_enabled() && 0 === strpos( $mime, 'image/' ) ) {
 				$alt   = get_post_meta( $attachment_id, '_wp_attachment_image_alt', true );
 				$image = '<img class="yoohw-attachment-image" src="' . esc_url( $url ) . '" alt="' . esc_attr( $alt ) . '" loading="lazy" decoding="async">';
 
 				if ( $image ) {
 					$html .= '<figure class="yoohw-attachment yoohw-attachment--image"><a href="' . esc_url( $url ) . '" target="_blank" rel="noopener noreferrer">' . $image . '</a></figure>';
 				}
-			} elseif ( 0 === strpos( $mime, 'video/' ) ) {
+			} elseif ( YoOhw_Support_Settings::attachment_previews_enabled() && 0 === strpos( $mime, 'video/' ) ) {
 				$html .= '<figure class="yoohw-attachment yoohw-attachment--video"><video class="yoohw-attachment-video" controls preload="metadata" src="' . esc_url( $url ) . '"></video></figure>';
 			} else {
 				$original_name = get_post_meta( $attachment_id, '_yoohw_original_filename', true );
@@ -369,7 +344,7 @@ class YoOhw_Shortcode {
 				$html .= '<span class="yoohw-attachment-file-meta">' . esc_html( $file_ext );
 
 				if ( $file_size ) {
-					$html .= ' archive · ' . esc_html( size_format( $file_size ) );
+					$html .= ( 'application/zip' === $mime ? ' archive' : '' ) . ' · ' . esc_html( size_format( $file_size ) );
 				}
 
 				$html .= '</span>';
@@ -668,6 +643,7 @@ class YoOhw_Shortcode {
 				?>
 			</div>
 
+			<?php if ( YoOhw_Support_Settings::uploads_enabled( 'topic' ) ) : ?>
 			<div class="yoohw-form-row yoohw-attachment-upload-field" data-upload-dropzone>
 				<label for="yoohw_attachments" class="styled-label"><?php esc_html_e( 'Attachments', 'yoohw-support-portal' ); ?></label>
 				<p><?php esc_html_e( 'Choose files below or drop them anywhere in this attachment area.', 'yoohw-support-portal' ); ?></p>
@@ -676,23 +652,24 @@ class YoOhw_Shortcode {
 					id="yoohw_attachments"
 					name="yoohw_attachments[]"
 					multiple
-					accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime,application/zip,.zip"
-					data-max-files="<?php echo esc_attr( self::MAX_ATTACHMENTS ); ?>"
-					data-max-size="<?php echo esc_attr( self::MAX_ATTACHMENT_BYTES ); ?>"
+					accept="<?php echo esc_attr( YoOhw_Support_Settings::attachment_accept() ); ?>"
+					data-max-files="<?php echo esc_attr( YoOhw_Support_Settings::attachment_max_count() ); ?>"
+					data-max-size="<?php echo esc_attr( YoOhw_Support_Settings::attachment_max_bytes() ); ?>"
 				>
 				<p class="yoohw-upload-note">
 					<?php
 					echo esc_html(
 						sprintf(
 							/* translators: 1: Maximum attachment count, 2: Maximum size per attachment. */
-							__( 'Attach up to %1$d files. Allowed file types: JPG, PNG, WebP, GIF, MP4, WebM, MOV, ZIP. Max %2$s per file.', 'yoohw-support-portal' ),
-							self::MAX_ATTACHMENTS,
-							size_format( self::MAX_ATTACHMENT_BYTES )
+							__( 'Attach up to %1$d files. Max %2$s per file.', 'yoohw-support-portal' ),
+							YoOhw_Support_Settings::attachment_max_count(),
+							size_format( YoOhw_Support_Settings::attachment_max_bytes() )
 						)
 					);
 					?>
 				</p>
 			</div>
+			<?php endif; ?>
 
 			<p>
 				<input type="submit" value="<?php esc_attr_e( 'Submit', 'yoohw-support-portal' ); ?>">

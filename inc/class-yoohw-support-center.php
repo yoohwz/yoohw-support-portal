@@ -45,6 +45,7 @@ class YoOhw_Support_Center {
         include_once YOOHW_SUPPORT_PORTAL_PATH . 'inc/class-yoohw-category-access-code.php';
         include_once YOOHW_SUPPORT_PORTAL_PATH . 'inc/class-yoohw-form-handler.php';
         include_once YOOHW_SUPPORT_PORTAL_PATH . 'inc/class-yoohw-shortcode.php';
+        include_once YOOHW_SUPPORT_PORTAL_PATH . 'inc/class-yoohw-support-shortcodes.php';
         include_once YOOHW_SUPPORT_PORTAL_PATH . 'inc/class-yoohw-login-form.php';
         include_once YOOHW_SUPPORT_PORTAL_PATH . 'inc/class-yoohw-lost-password-form.php';
 
@@ -84,9 +85,7 @@ class YoOhw_Support_Center {
         add_action( 'login_form_resetpass', [ 'YoOhw_Support_Controller', 'redirect_wp_reset_password' ] );
         add_filter( 'retrieve_password_message', [ 'YoOhw_Support_Controller', 'replace_reset_password_url' ], 20, 4 );
         add_action('init', array('YoOhw_Form_Handler', 'handle_post_submission'));
-        add_shortcode('yoohw_post_form', array('YoOhw_Shortcode', 'render_form'));
-        add_shortcode('yoohw_login_form', array('YoOhw_Login_Form', 'render_login_form'));
-        add_shortcode('yoohw_lost_password_form', array('YoOhw_Lost_Password_Form', 'render_lost_password_form'));
+        YoOhw_Support_Shortcodes::init();
         add_filter( 'the_content', [ 'YoOhw_Shortcode', 'append_post_attachments_to_content' ], 20 );
 
         if ( class_exists( 'YoOhw_Post_Restriction' ) ) {
