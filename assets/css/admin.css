@@ -10,7 +10,7 @@
 .yoohw-setup-description { display: block; margin: 15px 0; }
 .yoohw-setup-note { display: flex; gap: 10px; margin-top: 18px; padding: 15px 17px; border-left: 4px solid #dba617; background: #fff; }
 .yoohw-setup-actions { display: flex; align-items: center; gap: 18px; margin-top: 24px; }
-.yoohw-portal-identity-preview { display: inline-grid; grid-template-columns: 40px minmax(0, 1fr); align-items: center; gap: 10px; min-width: 280px; padding: 10px 12px; border: 1px solid #c3c4c7; border-radius: 4px; background: #fff; }
+.yoohw-portal-identity-preview { display: inline-grid; box-sizing: border-box; grid-template-columns: 40px minmax(0, 1fr); align-items: center; gap: 10px; min-width: min(306px, 100%); max-width: 100%; padding: 10px 12px; border: 1px solid #c3c4c7; border-radius: 4px; background: #fff; }
 .yoohw-portal-identity-preview img,
 .yoohw-portal-identity-preview > .dashicons { width: 40px; height: 40px; border-radius: 8px; }
 .yoohw-portal-identity-preview strong,
@@ -30,6 +30,8 @@
 .yoohw-inline-action { display: flex; gap: 12px; }
 .yoohw-site-check-header,
 .yoohw-site-check-grid { align-items: flex-start; justify-content: space-between; }
+.yoohw-site-check-summary { min-width: 0; }
+.yoohw-site-check-actions { flex-wrap: wrap; }
 .yoohw-site-check-counts { display: grid; grid-template-columns: repeat(3, minmax(80px, 1fr)); gap: 8px; }
 .yoohw-site-check-counts > div { padding: 10px; background: #f6f7f7; text-align: center; }
 .yoohw-site-check-badge { display: inline-flex; padding: 5px 9px; border-radius: 999px; background: #f0f6fc; font-weight: 600; }
