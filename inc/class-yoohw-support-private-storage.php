@@ -37,7 +37,9 @@ final class YoOhw_Support_Private_Storage {
 
 	/** Requires the real HTTP document root, including on CLI. Unknown layouts fail closed. */
 	public static function root() {
-		$document_root = realpath( sanitize_text_field( wp_unslash( $_SERVER['DOCUMENT_ROOT'] ?? '' ) ) );
+		$reported_root = sanitize_text_field( wp_unslash( $_SERVER['DOCUMENT_ROOT'] ?? '' ) );
+		// realpath('') resolves cwd; an absent, empty or relative root is never evidence of web isolation.
+		$document_root = $reported_root && path_is_absolute( $reported_root ) ? realpath( $reported_root ) : false;
 		if ( ! $document_root || DIRECTORY_SEPARATOR === $document_root || ! is_dir( $document_root ) ) {
 			return self::error( __( 'Support uploads are blocked: the web document root is unknown. Ask your administrator to configure private storage using the Support Portal attachment storage guide.', 'yoohw-support-portal' ) );
 		}

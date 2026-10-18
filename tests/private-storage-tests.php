@@ -108,7 +108,16 @@ try {
 		$cookie = $session( $users['owner'] ); [ $status ] = $request( html_entity_decode( YoOhw_Protected_Attachments::url( $new, 'thumbnail' ) ), $cookie );
 		$assert( 404 === $status, 'Unsafe preview variant path is rejected.' );
 	} finally { wp_update_attachment_metadata( $new, $saved_meta ); }
-	$document_root = $_SERVER['DOCUMENT_ROOT']; $_SERVER['DOCUMENT_ROOT'] = '/nonexistent-ysp19-root';
+	$document_root = $_SERVER['DOCUMENT_ROOT']; $working_directory = getcwd(); chdir( ABSPATH );
+	try {
+		unset( $_SERVER['DOCUMENT_ROOT'] );
+		$assert( is_wp_error( YoOhw_Support_Private_Storage::root() ) && is_wp_error( YoOhw_Support_Private_Storage::verify( true ) ), 'Absent root is rejected even when cwd is WordPress root.' );
+		foreach ( [ '', '.', '/' ] as $invalid_root ) {
+			$_SERVER['DOCUMENT_ROOT'] = $invalid_root;
+			$assert( is_wp_error( YoOhw_Support_Private_Storage::root() ) && is_wp_error( YoOhw_Support_Private_Storage::verify( true ) ), 'Empty, relative and filesystem-root document roots fail closed.' );
+		}
+	} finally { $_SERVER['DOCUMENT_ROOT'] = $document_root; chdir( $working_directory ); }
+	$_SERVER['DOCUMENT_ROOT'] = '/nonexistent-ysp19-root';
 	try {
 		$assert( is_wp_error( YoOhw_Support_Private_Storage::root() ), 'Unknown HTTP root fails closed.' );
 		$die = static function () { return static function () { throw new RuntimeException( 'synthetic storage denial' ); }; };
