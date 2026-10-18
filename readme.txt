@@ -4,7 +4,7 @@ Tags: customer support, help desk, support portal, ticket system, private suppor
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.0.0
+Stable tag: 1.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -151,6 +151,16 @@ Support Portal is licensed under the GNU General Public License v2.0 or later. S
 Third-party components and their license notices are documented in `third-party-licenses.txt`.
 
 == Changelog ==
+
+= 1.1.0 =
+* New: Embed topic submission, login, password recovery, and authorized topic lists in regular WordPress theme pages using shortcodes.
+* New: Configure attachments for new topics and replies separately, including file count, file-size limits, permitted image/video/ZIP types, and protected preview or download-link display.
+* New: Configure reply-history batch size, topics per page, and WordPress avatars or initials.
+* Improved: Conversations align your replies on the right, show recent replies first, and let you expand older messages without additional requests; full history remains available without JavaScript.
+* Improved: Narrow-screen topic forms, editor toolbars, long titles, dashboard cards, and administration settings are easier to use, with visible keyboard focus.
+* Improved: Text, links, inputs, and buttons remain readable with configured dark backgrounds or light primary colors.
+* Fixed: Category role selection no longer triggers recursive focus errors, and unavailable site icons no longer show broken images.
+* Important: Exclude pages using personalized support shortcodes from page/CDN caches. Theme embeds in WordPress posts/comments storage require pretty permalinks.
 
 = 1.0.0 =
 * Initial release.
