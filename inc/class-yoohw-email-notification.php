@@ -312,7 +312,7 @@ class YoOhw_Email_Notification {
 		$palette           = self::get_email_palette();
 		$link_style        = self::email_style(
 			[
-				'color'           => $palette['primary_strong'],
+				'color'           => $palette['primary_link'],
 				'font-weight'     => '700',
 				'text-decoration' => 'none',
 			]
@@ -358,7 +358,7 @@ class YoOhw_Email_Notification {
 				'font-weight'    => '700',
 				'letter-spacing' => '.08em',
 				'text-transform' => 'uppercase',
-				'color'          => $palette['primary_soft'],
+				'color'          => $palette['primary_text'],
 				'margin-bottom'  => '8px',
 			]
 		);
@@ -716,6 +716,7 @@ class YoOhw_Email_Notification {
 		$defaults = [
 			'primary'        => '#2563eb',
 			'primary_strong' => '#1d4ed8',
+			'primary_link'   => '#1d4ed8',
 			'primary_soft'   => '#eef2ff',
 			'primary_faint'  => '#f8fbff',
 			'primary_border' => '#bfdbfe',

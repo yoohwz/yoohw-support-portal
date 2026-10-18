@@ -612,19 +612,25 @@ class YoOhw_Support_Settings {
 		$defaults = self::defaults();
 		$palette  = self::ui_palette();
 		$vars     = [
-			'--yoohw-bg'             => $palette['background'],
-			'--yoohw-surface'        => $palette['surface'],
-			'--yoohw-border'         => $palette['border'],
-			'--yoohw-text'           => $palette['text'],
-			'--yoohw-muted'          => $palette['muted'],
-			'--yoohw-primary'        => $palette['primary'],
-			'--yoohw-primary-strong' => $palette['primary_strong'],
-			'--yoohw-primary-soft'   => $palette['primary_soft'],
-			'--yoohw-primary-faint'  => $palette['primary_faint'],
-			'--yoohw-primary-border' => $palette['primary_border'],
-			'--yoohw-primary-shadow' => $palette['primary_shadow'],
-			'--yoohw-font-heading'   => self::sanitize_font_stack( $settings['ui_heading_font'] ?? $defaults['ui_heading_font'] ) ?: $defaults['ui_heading_font'],
-			'--yoohw-font-content'   => self::sanitize_font_stack( $settings['ui_content_font'] ?? $defaults['ui_content_font'] ) ?: $defaults['ui_content_font'],
+			'--yoohw-bg'                 => $palette['background'],
+			'--yoohw-surface'            => $palette['surface'],
+			'--yoohw-surface-muted'      => $palette['surface_muted'],
+			'--yoohw-customer-surface'   => $palette['customer_surface'],
+			'--yoohw-customer-border'    => $palette['customer_border'],
+			'--yoohw-border'             => $palette['border'],
+			'--yoohw-text'               => $palette['text'],
+			'--yoohw-muted'              => $palette['muted'],
+			'--yoohw-primary'            => $palette['primary'],
+			'--yoohw-primary-text'       => $palette['primary_text'],
+			'--yoohw-primary-hover-text' => $palette['primary_hover_text'],
+			'--yoohw-primary-link'       => $palette['primary_link'],
+			'--yoohw-primary-strong'     => $palette['primary_strong'],
+			'--yoohw-primary-soft'       => $palette['primary_soft'],
+			'--yoohw-primary-faint'      => $palette['primary_faint'],
+			'--yoohw-primary-border'     => $palette['primary_border'],
+			'--yoohw-primary-shadow'     => $palette['primary_shadow'],
+			'--yoohw-font-heading'       => self::sanitize_font_stack( $settings['ui_heading_font'] ?? $defaults['ui_heading_font'] ) ?: $defaults['ui_heading_font'],
+			'--yoohw-font-content'       => self::sanitize_font_stack( $settings['ui_content_font'] ?? $defaults['ui_content_font'] ) ?: $defaults['ui_content_font'],
 		];
 
 		$declarations = '';
@@ -770,24 +776,68 @@ class YoOhw_Support_Settings {
 	}
 
 	private static function derive_ui_palette( array $settings, array $defaults ): array {
-		$primary    = sanitize_hex_color( (string) ( $settings['ui_primary_color'] ?? '' ) ) ?: $defaults['ui_primary_color'];
-		$background = sanitize_hex_color( (string) ( $settings['ui_background_color'] ?? '' ) ) ?: $defaults['ui_background_color'];
-		$is_light   = self::hex_luminance( $background ) >= 0.48;
+		$primary       = sanitize_hex_color( (string) ( $settings['ui_primary_color'] ?? '' ) ) ?: $defaults['ui_primary_color'];
+		$background    = sanitize_hex_color( (string) ( $settings['ui_background_color'] ?? '' ) ) ?: $defaults['ui_background_color'];
+		$is_light      = self::hex_luminance( $background ) >= 0.179;
+		$surface       = self::mix_hex_colors( $background, '#ffffff', $is_light ? 0.82 : 0.08 );
+		$muted_surface = $is_light ? '#f8fafc' : self::mix_hex_colors( $background, '#ffffff', 0.12 );
+
+		// Mid-tone dark backgrounds need darker surfaces to retain readable light text.
+		if ( ! $is_light && self::hex_luminance( $background ) > 0.1 ) {
+			$surface       = self::mix_hex_colors( $background, '#000000', 0.16 );
+			$muted_surface = self::mix_hex_colors( $background, '#000000', 0.08 );
+		}
+
+		$soft          = self::mix_hex_colors( $primary, $is_light ? '#ffffff' : $surface, 0.9 );
+		$faint         = self::mix_hex_colors( $primary, $is_light ? '#ffffff' : $surface, 0.96 );
+		$strong        = self::mix_hex_colors( $primary, '#000000', 0.16 );
+		$customer      = $is_light ? '#fffdf4' : self::mix_hex_colors( $surface, '#fef3c7', 0.06 );
+		$surfaces      = [ $background, $surface, $muted_surface, $soft, $faint, $customer ];
 
 		return [
-			'primary'        => $primary,
-			'primary_strong' => self::mix_hex_colors( $primary, '#000000', 0.16 ),
-			'primary_soft'   => self::mix_hex_colors( $primary, '#ffffff', 0.9 ),
-			'primary_faint'  => self::mix_hex_colors( $primary, '#ffffff', 0.96 ),
-			'primary_border' => self::mix_hex_colors( $primary, '#ffffff', 0.62 ),
-			'primary_shadow' => self::hex_to_rgba( $primary, 0.16 ),
-			'primary_text'   => self::hex_luminance( $primary ) >= 0.55 ? '#18212f' : '#ffffff',
-			'background'     => $background,
-			'surface'        => $is_light ? self::mix_hex_colors( $background, '#ffffff', 0.82 ) : self::mix_hex_colors( $background, '#ffffff', 0.08 ),
-			'border'         => $is_light ? self::mix_hex_colors( $background, '#647084', 0.22 ) : self::mix_hex_colors( $background, '#ffffff', 0.2 ),
-			'text'           => $is_light ? '#18212f' : '#f8fafc',
-			'muted'          => $is_light ? '#647084' : '#cbd5e1',
+			'primary'            => $primary,
+			'primary_strong'     => $strong,
+			'primary_soft'       => $soft,
+			'primary_faint'      => $faint,
+			'primary_border'     => self::mix_hex_colors( $primary, $is_light ? '#ffffff' : $surface, 0.62 ),
+			'primary_shadow'     => self::hex_to_rgba( $primary, 0.16 ),
+			'primary_text'       => self::contrasting_ui_color( self::hex_luminance( $primary ) >= 0.179 ? '#18212f' : '#ffffff', [ $primary ] ),
+			'primary_hover_text' => self::contrasting_ui_color( self::hex_luminance( $strong ) >= 0.179 ? '#18212f' : '#ffffff', [ $strong ] ),
+			'primary_link'       => self::contrasting_ui_color( $strong, $surfaces ),
+			'background'         => $background,
+			'surface'            => $surface,
+			'surface_muted'      => $muted_surface,
+			'customer_surface'   => $customer,
+			'customer_border'    => $is_light ? '#fde68a' : self::mix_hex_colors( $surface, '#fbbf24', 0.35 ),
+			'border'             => self::mix_hex_colors( $background, $is_light ? '#647084' : '#ffffff', $is_light ? 0.22 : 0.2 ),
+			'text'               => self::contrasting_ui_color( $is_light ? '#18212f' : '#f8fafc', $surfaces ),
+			'muted'              => self::contrasting_ui_color( $is_light ? '#647084' : '#cbd5e1', $surfaces ),
 		];
+	}
+
+	private static function contrasting_ui_color( string $color, array $backgrounds ): string {
+		$minimum_contrast = static function ( string $candidate ) use ( $backgrounds ): float {
+			$luminance = self::hex_luminance( $candidate );
+			$minimum   = 21.0;
+
+			foreach ( $backgrounds as $background ) {
+				$other   = self::hex_luminance( $background );
+				$minimum = min( $minimum, ( max( $luminance, $other ) + 0.05 ) / ( min( $luminance, $other ) + 0.05 ) );
+			}
+
+			return $minimum;
+		};
+
+		$target = $minimum_contrast( '#000000' ) > $minimum_contrast( '#ffffff' ) ? '#000000' : '#ffffff';
+
+		for ( $step = 0; $step <= 20; $step++ ) {
+			$candidate = self::mix_hex_colors( $color, $target, $step / 20 );
+			if ( $minimum_contrast( $candidate ) >= 4.5 ) {
+				return $candidate;
+			}
+		}
+
+		return $target;
 	}
 
 	private static function mix_hex_colors( string $base, string $target, float $amount ): string {
