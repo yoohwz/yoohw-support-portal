@@ -57,12 +57,17 @@ class YoOhw_Support_Assets {
 			'yoohw-support-portal-ui',
 			'YoOhwSupportPortalConfig',
 			[
-				'maxFiles' => class_exists( 'YoOhw_Shortcode' ) ? YoOhw_Shortcode::MAX_ATTACHMENTS : 5,
-				'maxSize'  => class_exists( 'YoOhw_Shortcode' ) ? YoOhw_Shortcode::MAX_ATTACHMENT_BYTES : 5242880,
+				'maxFiles' => YoOhw_Support_Settings::attachment_max_count(),
+				'maxSize'  => YoOhw_Support_Settings::attachment_max_bytes(),
+				'conversation' => [
+					'collapseReplies' => YoOhw_Support_Settings::feature_enabled( 'collapse_older_replies' ),
+					'replyBatchSize' => YoOhw_Support_Settings::reply_batch_size(),
+				],
 				'messages' => [
 					/* translators: %d: Maximum number of attachments. */
 					'tooManyFiles'    => __( 'You can upload a maximum of %d attachments.', 'yoohw-support-portal' ),
-					'fileTooLarge'    => __( 'Each attachment must be 5 MB or smaller.', 'yoohw-support-portal' ),
+					/* translators: %s: Effective maximum file size. */
+					'fileTooLarge'    => sprintf( __( 'Each attachment must be %s or smaller.', 'yoohw-support-portal' ), size_format( YoOhw_Support_Settings::attachment_max_bytes() ) ),
 					'noFilesSelected' => __( 'No files selected', 'yoohw-support-portal' ),
 					'submitting'      => __( 'Submitting. Please wait...', 'yoohw-support-portal' ),
 					'copied'          => __( 'Copied', 'yoohw-support-portal' ),

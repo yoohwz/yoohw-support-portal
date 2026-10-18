@@ -73,7 +73,7 @@ $labels      = YoOhw_Support_Settings::reply_side_labels();
 						<div class="yoohw-avatar">
 							<span class="yoohw-avatar-initial"><?php echo esc_html( strtoupper( substr( $reply_name, 0, 1 ) ) ); ?></span>
 							<?php
-							if ( $reply_author ) {
+							if ( $reply_author && YoOhw_Support_Settings::wordpress_reply_avatars_enabled() ) {
 								echo get_avatar( $reply_author->ID, 44, '404', '', [ 'class' => 'yoohw-reply-avatar', 'loading' => 'lazy' ] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- WordPress generates avatar markup and applies site avatar filters.
 							}
 							?>

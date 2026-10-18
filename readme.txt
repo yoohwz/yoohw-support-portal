@@ -86,11 +86,21 @@ Yes. Switching modes does not migrate or delete either dataset. The portal begin
 
 Customers can view their own topics. Users with the plugin's dedicated support capabilities can view and manage the topics permitted by those capabilities. Custom roles can also be granted the relevant capabilities.
 
+= Which features can I configure? =
+
+Under Settings > Support Portal > Support features, configure new-topic and reply uploads separately, file count (1-20), size per file (1-1024 MB), and allowed file groups (images, videos, ZIP). Effective upload limits are capped by WordPress/PHP. No selected file groups means new uploads are disabled. Attachment controls are unavailable in isolated storage, and native-mode preferences are retained when saving isolated-mode settings.
+
+Existing attachments can use image/video previews or download links only. Disabling new uploads or removing an allowed file group does not delete or hide previously uploaded files or change their protected download permissions.
+
+Configure older-reply collapsing, the number of replies shown initially/per expansion (1-100), topics per page (1-100), and WordPress reply avatars versus initials only. Topic page size also applies to embedded lists and customer profiles. WordPress avatar visibility is still respected.
+
+Defaults preserve the existing experience: uploads enabled in native storage, five files up to 5 MB each (subject to server limits), all existing file groups, previews, reply collapsing in groups of five, eight topics per page, and WordPress avatars.
+
 = How are topic replies displayed? =
 
 Your own replies appear on the right; other accounts' replies appear on the left. Support and customer colors and configurable labels remain tied to the author's support classification. WordPress account avatars, including compatible local-avatar filters and Gravatar, are shown when available; initials remain the fallback, and the WordPress avatar visibility setting is respected.
 
-The conversation initially shows the five newest replies in chronological order. A highlighted history panel shows the number of older replies remaining and how many replies are visible. Its button reveals up to five more above them each time, with an immediate busy state and a short reveal animation that respects reduced-motion preferences. The browser gets a paint opportunity for the busy state; there is no artificial timed wait. This expands replies already present on the authorized page, without a separate data request. Direct links to older replies reveal their target. With JavaScript disabled, the full conversation remains readable. The original topic body, total reply count, and reply form stay in place.
+By default, the conversation initially shows the five newest replies in chronological order. A highlighted history panel shows the number of older replies remaining and how many replies are visible. Its button reveals another configured batch (five by default) above them each time, with an immediate busy state and a short reveal animation that respects reduced-motion preferences. The browser gets a paint opportunity for the busy state; there is no artificial timed wait. This expands replies already present on the authorized page, without a separate data request. Direct links to older replies reveal their target. With JavaScript disabled, the full conversation remains readable. The original topic body, total reply count, and reply form stay in place.
 
 = Can I embed support components in my theme? =
 

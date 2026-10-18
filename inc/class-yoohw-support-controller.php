@@ -278,7 +278,7 @@ class YoOhw_Support_Controller {
 			$result = YoOhw_Support_Database::query_topics(
 				[
 					'page'        => $paged,
-					'per_page'    => 8,
+					'per_page'    => YoOhw_Support_Settings::topics_per_page(),
 					'search'      => $search,
 					'category_id' => $category_id,
 					'status'      => $isolated_status,
@@ -308,7 +308,7 @@ class YoOhw_Support_Controller {
 		$args = [
 			'post_type'           => 'post',
 			'post_status'         => $post_status,
-			'posts_per_page'      => 8,
+			'posts_per_page'      => YoOhw_Support_Settings::topics_per_page(),
 			'paged'               => $paged,
 			's'                   => $search,
 			'ignore_sticky_posts' => true,
@@ -458,7 +458,7 @@ class YoOhw_Support_Controller {
 				'post_type'           => 'post',
 				'post_status'         => $statuses,
 				'author'              => $author->ID,
-				'posts_per_page'      => 8,
+				'posts_per_page'      => YoOhw_Support_Settings::topics_per_page(),
 				'paged'               => $paged,
 				'ignore_sticky_posts' => true,
 			]
@@ -494,7 +494,7 @@ class YoOhw_Support_Controller {
 		$result = YoOhw_Support_Database::query_topics(
 			[
 				'page'      => $paged,
-				'per_page'  => 8,
+				'per_page'  => YoOhw_Support_Settings::topics_per_page(),
 				'author_id' => $customer_id,
 			]
 		);
@@ -1130,7 +1130,7 @@ class YoOhw_Support_Controller {
 				</div>
 			</div>
 
-			<?php if ( ! YoOhw_Support_Settings::uses_isolated_storage() ) : ?>
+			<?php if ( YoOhw_Support_Settings::uploads_enabled( 'topic' ) ) : ?>
 				<div class="yoohw-field yoohw-attachment-field yoohw-reply-upload">
 				<div class="yoohw-reply-upload-heading">
 					<span class="yoohw-reply-field-label">
@@ -1142,16 +1142,16 @@ class YoOhw_Support_Controller {
 						printf(
 							/* translators: 1: Maximum attachment count, 2: Maximum size per attachment. */
 							esc_html__( 'Up to %1$d files, %2$s each', 'yoohw-support-portal' ),
-							absint( YoOhw_Shortcode::MAX_ATTACHMENTS ),
-							esc_html( size_format( YoOhw_Shortcode::MAX_ATTACHMENT_BYTES ) )
+							absint( YoOhw_Support_Settings::attachment_max_count() ),
+							esc_html( size_format( YoOhw_Support_Settings::attachment_max_bytes() ) )
 						);
 						?>
 					</span>
 				</div>
 				<label class="yoohw-upload-dropzone" for="yoohw_attachments">
 					<span class="yoohw-upload-dropzone-icon"><?php YoOhw_Support_Icons::output( 'paperclip' ); ?></span>
-					<span class="yoohw-upload-dropzone-title"><?php esc_html_e( 'Choose or drop screenshots, videos, or ZIP files', 'yoohw-support-portal' ); ?></span>
-					<span class="yoohw-upload-dropzone-note"><?php esc_html_e( 'JPG, PNG, WebP, GIF, MP4, WebM, MOV, ZIP', 'yoohw-support-portal' ); ?></span>
+					<span class="yoohw-upload-dropzone-title"><?php esc_html_e( 'Choose or drop files', 'yoohw-support-portal' ); ?></span>
+					<span class="yoohw-upload-dropzone-note"><?php echo esc_html( YoOhw_Support_Settings::attachment_type_label() ); ?></span>
 				</label>
 				<input
 					type="file"
@@ -1159,9 +1159,9 @@ class YoOhw_Support_Controller {
 					id="yoohw_attachments"
 					name="yoohw_attachments[]"
 					multiple
-					accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime,application/zip,.zip"
-					data-max-files="<?php echo esc_attr( YoOhw_Shortcode::MAX_ATTACHMENTS ); ?>"
-					data-max-size="<?php echo esc_attr( YoOhw_Shortcode::MAX_ATTACHMENT_BYTES ); ?>"
+					accept="<?php echo esc_attr( YoOhw_Support_Settings::attachment_accept() ); ?>"
+					data-max-files="<?php echo esc_attr( YoOhw_Support_Settings::attachment_max_count() ); ?>"
+					data-max-size="<?php echo esc_attr( YoOhw_Support_Settings::attachment_max_bytes() ); ?>"
 					aria-describedby="yoohw_attachments_selected"
 				>
 				<div
@@ -1787,6 +1787,8 @@ class YoOhw_Support_Controller {
 		if ( '' === trim( wp_strip_all_tags( $content ) ) ) {
 			wp_die( esc_html__( 'Reply content cannot be empty.', 'yoohw-support-portal' ) );
 		}
+
+		YoOhw_Shortcode::validate_attachment_uploads( 'yoohw_attachments', 'reply' );
 
 		$reply_id = YoOhw_Support_Database::create_reply(
 			[

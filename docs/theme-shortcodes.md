@@ -17,10 +17,16 @@ The dedicated portal keeps its existing routes, layout, permissions, and submiss
 | `[yoohw_post_form]` | New-topic form, including the existing editor, category selection, and attachments where supported by the active storage mode. Guests see the existing login prompt. |
 | `[yoohw_login_form]` | Existing login form and its messages. Existing SSO integrations and authentication rules still apply. |
 | `[yoohw_lost_password_form]` | Existing password-recovery form. Reset links continue to use the portal. |
-| `[yoohw_support_topics]` | Eight topics per page, with search, status/category filters, and pagination. Guests see a login link. Customers see their own topics; staff with the view-all-topics capability see the topics available to that capability. |
+| `[yoohw_support_topics]` | Configurable topics per page (eight by default), with search, status/category filters, and pagination. Guests see a login link. Customers see their own topics; staff with the view-all-topics capability see the topics available to that capability. |
 
 No shortcode attributes are required. Place a heading above a shortcode using the theme/page editor as needed. The topic list uses `yoohw_search`, `yoohw_status`, `yoohw_category`, and `yoohw_page`, leaving WordPress's `s` search parameter alone. Filtering and pagination stay on the containing page, including isolated-storage sites using plain permalinks. WordPress posts/comments storage requires pretty permalinks for theme-hosted pages.
 
 Topic details, replies, new-topic links from the list, and successful topic submissions continue to open the dedicated portal. Login/password recovery use the existing handlers and redirects; these shortcodes do not replace the site's authentication integration or configure custom destinations.
 
 CSS and JavaScript are loaded for pages containing these shortcodes. Theme assets stay active on theme-hosted pages. Repeated copies of the same shortcode in a single request render only once to avoid duplicate form/editor IDs. Feeds omit the embedded components. Builders must render server-side before the theme's footer scripts; client-side insertion and cached shortcode HTML are not supported.
+
+## Shared feature options
+
+Portal routes and shortcodes use the same **Settings > Support Portal > Support features** policy. New-topic uploads and reply uploads have independent switches; file count/size and allowed groups apply on the server as well as to the picker. WordPress/PHP may lower configured upload limits. Attachment options cannot enable uploads in isolated storage.
+
+Disabling uploads affects new submissions only. Existing files retain their protected links; select **Download links only** to replace image/video previews with file links. Reply collapsing/batch size, topic page size, and reply avatar mode are configurable, with the original five-reply/eight-topic/WordPress-avatar defaults retained.

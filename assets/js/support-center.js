@@ -374,12 +374,14 @@
       var status = section.querySelector("[data-reply-history-status]");
 
       var replies = Array.prototype.slice.call(list.children);
-      var firstVisible = Math.max(0, replies.length - 5);
+      var historyConfig = config().conversation || {};
+      var batchSize = Math.max(1, Math.min(100, parseInt(historyConfig.replyBatchSize, 10) || 5));
+      var firstVisible = historyConfig.collapseReplies === false ? 0 : Math.max(0, replies.length - batchSize);
 
       function update() {
         replies.forEach(function (reply, index) { reply.hidden = index < firstVisible; });
         history.hidden = firstVisible === 0;
-        var nextCount = Math.min(5, firstVisible);
+        var nextCount = Math.min(batchSize, firstVisible);
         count.textContent = message(firstVisible === 1 ? "olderReply" : "olderReplies", firstVisible === 1 ? "%d older reply available" : "%d older replies available").replace("%d", firstVisible);
         progress.textContent = message("replyProgress", "Showing %1$d of %2$d replies").replace("%1$d", replies.length - firstVisible).replace("%2$d", replies.length);
         label.textContent = message(nextCount === 1 ? "showOlderReply" : "showOlderReplies", nextCount === 1 ? "Show %d older reply" : "Show %d older replies").replace("%d", nextCount);
@@ -405,7 +407,7 @@
         window.requestAnimationFrame(function () {
           window.requestAnimationFrame(function () {
             var previousFirst = firstVisible;
-            firstVisible = Math.max(0, firstVisible - 5);
+            firstVisible = Math.max(0, firstVisible - batchSize);
             update();
             replies.slice(firstVisible, previousFirst).forEach(function (reply) {
               reply.classList.add("is-newly-revealed");

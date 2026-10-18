@@ -42,3 +42,9 @@
 	.yoohw-site-check-header,
 	.yoohw-site-check-grid { flex-direction: column; }
 }
+
+.yoohw-feature-options { display: grid; gap: 12px; max-width: 680px; }
+.yoohw-feature-options > label { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.yoohw-feature-options fieldset { display: grid; gap: 8px; }
+.yoohw-feature-options select { max-width: 100%; }
+.yoohw-feature-options[disabled] { opacity: 0.65; }
