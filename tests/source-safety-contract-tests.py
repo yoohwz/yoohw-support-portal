@@ -82,9 +82,7 @@ def protected_attachment_contract() -> None:
         path,
         "admin_post_" + "' . self::ACTION",
         "admin_post_nopriv_" + "' . self::ACTION",
-        "wp_mkdir_p",
-        "'.htaccess'",
-        "'web.config'",
+        "YoOhw_Support_Private_Storage::upload_directory",
         "X-Content-Type-Options: nosniff",
     )
 

@@ -2,6 +2,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
+require_once __DIR__ . '/class-yoohw-support-private-storage.php';
+
 /**
  * Protect support attachments behind a logged-in, topic-aware download route.
  */
@@ -12,9 +14,10 @@ final class YoOhw_Protected_Attachments {
 	const META_IDS       = '_yoohw_attachment_ids';
 
 	private static $private_upload_depth = 0;
-	private static $protected_directories = [];
+
 
 	public static function init() {
+		YoOhw_Support_Private_Storage::init();
 		add_action( 'admin_post_' . self::ACTION, [ __CLASS__, 'serve' ] );
 		add_action( 'admin_post_nopriv_' . self::ACTION, [ __CLASS__, 'deny_anonymous' ] );
 		add_filter( 'yoohw_extra_support_non_admin_admin_post_actions', [ __CLASS__, 'allow_non_admin_download_action' ] );
@@ -67,32 +70,23 @@ final class YoOhw_Protected_Attachments {
 		}
 	}
 
-	/**
-	 * Keep support media under uploads/yoohw-support-portal and out of public listings.
-	 *
-	 * @param array $uploads WordPress upload directory data.
-	 * @return array
-	 */
+	/** Route only support uploads outside every known public filesystem root. */
 	public static function filter_private_upload_dir( $uploads ) {
-		if ( ! is_array( $uploads ) || ! empty( $uploads['error'] ) || empty( $uploads['basedir'] ) || empty( $uploads['baseurl'] ) ) {
+		if ( ! is_array( $uploads ) || ! empty( $uploads['error'] ) ) {
 			return $uploads;
 		}
-
-		$site_token = substr(
-			hash_hmac( 'sha256', (string) get_current_blog_id(), wp_salt( 'auth' ) ),
-			0,
-			32
-		);
-		$subdir = '/yoohw-support-portal/private/' . $site_token . '/' . gmdate( 'Y/m' );
-		$path   = trailingslashit( $uploads['basedir'] ) . ltrim( $subdir, '/' );
-
-		$uploads['path']   = $path;
-		$uploads['url']    = trailingslashit( $uploads['baseurl'] ) . ltrim( $subdir, '/' );
-		$uploads['subdir'] = $subdir;
-
-		self::ensure_direct_access_protection( $path );
-
-		return $uploads;
+		// Storage validation reads the normal upload base; avoid re-entering this filter.
+		remove_filter( 'upload_dir', [ __CLASS__, 'filter_private_upload_dir' ] );
+		try {
+			$private = YoOhw_Support_Private_Storage::upload_directory( $uploads );
+			if ( ! empty( $private['error'] ) ) {
+				// Core can overwrite upload_dir errors from its tested-path cache. Stop before that.
+				wp_die( esc_html__( 'Private attachment storage is unavailable. Contact the site administrator before retrying.', 'yoohw-support-portal' ), '', [ 'response' => 503 ] );
+			}
+			return $private;
+		} finally {
+			add_filter( 'upload_dir', [ __CLASS__, 'filter_private_upload_dir' ] );
+		}
 	}
 
 	public static function url( $attachment_id, $image_size = '' ) {
@@ -180,7 +174,7 @@ final class YoOhw_Protected_Attachments {
 		self::stream_file( $attachment_id, $file );
 	}
 
-	private static function topic_id_for_attachment( $attachment_id ) {
+	public static function topic_id_for_attachment( $attachment_id ) {
 		if ( self::is_public_site_media( $attachment_id ) ) {
 			return 0;
 		}
@@ -225,42 +219,6 @@ final class YoOhw_Protected_Attachments {
 		return get_post_meta( $attachment->ID, self::META_PROTECTED, true ) ? (int) $topic->ID : 0;
 	}
 
-	private static function ensure_direct_access_protection( string $directory ): void {
-		$directory = wp_normalize_path( $directory );
-
-		if ( isset( self::$protected_directories[ $directory ] ) ) {
-			return;
-		}
-
-		self::$protected_directories[ $directory ] = true;
-
-		if ( ! wp_mkdir_p( $directory ) ) {
-			return;
-		}
-
-		require_once ABSPATH . 'wp-admin/includes/file.php';
-
-		global $wp_filesystem;
-
-		if ( ! WP_Filesystem() || ! $wp_filesystem ) {
-			return;
-		}
-
-		$protection_files = [
-			'index.php'   => "<?php\n// Silence is golden.\n",
-			'.htaccess'   => "Options -Indexes\n<IfModule mod_authz_core.c>\nRequire all denied\n</IfModule>\n<IfModule !mod_authz_core.c>\nDeny from all\n</IfModule>\n",
-			'web.config'  => '<?xml version="1.0" encoding="UTF-8"?><configuration><system.webServer><security><authorization><remove users="*" roles="" verbs=""/><add accessType="Deny" users="*"/></authorization></security></system.webServer></configuration>',
-		];
-
-		foreach ( $protection_files as $file_name => $contents ) {
-			$file = trailingslashit( $directory ) . $file_name;
-
-			if ( ! $wp_filesystem->exists( $file ) ) {
-				$wp_filesystem->put_contents( $file, $contents, FS_CHMOD_FILE );
-			}
-		}
-	}
-
 	private static function is_public_site_media( $attachment_id ) {
 		$attachment_id = absint( $attachment_id );
 		$public_ids    = [
@@ -282,7 +240,10 @@ final class YoOhw_Protected_Attachments {
 		$metadata = wp_get_attachment_metadata( $attachment_id );
 		$variant  = $metadata['sizes'][ $image_size ]['file'] ?? '';
 
-		return $variant ? trailingslashit( dirname( $file ) ) . basename( $variant ) : $file;
+		if ( ! $variant ) { return $file; }
+		if ( ! is_string( $variant ) || basename( $variant ) !== $variant || false !== strpos( $variant, '\\' ) ) { return false; }
+		$selected = trailingslashit( dirname( $file ) ) . $variant;
+		return ! is_link( $selected ) && realpath( dirname( $selected ) ) === realpath( dirname( $file ) ) ? $selected : false;
 	}
 
 	private static function current_user_can_access_topic( $topic_id ) {

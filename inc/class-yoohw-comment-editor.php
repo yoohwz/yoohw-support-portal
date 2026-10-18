@@ -462,6 +462,10 @@ class YoOhw_Comment_Editor {
 
 			unset( $_FILES['yoohw_single_attachment'] );
 
+			if ( is_wp_error( $attachment_id ) ) {
+				update_option( YoOhw_Support_Private_Storage::ERROR_OPTION, $attachment_id->get_error_message(), false );
+				wp_die( esc_html__( 'The private attachment could not be stored. Contact the site administrator before retrying.', 'yoohw-support-portal' ), '', [ 'response' => 503 ] );
+			}
 			if ( ! is_wp_error( $attachment_id ) ) {
 				update_post_meta( $attachment_id, '_yoohw_original_filename', sanitize_file_name( $original_name ) );
 				YoOhw_Protected_Attachments::protect( $attachment_id );
