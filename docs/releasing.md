@@ -54,20 +54,64 @@ A repository administrator and WordPress.org plugin committer must configure:
 The workflows intentionally fail closed when the production Environment variable or
 secret is not configured. Do not weaken that behavior to perform a release.
 
-## Before Prepare
+## Before Prepare — choose and validate the next public release
 
-A release candidate must already be merged on protected `main` and have the exact
-plugin version prepared in both places:
+**Published baseline (historical fact, not a permanent latest-version claim):**
+Support Portal `1.0.0` was published to WordPress.org on **2026-09-14**
+(SVN revision `3694742`, source
+[`11d6b8b...`](https://github.com/yoohwz/yoohw-support-portal/releases/tag/1.0.0)).
+GitHub's annotated `1.0.0` tag and GitHub Release already exist. Later
+unpublished source changes currently on `main` are **not** another public
+release. Do not attempt to publish `1.0.0` again or move its tag.
 
-- `Version:` in `yoohw-support-portal.php`;
-- `Stable tag:` in `readme.txt`.
+Before selecting **any future version**, Codex reads the actual latest
+[WordPress.org plugin listing](https://wordpress.org/plugins/yoohw-support-portal/),
+versioned public download, target
+[WordPress.org SVN](https://plugins.svn.wordpress.org/yoohw-support-portal/),
+and relevant GitHub tag/release. Use the last **actually published** WordPress.org
+version as the comparison baseline, not the current source version, an
+unpublished PR or an earlier prepared artifact. If the public, SVN or Git tag
+identities conflict or target version/tag already exists, stop and report the
+specific collision; never delete/retarget published tags to make a run pass.
 
-The version must be numeric (`1.0`, `1.0.0`, etc.). Release tooling itself never
-silently changes product version metadata.
+1. **Human selects the new numeric version and destination** (WordPress.org)
+   and authorizes a normal governed YSP version/release-notes task. This
+   preparation authority is **not** permission to publish.
+2. In that task's PR, Codex updates `Version:` in
+   `yoohw-support-portal.php`, `Stable tag:` in `readme.txt`, and a **newest
+   non-empty** `= <version> =` entry under `== Changelog ==`. Describe the
+   **net customer-visible changes** since the public baseline, once per
+   completed feature/fix: actual new features, fixes in the previously published
+   release, important privacy/security/compatibility changes, and user action
+   where relevant. Do not copy internal PR chronology, temporary regressions,
+   workflow/CI implementation or unreleased intermediary states. Preserve
+   historical published changelog entries. Add or update `Upgrade Notice` only
+   when an upgrade requires meaningful owner action or compatibility warning.
+3. Reconcile `Requires at least`, `Requires PHP` and `Tested up to` against
+   executed release evidence rather than extrapolating a new tested version.
+   If localization files are already maintained and product strings changed,
+   refresh those affected files; do not create a new translation subsystem.
+   Run the existing staged Plugin Check and, when public copy changes, the
+   WordPress.org readme validator; resolve material new findings. Do not adopt
+   another plugin's broad WooCommerce test matrix.
+4. Run **focused** Local/isolated checks for the changed user surfaces and
+   upgrade/activation path where relevant. For YSP security-sensitive updates,
+   cover representative guest, owner, unrelated customer and support-staff
+   paths, both storage modes, and protected upload/read/download behavior as
+   affected. Mark unavailable test environments clearly; never claim unrun
+   combinations as passed.
+5. Complete YSP Technical Review when `CONTROLLED`, exact-head
+   `YSP Required CI`, ChatGPT Acceptance and a separate Human
+   `Merge YSP-N` on the **final versioned candidate**. Do not change
+   metadata or customer notes after Acceptance without restarting the affected
+   reviews/checks. A candidate selected for Prepare must be on protected
+   `main` with its **exact** header, Stable tag, and current top changelog.
+   The release-only Prepare guard rejects missing, stale or empty top changelog
+   notes. It does **not** by itself prove a version is unpublished.
 
-Before publication, complete the normal YSP task lifecycle for any product/version
-changes, including final CI and any required fresh independent review. The release
-workflows are not a substitute for that acceptance.
+No separate release-certification service, release-state ledger, local-site
+deployment, new SVN publisher or automatic post-merge publication is needed.
+Publication remains the independent Human-gated process below.
 
 ## Step 1 — Prepare immutable candidate
 
@@ -219,5 +263,6 @@ later verification step failed. First reconcile with verify-only.
 
 These workflows exist to execute a separately authorized release. They are not
 triggered by merge, tag push or PR comments. No workflow parses approval prose.
-Merging YSP-5 creates capability only; it does not publish version 1.0.0 or any
-future version automatically.
+Merging YSP-5 only created publication capability; the initial 1.0.0 release
+was published separately on 2026-09-14. Neither a merge nor a successful
+Prepare/dry-run authorizes any future WordPress.org publication.
