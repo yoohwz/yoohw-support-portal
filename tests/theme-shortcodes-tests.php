@@ -113,7 +113,7 @@ try {
 		$assert( defined( 'DONOTCACHEPAGE' ) && DONOTCACHEPAGE, "$mode: rendering disables page cache." );
 	}
 
-	$mode = 'wordpress';
+	$mode = 'isolated';
 	wp_set_current_user( $users['owner'] );
 	$_GET = [ 'yoohw_search' => $prefix ];
 	$plain_permalink = static function () { return ''; };
@@ -122,12 +122,15 @@ try {
 	$GLOBALS['wp_rewrite']->permalink_structure = '';
 	$GLOBALS['wp_rewrite']->page_structure = '';
 	try {
+		$_SERVER['REQUEST_URI'] = '/?page_id=' . $page;
+		$assert( ! YoOhw_Support_Router::is_plugin_ui_request(), 'Isolated plain permalink page remains theme-hosted.' );
 		$html = $render( 'yoohw_support_topics' );
 		$assert( false !== strpos( $html, 'name="page_id" value="' . $page . '"' ), 'Plain permalink form retains page_id.' );
 		$assert( false !== strpos( html_entity_decode( $html ), 'page_id=' . $page ), 'Plain permalink pagination retains page_id.' );
 	} finally {
 		remove_filter( 'pre_option_permalink_structure', $plain_permalink );
 		$GLOBALS['wp_rewrite'] = $original_rewrite;
+		$_SERVER['REQUEST_URI'] = wp_parse_url( get_permalink( $page ), PHP_URL_PATH );
 	}
 	wp_enqueue_style( 'ysp15-synthetic-theme', get_stylesheet_directory_uri() . '/ysp15-synthetic.css' );
 	YoOhw_Support_Assets::isolate_support_assets();
