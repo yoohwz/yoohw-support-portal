@@ -382,6 +382,7 @@
 
 .yoohw-workspace-home-stats {
 	display: flex;
+	flex-wrap: wrap;
 	gap: 12px;
 	padding: 0 4px;
 }
@@ -783,7 +784,7 @@
 
 .yoohw-topic-card {
 	display: grid;
-	grid-template-columns: 1fr auto;
+	grid-template-columns: minmax(0, 1fr) auto;
 	gap: 14px;
 	padding: 18px;
 	border: 1px solid var(--yoohw-border);
@@ -796,6 +797,12 @@
 	margin: 10px 0 8px;
 	font-size: 20px;
 	line-height: 1.25;
+}
+
+.yoohw-topic-card-main,
+.yoohw-topic-detail-header {
+	min-width: 0;
+	overflow-wrap: anywhere;
 }
 
 .yoohw-topic-card-title a {
@@ -900,11 +907,14 @@
 
 .yoohw-form {
 	display: grid;
+	grid-template-columns: minmax(0, 1fr);
 	gap: 16px;
 }
 
 .yoohw-field {
 	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+	min-width: 0;
 	gap: 7px;
 }
 
@@ -948,6 +958,7 @@
 
 .yoohw-topic-detail-header {
 	display: grid;
+	grid-template-columns: minmax(0, 1fr);
 	gap: 12px;
 	padding: 22px;
 	border-bottom: 1px solid var(--yoohw-border);
@@ -1556,7 +1567,14 @@
 
 .yoohw-reply-form-panel .comment-form {
 	margin: 0;
+	grid-template-columns: minmax(0, 1fr);
 	gap: 18px;
+}
+
+.yoohw-reply-editor-field,
+.yoohw-reply-editor-shell,
+.yoohw-reply-upload {
+	min-width: 0;
 }
 
 .yoohw-reply-form-panel .comment-form p {
@@ -1611,6 +1629,10 @@
 
 .yoohw-reply-editor-shell .mce-edit-area {
 	border-top: 0 !important;
+}
+
+.yoohw-reply-editor-shell .mce-toolbar .mce-btn-group > div {
+	white-space: normal;
 }
 
 .yoohw-reply-editor-shell iframe,
@@ -1680,6 +1702,11 @@
 
 .yoohw-upload-dropzone.is-dragover {
 	box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+}
+
+.yoohw-reply-upload:focus-within .yoohw-upload-dropzone {
+	outline: 2px solid var(--yoohw-primary);
+	outline-offset: 2px;
 }
 
 .yoohw-upload-dropzone-icon {
@@ -2466,6 +2493,21 @@
 }
 
 @media (max-width: 560px) {
+	.yoohw-support-body .mce-inline-toolbar-grp .mce-btn-group {
+		max-width: 100%;
+	}
+
+	.yoohw-support-body .mce-inline-toolbar-grp .wp-link-input {
+		flex: 1;
+		min-width: 0;
+	}
+
+	.yoohw-support-body .mce-inline-toolbar-grp .wp-link-input input {
+		box-sizing: border-box;
+		width: 100%;
+		min-width: 0;
+	}
+
 	.yoohw-shell-main {
 		width: min(calc(100% - 20px), var(--yoohw-shell-width));
 		padding-top: 24px;
