@@ -117,6 +117,7 @@ def version_from_tree(source: Path) -> str:
     require(header is not None and stable is not None, "Version/Stable tag metadata missing")
     require(header.group(1) == stable.group(1), "plugin Version and readme Stable tag differ")
     require(VERSION_RE.fullmatch(header.group(1)) is not None, "release version must be numeric")
+    changelog_notes(source, header.group(1))
     return header.group(1)
 
 
@@ -191,19 +192,29 @@ def safe_extract_product(zip_path: Path, destination: Path) -> Path:
 
 
 def changelog_notes(payload: Path, version: str) -> str:
+    """Require current customer-facing release notes, never silently fabricate them."""
     lines = (payload / "readme.txt").read_text(encoding="utf-8").splitlines()
-    heading = f"= {version} ="
     try:
-        start = lines.index(heading) + 1
-    except ValueError:
-        return f"Support Portal {version}."
+        start = next(i + 1 for i, line in enumerate(lines) if line.strip() == "== Changelog ==")
+    except StopIteration:
+        raise ReleaseError("readme Changelog section missing") from None
+    latest = next((i for i in range(start, len(lines)) if lines[i].strip()), None)
+    require(
+        latest is not None and lines[latest].strip() == f"= {version} =",
+        "newest readme Changelog entry must match the release Version/Stable tag",
+    )
     notes: list[str] = []
-    for line in lines[start:]:
-        if line.startswith("= ") and line.endswith(" ="):
+    for line in lines[latest + 1:]:
+        entry = line.strip()
+        if entry.startswith("=") and entry.endswith("="):
             break
-        if line.strip():
-            notes.append(line.strip())
-    return "\n".join(notes) if notes else f"Support Portal {version}."
+        if entry:
+            notes.append(entry)
+    require(
+        any(entry.startswith(("* ", "- ")) for entry in notes),
+        "newest readme Changelog entry requires release note bullets",
+    )
+    return "\n".join(notes)
 
 
 def prepare_release(candidate_dir: Path, work: Path, candidate_sha: str, version: str, run_id: int) -> tuple[str, dict]:
