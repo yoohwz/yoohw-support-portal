@@ -119,8 +119,9 @@ try {
 	YoOhw_Email_Notification::send_reply_notification( $new, 1 );
 	$assert( 2 === count( $attempts ) && ! get_comment_meta( $new, YoOhw_Email_Notification::COMMENT_META_SENT_REPLY, true ), 'Only distinct other participants attempted; partial send incomplete.' );
 	$reply( $id2, 'late' ); // Must never expand the original notification audience on retry.
+	for ( $i = 0; $i < 98; ++$i ) { $reply( $id2, 'support' ); }
 	$behavior = null; $retry( 'reply', $new );
-	$assert( 3 === count( $attempts ) && $b_email === $attempts[2]['to'], 'Retry sends only the failed original recipient.' );
+	$assert( 3 === count( $attempts ) && $b_email === $attempts[2]['to'], 'Retry sends the failed original recipient even beyond the latest 100 comments.' );
 	$assert( get_comment_meta( $new, YoOhw_Email_Notification::COMMENT_META_SENT_REPLY, true ), 'All remaining targets complete.' );
 	YoOhw_Email_Notification::send_reply_notification( $new, 1 );
 	$assert( 3 === count( $attempts ), 'Successful partial retry is idempotent.' );

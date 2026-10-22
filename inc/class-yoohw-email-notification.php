@@ -230,17 +230,22 @@ class YoOhw_Email_Notification {
 		$comment_author_email = self::normalize_email( $comment->comment_author_email );
 		$post_author_email    = self::normalize_email( get_the_author_meta( 'user_email', $post->post_author ) );
 
-		$comments = get_comments(
-			[
-				'post_id' => $post->ID,
-				'status'  => 'approve',
-				'type'    => 'comment',
-				'number'  => 100,
-			]
-		);
-
 		// Original approved comment IDs bound retries; later participants cannot join an old notification.
 		$targets = get_comment_meta( $comment_id, self::COMMENT_META_REPLY_TARGETS, true );
+		$args = [
+			'post_id' => $post->ID,
+			'status'  => 'approve',
+			'type'    => 'comment',
+			'number'  => 100,
+		];
+		if ( is_array( $targets ) ) {
+			if ( ! $targets ) {
+				return true;
+			}
+			// Keep original recipients in view even after another 100 comments arrive.
+			$args['comment__in'] = $targets;
+		}
+		$comments = get_comments( $args );
 		if ( ! is_array( $targets ) ) {
 			$targets = [];
 			foreach ( $comments as $existing_comment ) {
