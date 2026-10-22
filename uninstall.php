@@ -44,3 +44,10 @@ foreach ( wp_roles()->roles as $yoohw_support_role_name => $yoohw_support_role_d
 wp_clear_scheduled_hook( 'yoohw_support_auto_resolve_inactive_posts' );
 wp_clear_scheduled_hook( 'yoohw_send_topic_close_notice' );
 wp_clear_scheduled_hook( 'yoohw_send_admin_followup_notice' );
+
+wp_unschedule_hook( 'yoohw_retry_topic_notification' );
+
+foreach ( [ 'auto_resolve', 'close_notice', 'admin_followup' ] as $yoohw_support_job ) {
+	delete_option( 'yoohw_support_cursor_' . $yoohw_support_job );
+	delete_option( 'yoohw_support_lock_' . $yoohw_support_job );
+}

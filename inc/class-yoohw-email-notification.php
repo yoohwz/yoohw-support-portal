@@ -8,6 +8,11 @@ class YoOhw_Email_Notification {
 
 	const COMMENT_META_SENT_AUTHOR = '_yoohw_email_sent_author_v1';
 	const COMMENT_META_SENT_REPLY  = '_yoohw_email_sent_reply_v1';
+	const COMMENT_META_REPLY_RECIPIENTS = '_yoohw_email_reply_recipients_v1';
+	const COMMENT_META_REPLY_TARGETS = '_yoohw_email_reply_targets_v1';
+	const POST_META_SENT_ADMIN = '_yoohw_email_sent_admin_v1';
+	const POST_META_CLOSE_NOTICE_REPLY = '_yoohw_close_notice_reply_v1';
+	const CRON_HOOK_RETRY = 'yoohw_retry_topic_notification';
 
 	const POST_META_CLOSE_NOTICE_SENT = '_yoohw_close_notice_sent_v1';
 	const CRON_HOOK_CLOSE_NOTICE      = 'yoohw_send_topic_close_notice';
@@ -20,6 +25,7 @@ class YoOhw_Email_Notification {
 	const EMAIL_TEMPLATE_MARKER = 'yoohw-support-email-template';
 
 	public static function init() {
+		add_action( self::CRON_HOOK_RETRY, [ __CLASS__, 'retry_notification' ], 10, 2 );
 		add_action( 'transition_post_status', [ __CLASS__, 'maybe_send_admin_notification' ], 10, 3 );
 
 		add_action( 'comment_post', [ __CLASS__, 'send_author_notification' ], 10, 2 );
@@ -46,7 +52,7 @@ class YoOhw_Email_Notification {
 			return;
 		}
 
-		if ( 'publish' !== $new_status || 'publish' === $old_status ) {
+		if ( 'publish' !== $new_status || in_array( $old_status, [ 'publish', 'yoohw_resolved' ], true ) ) {
 			return;
 		}
 
@@ -58,10 +64,76 @@ class YoOhw_Email_Notification {
 	}
 
 	public static function send_admin_notification( $post_id, $post ) {
+		self::send_notification( 'admin', (int) $post_id );
+	}
+
+	public static function send_author_notification( $comment_id, $comment_approved ) {
+		if ( 1 === (int) $comment_approved ) {
+			self::send_notification( 'author', (int) $comment_id );
+		}
+	}
+
+	public static function send_reply_notification( $comment_id, $comment_approved ) {
+		if ( 1 === (int) $comment_approved ) {
+			self::send_notification( 'reply', (int) $comment_id );
+		}
+	}
+
+	public static function retry_notification( $type, $id ) {
+		if ( in_array( $type, [ 'admin', 'author', 'reply' ], true ) ) {
+			self::send_notification( $type, (int) $id, true );
+		}
+	}
+
+	private static function send_notification( string $type, int $id, bool $retry = false ): void {
+		$key  = 'email_' . $type . '_' . $id;
+		$lock = YoOhw_Support_Background::acquire_lock( $key );
+		if ( ! $lock ) {
+			return;
+		}
+		try {
+			$args = [ $type, $id ];
+			if ( ! $retry && wp_next_scheduled( self::CRON_HOOK_RETRY, $args ) ) {
+				return;
+			}
+			$meta_type = 'admin' === $type ? 'post' : 'comment';
+			// Another request may have completed delivery after this request primed metadata.
+			wp_cache_delete( $id, $meta_type . '_meta' );
+			$meta_key  = '_yoohw_email_failures_' . $type . '_v1';
+			$failures  = (int) get_metadata( $meta_type, $id, $meta_key, true );
+			if ( $failures >= 4 ) {
+				return;
+			}
+			$method = 'deliver_' . $type . '_notification';
+			if ( self::$method( $id ) ) {
+				delete_metadata( $meta_type, $id, $meta_key );
+				wp_clear_scheduled_hook( self::CRON_HOOK_RETRY, $args );
+				return;
+			}
+			++$failures;
+			update_metadata( $meta_type, $id, $meta_key, $failures );
+			if ( $failures < 4 ) {
+				if ( ! wp_next_scheduled( self::CRON_HOOK_RETRY, $args ) ) {
+					wp_schedule_single_event( time() + 15 * MINUTE_IN_SECONDS, self::CRON_HOOK_RETRY, $args );
+				}
+			} else {
+				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- No private content or recipient addresses are logged.
+				error_log( sprintf( 'Support Portal: %s notification for ID %d failed after 3 retries.', $type, $id ) );
+			}
+		} finally {
+			YoOhw_Support_Background::release_lock( $key, $lock );
+		}
+	}
+
+	private static function deliver_admin_notification( int $post_id ): bool {
+		$post = get_post( $post_id );
+		if ( ! self::is_valid_target_post( $post ) || get_post_meta( $post_id, self::POST_META_SENT_ADMIN, true ) ) {
+			return true;
+		}
 		$admin_email = sanitize_email( get_option( 'admin_email' ) );
 
 		if ( ! is_email( $admin_email ) ) {
-			return;
+			return false;
 		}
 
 		$subject = '[New Topic] ' . wp_strip_all_tags( $post->post_title );
@@ -76,49 +148,43 @@ class YoOhw_Email_Notification {
 			<p><strong>View topic:</strong> <a href="' . esc_url( get_permalink( $post_id ) ) . '">Click here to view and reply the post</a></p>
 		';
 
-		self::send_email(
+		$sent = self::send_email(
 			$admin_email,
 			$subject,
 			self::build_email_html( 'New Topic Published', $content )
 		);
+		if ( $sent ) {
+			update_post_meta( $post_id, self::POST_META_SENT_ADMIN, 1 );
+		}
+		return (bool) $sent;
 	}
 
-	public static function send_author_notification( $comment_id, $comment_approved ) {
-		if ( 1 !== (int) $comment_approved ) {
-			return;
-		}
-
+	private static function deliver_author_notification( int $comment_id ): bool {
 		if ( get_comment_meta( $comment_id, self::COMMENT_META_SENT_AUTHOR, true ) ) {
-			return;
+			return true;
 		}
 
 		$comment = get_comment( $comment_id );
 
-		if ( ! $comment ) {
-			return;
+		if ( ! $comment || 'approved' !== wp_get_comment_status( $comment ) ) {
+			return true;
 		}
 
 		$post = get_post( $comment->comment_post_ID );
 
 		if ( ! self::is_valid_target_post( $post ) ) {
-			return;
-		}
-
-		if ( (int) $comment->user_id === (int) $post->post_author ) {
-			delete_post_meta( $post->ID, self::POST_META_CLOSE_NOTICE_SENT );
+			return true;
 		}
 
 		$author_email         = self::normalize_email( get_the_author_meta( 'user_email', $post->post_author ) );
 		$comment_author_email = self::normalize_email( $comment->comment_author_email );
 
 		if ( ! is_email( $author_email ) ) {
-			update_comment_meta( $comment_id, self::COMMENT_META_SENT_AUTHOR, 1 );
-			return;
+			return false;
 		}
 
-		if ( $author_email && $author_email === $comment_author_email ) {
-			update_comment_meta( $comment_id, self::COMMENT_META_SENT_AUTHOR, 1 );
-			return;
+		if ( $author_email === $comment_author_email ) {
+			return true;
 		}
 
 		$subject = '[New Reply] ' . wp_strip_all_tags( $post->post_title );
@@ -132,34 +198,33 @@ class YoOhw_Email_Notification {
 			<p><strong>View reply:</strong> <a href="' . esc_url( get_comment_link( $comment_id ) ) . '">Click here to view and reply</a></p>
 		';
 
-		self::send_email(
+		$sent = self::send_email(
 			$author_email,
 			$subject,
 			self::build_email_html( 'New Reply on Your Topic', $content )
 		);
 
-		update_comment_meta( $comment_id, self::COMMENT_META_SENT_AUTHOR, 1 );
+		if ( $sent ) {
+			update_comment_meta( $comment_id, self::COMMENT_META_SENT_AUTHOR, 1 );
+		}
+		return (bool) $sent;
 	}
 
-	public static function send_reply_notification( $comment_id, $comment_approved ) {
-		if ( 1 !== (int) $comment_approved ) {
-			return;
-		}
-
+	private static function deliver_reply_notification( int $comment_id ): bool {
 		if ( get_comment_meta( $comment_id, self::COMMENT_META_SENT_REPLY, true ) ) {
-			return;
+			return true;
 		}
 
 		$comment = get_comment( $comment_id );
 
-		if ( ! $comment ) {
-			return;
+		if ( ! $comment || 'approved' !== wp_get_comment_status( $comment ) ) {
+			return true;
 		}
 
 		$post = get_post( $comment->comment_post_ID );
 
 		if ( ! self::is_valid_target_post( $post ) ) {
-			return;
+			return true;
 		}
 
 		$comment_author_email = self::normalize_email( $comment->comment_author_email );
@@ -174,18 +239,31 @@ class YoOhw_Email_Notification {
 			]
 		);
 
+		// Original approved comment IDs bound retries; later participants cannot join an old notification.
+		$targets = get_comment_meta( $comment_id, self::COMMENT_META_REPLY_TARGETS, true );
+		if ( ! is_array( $targets ) ) {
+			$targets = [];
+			foreach ( $comments as $existing_comment ) {
+				$targets[] = (int) $existing_comment->comment_ID;
+			}
+			update_comment_meta( $comment_id, self::COMMENT_META_REPLY_TARGETS, array_unique( $targets ) );
+		}
+
 		$notified_emails = [];
+		$sent_recipients = (array) get_comment_meta( $comment_id, self::COMMENT_META_REPLY_RECIPIENTS, true );
+		$complete = true;
 		$reply_preview   = self::get_content_preview( $comment->comment_content );
 		$subject         = '[New Reply] ' . wp_strip_all_tags( $post->post_title );
 
 		foreach ( $comments as $existing_comment ) {
-			if ( (int) $existing_comment->comment_ID === (int) $comment_id ) {
+			if ( (int) $existing_comment->comment_ID === $comment_id || ! in_array( (int) $existing_comment->comment_ID, $targets, true ) ) {
 				continue;
 			}
 
 			$existing_email = self::normalize_email( $existing_comment->comment_author_email );
 
 			if ( ! is_email( $existing_email ) ) {
+				$complete = false;
 				continue;
 			}
 
@@ -197,6 +275,12 @@ class YoOhw_Email_Notification {
 				continue;
 			}
 
+			$notified_emails[] = $existing_email;
+			$recipient_key = hash( 'sha256', $existing_email );
+			if ( in_array( $recipient_key, $sent_recipients, true ) ) {
+				continue;
+			}
+
 			$content = '
 				<p>A new reply has been posted on a post you replied to.</p>
 				<p><strong>Topic title:</strong> ' . esc_html( $post->post_title ) . '</p>
@@ -205,16 +289,24 @@ class YoOhw_Email_Notification {
 				<p><strong>View reply:</strong> <a href="' . esc_url( get_comment_link( $comment_id ) ) . '">Click here to view the reply</a></p>
 			';
 
-			self::send_email(
+			$sent = self::send_email(
 				$existing_email,
 				$subject,
 				self::build_email_html( 'New Reply on Topic', $content )
 			);
 
-			$notified_emails[] = $existing_email;
+			if ( $sent ) {
+				$sent_recipients[] = $recipient_key;
+				update_comment_meta( $comment_id, self::COMMENT_META_REPLY_RECIPIENTS, $sent_recipients );
+			} else {
+				$complete = false;
+			}
 		}
 
-		update_comment_meta( $comment_id, self::COMMENT_META_SENT_REPLY, 1 );
+		if ( $complete && $notified_emails ) {
+			update_comment_meta( $comment_id, self::COMMENT_META_SENT_REPLY, 1 );
+		}
+		return $complete;
 	}
 
 	public static function maybe_send_notifications_on_comment_approval( $new_status, $old_status, $comment ) {
@@ -479,46 +571,13 @@ class YoOhw_Email_Notification {
 	}
 
 	public static function send_topic_close_notice_checker() {
-			// phpcs:disable WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Scheduled bounded lookup for topics that have not received the one-time notice.
-			$posts = get_posts(
-			[
-				'post_type'      => 'post',
-				'post_status'    => 'publish',
-				'posts_per_page' => 50,
-				'fields'         => 'ids',
-				'meta_query'     => [
-					'relation' => 'OR',
-					[
-						'key'     => self::POST_META_CLOSE_NOTICE_SENT,
-						'compare' => 'NOT EXISTS',
-					],
-					[
-						'key'     => self::POST_META_CLOSE_NOTICE_SENT,
-						'value'   => '',
-						'compare' => '=',
-					],
-				],
-				]
-			);
-			// phpcs:enable WordPress.DB.SlowDBQuery.slow_db_query_meta_query
-
-		if ( empty( $posts ) ) {
-			return;
-		}
-
-		foreach ( $posts as $post_id ) {
-			self::maybe_send_topic_close_notice( (int) $post_id );
-		}
+		YoOhw_Support_Background::run_topic_batch( 'close_notice', 50, Closure::fromCallable( [ __CLASS__, 'maybe_send_topic_close_notice' ] ) );
 	}
 
 	private static function maybe_send_topic_close_notice( $post_id ) {
 		$post = get_post( $post_id );
 
 		if ( ! self::is_valid_target_post( $post ) ) {
-			return;
-		}
-
-		if ( get_post_meta( $post_id, self::POST_META_CLOSE_NOTICE_SENT, true ) ) {
 			return;
 		}
 
@@ -554,6 +613,18 @@ class YoOhw_Email_Notification {
 
 		if ( ! $latest_comment_time ) {
 			return;
+		}
+
+		$sent_at = get_post_meta( $post_id, self::POST_META_CLOSE_NOTICE_SENT, true );
+		$sent_reply = (int) get_post_meta( $post_id, self::POST_META_CLOSE_NOTICE_REPLY, true );
+		if ( $sent_at ) {
+			if ( $sent_reply === (int) $latest_comment->comment_ID ) {
+				return;
+			}
+			// Legacy markers are local MySQL dates; only a later support reply starts a new cycle.
+			if ( ! $sent_reply && strtotime( get_gmt_from_date( $sent_at ) . ' GMT' ) >= $latest_comment_time ) {
+				return;
+			}
 		}
 
 		$notice_time = $latest_comment_time + DAY_IN_SECONDS;
@@ -593,7 +664,6 @@ class YoOhw_Email_Notification {
 		$author_email = self::normalize_email( get_the_author_meta( 'user_email', $post_author_id ) );
 
 		if ( ! is_email( $author_email ) ) {
-			update_post_meta( $post_id, self::POST_META_CLOSE_NOTICE_SENT, current_time( 'mysql' ) );
 			return;
 		}
 
@@ -606,34 +676,20 @@ class YoOhw_Email_Notification {
 			<p><strong>View topic:</strong> <a href="' . esc_url( get_permalink( $post_id ) ) . '">Click here to view and reply</a></p>
 		';
 
-		self::send_email(
+		$sent = self::send_email(
 			$author_email,
 			$subject,
 			self::build_email_html( 'Your topic will close soon', $content )
 		);
 
-		update_post_meta( $post_id, self::POST_META_CLOSE_NOTICE_SENT, current_time( 'mysql' ) );
+		if ( $sent ) {
+			update_post_meta( $post_id, self::POST_META_CLOSE_NOTICE_REPLY, (int) $latest_comment->comment_ID );
+			update_post_meta( $post_id, self::POST_META_CLOSE_NOTICE_SENT, current_time( 'mysql' ) );
+		}
 	}
 
 	public static function send_admin_followup_notice_checker() {
-		$posts = get_posts(
-			[
-				'post_type'      => 'post',
-				'post_status'    => 'publish',
-				'posts_per_page' => 100,
-				'fields'         => 'ids',
-				'orderby'        => 'modified',
-				'order'          => 'DESC',
-			]
-		);
-
-		if ( empty( $posts ) ) {
-			return;
-		}
-
-		foreach ( $posts as $post_id ) {
-			self::maybe_send_admin_followup_notice( (int) $post_id );
-		}
+		YoOhw_Support_Background::run_topic_batch( 'admin_followup', 100, Closure::fromCallable( [ __CLASS__, 'maybe_send_admin_followup_notice' ] ) );
 	}
 
 	private static function maybe_send_admin_followup_notice( $post_id ) {
@@ -660,6 +716,7 @@ class YoOhw_Email_Notification {
 
 		$latest_comment = $latest_comments[0];
 
+		wp_cache_delete( (int) $latest_comment->comment_ID, 'comment_meta' );
 		if ( get_comment_meta( $latest_comment->comment_ID, self::COMMENT_META_ADMIN_FOLLOWUP_SENT, true ) ) {
 			return;
 		}
@@ -683,7 +740,6 @@ class YoOhw_Email_Notification {
 		$admin_email = sanitize_email( get_option( 'admin_email' ) );
 
 		if ( ! is_email( $admin_email ) ) {
-			update_comment_meta( $latest_comment->comment_ID, self::COMMENT_META_ADMIN_FOLLOWUP_SENT, 1 );
 			return;
 		}
 
@@ -703,13 +759,15 @@ class YoOhw_Email_Notification {
 			</p>
 		';
 
-		self::send_email(
+		$sent = self::send_email(
 			$admin_email,
 			$subject,
 			self::build_email_html( 'Topic waiting for support reply', $content )
 		);
 
-		update_comment_meta( $latest_comment->comment_ID, self::COMMENT_META_ADMIN_FOLLOWUP_SENT, 1 );
+		if ( $sent ) {
+			update_comment_meta( $latest_comment->comment_ID, self::COMMENT_META_ADMIN_FOLLOWUP_SENT, 1 );
+		}
 	}
 
 	private static function get_email_palette(): array {

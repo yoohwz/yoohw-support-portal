@@ -691,24 +691,7 @@ final class YoOhw_Post_Status_Resolved {
 	}
 
 	public static function auto_resolve_inactive_posts(): void {
-		$posts = get_posts(
-			[
-				'post_type'      => 'post',
-				'post_status'    => 'publish',
-				'posts_per_page' => 100,
-				'fields'         => 'ids',
-				'orderby'        => 'modified',
-				'order'          => 'ASC',
-			]
-		);
-
-		if ( empty( $posts ) ) {
-			return;
-		}
-
-		foreach ( $posts as $post_id ) {
-			self::maybe_auto_resolve_post_after_admin_reply( (int) $post_id );
-		}
+		YoOhw_Support_Background::run_topic_batch( 'auto_resolve', 100, Closure::fromCallable( [ __CLASS__, 'maybe_auto_resolve_post_after_admin_reply' ] ) );
 	}
 
 	private static function maybe_auto_resolve_post_after_admin_reply( int $post_id ): void {
