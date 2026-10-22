@@ -33,6 +33,8 @@ class YoOhw_Support_Center {
         include_once YOOHW_SUPPORT_PORTAL_PATH . 'inc/class-yoohw-support-setup-wizard.php';
         include_once YOOHW_SUPPORT_PORTAL_PATH . 'inc/class-yoohw-support-router.php';
         include_once YOOHW_SUPPORT_PORTAL_PATH . 'inc/class-yoohw-support-settings.php';
+        include_once YOOHW_SUPPORT_PORTAL_PATH . 'inc/class-yoohw-support-email-template.php';
+        include_once YOOHW_SUPPORT_PORTAL_PATH . 'inc/class-yoohw-support-email-settings.php';
         include_once YOOHW_SUPPORT_PORTAL_PATH . 'inc/class-yoohw-support-database.php';
         include_once YOOHW_SUPPORT_PORTAL_PATH . 'inc/class-yoohw-support-site-check.php';
     }
@@ -70,6 +72,7 @@ class YoOhw_Support_Center {
         YoOhw_Support_Privacy::init();
         YoOhw_Support_Setup_Wizard::init();
         YoOhw_Support_Settings::init();
+        YoOhw_Support_Email_Settings::init();
         YoOhw_Support_Site_Check::init();
     }
 
