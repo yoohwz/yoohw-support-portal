@@ -1173,6 +1173,7 @@
 
 .yoohw-topic-body pre,
 .yoohw-reply-content pre {
+	max-height: 420px;
 	padding: 14px 16px;
 	overflow: auto;
 	border: 1px solid var(--yoohw-border);
@@ -2409,6 +2410,7 @@
 }
 
 .yoohw-codeblock pre {
+	max-height: 420px;
 	margin: 0;
 	padding: 14px 16px;
 	overflow: auto;
@@ -2417,11 +2419,6 @@
 	line-height: 1.55;
 	white-space: pre;
 	tab-size: 4;
-}
-
-.yoohw-codeblock.is-wrapped pre {
-	white-space: pre-wrap;
-	word-break: break-word;
 }
 
 .yoohw-shell-footer {

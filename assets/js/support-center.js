@@ -288,6 +288,7 @@
       wrapper.className = "yoohw-codeblock";
       pre.parentNode.insertBefore(wrapper, pre);
       wrapper.appendChild(pre);
+      pre.tabIndex = 0;
 
       var toolbar = document.createElement("div");
       toolbar.className = "yoohw-codeblock-toolbar";
@@ -295,17 +296,6 @@
       var label = document.createElement("span");
       label.className = "yoohw-codeblock-label";
       label.textContent = "code";
-
-      var wrapButton = document.createElement("button");
-      wrapButton.type = "button";
-      wrapButton.className = "yoohw-codeblock-button";
-      wrapButton.setAttribute("aria-pressed", "false");
-      wrapButton.textContent = "Wrap";
-
-      wrapButton.addEventListener("click", function () {
-        var enabled = wrapper.classList.toggle("is-wrapped");
-        wrapButton.setAttribute("aria-pressed", enabled ? "true" : "false");
-      });
 
       var copyButton = document.createElement("button");
       copyButton.type = "button";
@@ -333,7 +323,6 @@
       });
 
       toolbar.appendChild(label);
-      toolbar.appendChild(wrapButton);
       toolbar.appendChild(copyButton);
       wrapper.insertBefore(toolbar, pre);
     });
