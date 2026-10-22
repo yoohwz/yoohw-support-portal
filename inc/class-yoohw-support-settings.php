@@ -4,6 +4,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// Settings are also loaded directly by activation and site setup before runtime initialization.
+require_once __DIR__ . '/class-yoohw-support-email-settings.php';
+
 class YoOhw_Support_Settings {
 
 	const OPTION_NAME        = 'yoohw_support_portal_settings';
