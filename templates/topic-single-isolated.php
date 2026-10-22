@@ -98,7 +98,7 @@ $labels      = YoOhw_Support_Settings::reply_side_labels();
 			<input type="hidden" name="yoohw_isolated_reply" value="1">
 			<input type="hidden" name="topic_id" value="<?php echo esc_attr( $topic['id'] ); ?>">
 			<div class="yoohw-reply-form-header"><span class="yoohw-reply-form-icon"><?php YoOhw_Support_Icons::output( 'message-square' ); ?></span><div><p class="yoohw-kicker"><?php esc_html_e( 'Conversation', 'yoohw-support-portal' ); ?></p><h2><?php esc_html_e( 'Add a reply', 'yoohw-support-portal' ); ?></h2></div></div>
-			<textarea name="comment" rows="8" required></textarea>
+			<?php wp_editor( '', 'comment', YoOhw_Support_Composer::editor_settings( 'comment' ) ); ?>
 			<div class="form-submit yoohw-reply-submit-row"><button type="submit" class="yoohw-button yoohw-button-primary"><?php YoOhw_Support_Icons::output( 'send' ); ?><span><?php esc_html_e( 'Submit reply', 'yoohw-support-portal' ); ?></span></button></div>
 		</form>
 	<?php else : ?>
