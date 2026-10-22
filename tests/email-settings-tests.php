@@ -211,6 +211,53 @@ try {
 		$invoke( 'YoOhw_Email_Notification', $method, $pid );
 		$assert( 1 === count( $attempts ), "$type: later reply remains eligible at unchanged threshold." );
 	}
+	// Explicit durations supersede legacy switches; empty/zero disable and re-enable never backfills.
+	$legacy = $settings;
+	foreach ( [ 'followup' => [ 'owner', 6, 'maybe_send_admin_followup_notice' ], 'close' => [ 'support', 36, 'maybe_send_topic_close_notice' ] ] as $type => $config ) {
+		[$who, $hours, $method] = $config;
+		$key = 'email_' . $type . '_hours';
+		$set( [ $key => (string) $hours ] );
+		$assert( $hours === YoOhw_Support_Email_Settings::reminder_hours( $type ), "$type: custom duration saved." );
+		foreach ( [ -1, '1.5', 'bad', [], '999999999999999999999999999' ] as $invalid ) {
+			$set( [ $key => $invalid ] );
+			$assert( $hours === YoOhw_Support_Email_Settings::reminder_hours( $type ), "$type: invalid duration preserves saved value." );
+		}
+		if ( 'close' === $type ) {
+			foreach ( [ 48, 49 ] as $invalid ) {
+				$set( [ $key => $invalid ] );
+				$assert( 36 === YoOhw_Support_Email_Settings::reminder_hours( $type ), 'Closing warning must precede fixed 48-hour deadline.' );
+			}
+		}
+		$pid = $topic(); $cid = $reply( $pid, $who, $hours * HOUR_IN_SECONDS - 120 ); $attempts = [];
+		$invoke( 'YoOhw_Email_Notification', $method, $pid );
+		$assert( ! $attempts, "$type: does not send before custom threshold." );
+		$date = gmdate( 'Y-m-d H:i:s', time() - $hours * HOUR_IN_SECONDS - 60 );
+		wp_update_comment( [ 'comment_ID' => $cid, 'comment_date_gmt' => $date, 'comment_date' => get_date_from_gmt( $date ) ] );
+		$fail = true; $invoke( 'YoOhw_Email_Notification', $method, $pid );
+		$assert( 1 === count( $attempts ), "$type: eligible custom reminder attempts send." );
+		$fail = false; $invoke( 'YoOhw_Email_Notification', $method, $pid );
+		$assert( 2 === count( $attempts ), "$type: failed custom reminder remains retryable." );
+		$text = 'followup' === $type ? 'at least 6 hours' : 'in about 12 hours';
+		$assert( false !== strpos( $attempts[1]['message'], $text ), "$type: message reflects actual timing." );
+		$set( [ $key => $hours - 1 ] );
+		$invoke( 'YoOhw_Email_Notification', $method, $pid );
+		$assert( 2 === count( $attempts ), "$type: changing duration never replays sent reminder." );
+		foreach ( [ '', '0' ] as $off ) {
+			$set( [ $key => $off ] );
+			$assert( 0 === YoOhw_Support_Email_Settings::reminder_hours( $type ) && ! YoOhw_Support_Email_Settings::enabled( $type ), "$type: empty/zero disables." );
+		}
+		$pid = $topic(); $reply( $pid, $who, $hours * HOUR_IN_SECONDS + 60 ); $attempts = [];
+		$invoke( 'YoOhw_Email_Notification', $method, $pid );
+		$assert( ! $attempts, "$type: zero duration sends nothing." );
+		$set( [ $key => $hours ] );
+		$invoke( 'YoOhw_Email_Notification', $method, $pid );
+		$assert( ! $attempts, "$type: explicit duration re-enable does not backfill." );
+		$reply( $pid, $who, $hours * HOUR_IN_SECONDS );
+		$invoke( 'YoOhw_Email_Notification', $method, $pid );
+		$assert( 1 === count( $attempts ), "$type: new reply sends after re-enable." );
+	}
+	$settings = $legacy;
+
 	$set( [ 'email_notify_admin' => '0', 'email_notify_author' => '0', 'email_notify_reply' => '0', 'email_notify_followup' => '0', 'email_notify_close' => '0' ] );
 	$pid = $topic(); $reply( $pid, 'support', 49 * HOUR_IN_SECONDS ); $attempts = [];
 	$invoke( 'YoOhw_Post_Status_Resolved', 'maybe_auto_resolve_post_after_admin_reply', $pid );
@@ -263,6 +310,10 @@ try {
 	ob_start(); YoOhw_Support_Settings::render_options_page(); $html = ob_get_clean();
 	$doc = new DOMDocument(); libxml_use_internal_errors( true ); $doc->loadHTML( $html ); $xpath = new DOMXPath( $doc );
 	$assert( 2 === $xpath->query( '//form' )->length && 0 === $xpath->query( '//form//form' )->length, 'Emails has separate settings/test forms.' );
+	$assert( 2 === $xpath->query( '//input[@type="number" and @min="0" and @step="1"]' )->length && 0 === $xpath->query( '//input[@type="checkbox" and (contains(@name,"followup") or contains(@name,"close"))]' )->length, 'Reminders use numeric fields rather than checkboxes.' );
+	$assert( 1 === $xpath->query( '//p[@class="description"]/a[contains(.,"Preview email") and not(@class)]' )->length, 'Preview email is a text link in description.' );
+	$assert( 0 === $xpath->query( '//input[not(@type="hidden") and not(@type="submit") and not(ancestor::td)]' )->length, 'All editable email controls use settings value columns.' );
+
 	$assert( 1 === $xpath->query( '//a[@aria-current="page" and contains(., "Emails")]' )->length && false === strpos( $html, 'attachment_max_count' ), 'Emails tab shows its controls, not General fields.' );
 	$settings['dedicated_portal_mode'] = 'isolated';
 	ob_start(); YoOhw_Support_Settings::render_options_page(); $isolated_html = ob_get_clean(); $doc->loadHTML( $isolated_html ); $xpath = new DOMXPath( $doc );

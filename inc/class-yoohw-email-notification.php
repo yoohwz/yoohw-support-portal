@@ -467,9 +467,9 @@ class YoOhw_Email_Notification extends YoOhw_Support_Email_Template {
 			}
 		}
 
-		$notice_time = $latest_comment_time + DAY_IN_SECONDS;
+		$notice_time = $latest_comment_time + ( YoOhw_Support_Email_Settings::reminder_hours( 'close' ) * HOUR_IN_SECONDS );
 
-		// Send after 1 day, which is 24 hours before the 2-day auto-resolve.
+		// The warning time is configurable; the auto-resolve deadline stays at 48 hours.
 		if ( time() < $notice_time ) {
 			return;
 		}
@@ -509,8 +509,9 @@ class YoOhw_Email_Notification extends YoOhw_Support_Email_Template {
 
 		$subject = '[Topic Closing Soon] ' . wp_strip_all_tags( $post->post_title );
 
+		$remaining_hours = (int) ceil( ( $latest_comment_time + ( 2 * DAY_IN_SECONDS ) - time() ) / HOUR_IN_SECONDS );
 		$content = '
-			<p>Your support topic is scheduled to be automatically marked as resolved in about 24 hours because our latest reply has not received a response from you.</p>
+			<p>Your support topic is scheduled to be automatically marked as resolved in about ' . esc_html( $remaining_hours ) . ' hours because our latest reply has not received a response from you.</p>
 			<p><strong>Topic title:</strong> ' . esc_html( $post->post_title ) . '</p>
 			<p>If you still need help, please reply to the topic before it is closed.</p>
 			<p><strong>View topic:</strong> <a href="' . esc_url( get_permalink( $post_id ) ) . '">Click here to view and reply</a></p>
@@ -579,8 +580,8 @@ class YoOhw_Email_Notification extends YoOhw_Support_Email_Template {
 			return;
 		}
 
-		// Send only after 12 hours from the latest user reply.
-		if ( time() < ( $latest_comment_time + ( 12 * HOUR_IN_SECONDS ) ) ) {
+		$followup_hours = YoOhw_Support_Email_Settings::reminder_hours( 'followup' );
+		if ( time() < ( $latest_comment_time + ( $followup_hours * HOUR_IN_SECONDS ) ) ) {
 			return;
 		}
 
@@ -595,7 +596,7 @@ class YoOhw_Email_Notification extends YoOhw_Support_Email_Template {
 		$button_style = self::email_button_style();
 
 		$content = '
-			<p>A support topic has been waiting for an administrator reply for more than 12 hours.</p>
+			<p>A support topic has been waiting for an administrator reply for at least ' . esc_html( $followup_hours ) . ' hours.</p>
 			<p><strong>Topic title:</strong> ' . esc_html( $post->post_title ) . '</p>
 			<p><strong>Latest user reply:</strong><br>' . $preview . '</p>
 			<p><strong>Reply author:</strong> ' . esc_html( $latest_comment->comment_author ) . '</p>

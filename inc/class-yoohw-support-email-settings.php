@@ -27,6 +27,8 @@ class YoOhw_Support_Email_Settings {
 			'email_notify_reply'   => '1',
 			'email_notify_followup' => '1',
 			'email_notify_close'    => '1',
+			'email_followup_hours' => null,
+			'email_close_hours'    => null,
 			'email_global_template' => '1',
 			'email_resume_after'    => [],
 		];
@@ -36,7 +38,20 @@ class YoOhw_Support_Email_Settings {
 		// A long-running worker must observe a different request disabling this type.
 		// Keep get_option filters, but discard its per-request caches at send boundaries.
 		self::refresh_option_cache( YoOhw_Support_Settings::OPTION_NAME );
+		if ( in_array( $type, [ 'followup', 'close' ], true ) ) {
+			return self::reminder_hours( $type ) > 0;
+		}
 		return in_array( $type, [ 'admin', 'author', 'reply', 'followup', 'close' ], true ) && YoOhw_Support_Settings::feature_enabled( 'email_notify_' . $type );
+	}
+
+	public static function reminder_hours( string $type, ?array $settings = null ): int {
+		if ( ! in_array( $type, [ 'followup', 'close' ], true ) ) {
+			return 0;
+		}
+		$settings = $settings ?? YoOhw_Support_Settings::get();
+		$value = $settings['email_' . $type . '_hours'] ?? null;
+		// Preserve saved switches until an explicit duration has been saved.
+		return null === $value ? ( empty( $settings['email_notify_' . $type] ) ? 0 : ( 'followup' === $type ? 12 : 24 ) ) : (int) $value;
 	}
 
 	private static function refresh_option_cache( string $name ): void {
@@ -76,6 +91,24 @@ class YoOhw_Support_Email_Settings {
 				$clean[$key] = in_array( $value[$key], [ '1', 1, true ], true ) ? '1' : '0';
 			}
 		}
+		foreach ( [ 'followup', 'close' ] as $type ) {
+			$key = 'email_' . $type . '_hours';
+			if ( ! array_key_exists( $key, $value ) ) {
+				continue;
+			}
+			// Null is the internal legacy fallback; a submitted empty string means off.
+			if ( null === $value[$key] && null === ( $current[$key] ?? null ) ) {
+				continue;
+			}
+			$raw = is_scalar( $value[$key] ) && ! is_bool( $value[$key] ) ? trim( (string) $value[$key] ) : null;
+			$max = 'close' === $type ? 47 : intdiv( PHP_INT_MAX, HOUR_IN_SECONDS );
+			$hours = '' === $raw ? 0 : filter_var( $raw, FILTER_VALIDATE_INT, [ 'options' => [ 'min_range' => 0, 'max_range' => $max ] ] );
+			if ( null === $raw || false === $hours ) {
+				add_settings_error( 'yoohw_support_portal', $key, 'close' === $type ? __( 'Enter whole hours from 0 to 47 for the closing warning. Invalid values were not saved.', 'yoohw-support-portal' ) : __( 'Enter a non-negative whole number of hours for the support reminder. Invalid values were not saved.', 'yoohw-support-portal' ) );
+				continue;
+			}
+			$clean[$key] = $hours;
+		}
 		return $clean;
 	}
 
@@ -85,13 +118,13 @@ class YoOhw_Support_Email_Settings {
 		// Internal resume points are never accepted from a submitted form.
 		$value['email_resume_after'] = $old['email_resume_after'];
 		foreach ( [ 'followup', 'close' ] as $type ) {
-			$key = 'email_notify_' . $type;
-			if ( empty( $old[$key] ) && ! empty( $value[$key] ) ) {
+			$key = 'email_' . $type . '_hours';
+			if ( 0 === self::reminder_hours( $type, $old ) && self::reminder_hours( $type, array_merge( self::defaults(), $value ) ) > 0 ) {
 				global $wpdb;
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Single bounded watermark; re-enabling must not backfill old reminders.
 				$last = $wpdb->get_var( "SELECT MAX(comment_ID) FROM {$wpdb->comments}" );
 				if ( $wpdb->last_error ) {
-					$value[$key] = '0';
+					$value[$key] = 0;
 					add_settings_error( 'yoohw_support_portal', $key, __( 'The reminder could not be enabled. Please try saving again.', 'yoohw-support-portal' ) );
 				} else {
 					$value['email_resume_after'][$type] = (int) $last;
@@ -163,6 +196,12 @@ class YoOhw_Support_Email_Settings {
 		echo '<p><label><input type="hidden" name="' . esc_attr( $name ) . '" value="0"><input type="checkbox" name="' . esc_attr( $name ) . '" value="1" ' . checked( YoOhw_Support_Settings::feature_enabled( $key ), true, false ) . '> ' . esc_html( $label ) . '</label></p>';
 	}
 
+	private static function reminder_field( string $type, string $label, string $description ): void {
+		$key = 'email_' . $type . '_hours';
+		$id = 'yoohw-' . $key;
+		echo '<tr><th scope="row"><label for="' . esc_attr( $id ) . '">' . esc_html( $label ) . '</label></th><td><input class="small-text" type="number" min="0" step="1" ' . ( 'close' === $type ? 'max="47" ' : '' ) . 'id="' . esc_attr( $id ) . '" name="' . esc_attr( YoOhw_Support_Settings::OPTION_NAME . '[' . $key . ']' ) . '" value="' . esc_attr( self::reminder_hours( $type ) ) . '"> ' . esc_html__( 'hours', 'yoohw-support-portal' ) . '<p class="description">' . esc_html( $description ) . '</p></td></tr>';
+	}
+
 	public static function render_fields(): void {
 		?>
 		<h2><?php esc_html_e( 'Sender', 'yoohw-support-portal' ); ?></h2>
@@ -181,22 +220,27 @@ class YoOhw_Support_Email_Settings {
 			<legend class="screen-reader-text"><?php esc_html_e( 'Topic notification controls', 'yoohw-support-portal' ); ?></legend>
 			<table class="form-table" role="presentation">
 			<?php self::text_field( 'email_admin_recipient', __( 'Admin notification recipient', 'yoohw-support-portal' ), get_option( 'admin_email' ), true ); ?>
-			</table>
+			<tr><th scope="row"><?php esc_html_e( 'Notifications', 'yoohw-support-portal' ); ?></th><td>
 			<?php
 			self::checkbox( 'email_notify_admin', __( 'Notify the administrator when a new topic is published', 'yoohw-support-portal' ) );
 			self::checkbox( 'email_notify_author', __( 'Notify the topic owner about new replies', 'yoohw-support-portal' ) );
 			self::checkbox( 'email_notify_reply', __( 'Notify previous participants about new replies', 'yoohw-support-portal' ) );
 			?>
+			</td></tr></table>
 			<h3><?php esc_html_e( 'Reminders', 'yoohw-support-portal' ); ?></h3>
+			<table class="form-table" role="presentation">
 			<?php
-			self::checkbox( 'email_notify_followup', __( 'Remind support after a customer reply has waited 12 hours', 'yoohw-support-portal' ) );
-			self::checkbox( 'email_notify_close', __( 'Warn the topic owner 24 hours after the latest support reply', 'yoohw-support-portal' ) );
+			self::reminder_field( 'followup', __( 'Support follow-up', 'yoohw-support-portal' ), __( 'Hours after the latest customer reply to remind support. Leave empty or enter 0 to disable.', 'yoohw-support-portal' ) );
+			self::reminder_field( 'close', __( 'Topic closing warning', 'yoohw-support-portal' ), __( 'Hours after the latest support reply to warn the topic owner. Must be less than 48 hours. Leave empty or enter 0 to disable.', 'yoohw-support-portal' ) );
 			?>
+			</table>
 		</fieldset>
 		<p class="description"><?php esc_html_e( 'Topics automatically resolve after 48 hours without a customer response to the latest support reply. Disabling email does not disable auto-resolve. Re-enabling a notification applies to new events only; old events are not backfilled. Failed immediate notifications retry after 15 minutes, up to 3 times.', 'yoohw-support-portal' ); ?></p>
 		<h2><?php esc_html_e( 'Email appearance', 'yoohw-support-portal' ); ?></h2>
+		<table class="form-table" role="presentation"><tr><th scope="row"><?php esc_html_e( 'Email template', 'yoohw-support-portal' ); ?></th><td>
 		<?php self::checkbox( 'email_global_template', __( 'Apply the Support Portal template to all WordPress emails', 'yoohw-support-portal' ) ); ?>
 		<p class="description"><?php esc_html_e( 'The global template applies in WordPress posts/comments mode. Support notifications and sample messages always use the portal template. Topic notification switches do not disable registration or password reset emails.', 'yoohw-support-portal' ); ?></p>
+		</td></tr></table>
 		<?php
 	}
 
@@ -214,13 +258,14 @@ class YoOhw_Support_Email_Settings {
 		?>
 		<h2><?php esc_html_e( 'Preview and test', 'yoohw-support-portal' ); ?></h2>
 		<p><?php esc_html_e( 'Save changes before previewing or testing. These tools use fixed sample content and never include support conversations.', 'yoohw-support-portal' ); ?></p>
-		<p><a class="button" target="_blank" rel="noopener" href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=yoohw_support_email_preview' ), 'yoohw_support_email_preview' ) ); ?>"><?php esc_html_e( 'Preview email', 'yoohw-support-portal' ); ?></a></p>
 		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 			<input type="hidden" name="action" value="yoohw_support_email_test">
 			<?php wp_nonce_field( 'yoohw_support_email_test' ); ?>
-			<label for="yoohw-test-recipient"><?php esc_html_e( 'Test recipient', 'yoohw-support-portal' ); ?></label>
+			<table class="form-table" role="presentation"><tr><th scope="row"><label for="yoohw-test-recipient"><?php esc_html_e( 'Test recipient', 'yoohw-support-portal' ); ?></label></th><td>
 			<input type="email" class="regular-text" id="yoohw-test-recipient" name="recipient" required value="<?php echo esc_attr( get_option( 'admin_email' ) ); ?>">
 			<?php submit_button( __( 'Send test email', 'yoohw-support-portal' ), 'secondary', 'yoohw_email_test_submit', false ); ?>
+		<p class="description"><a target="_blank" rel="noopener" href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=yoohw_support_email_preview' ), 'yoohw_support_email_preview' ) ); ?>"><?php esc_html_e( 'Preview email', 'yoohw-support-portal' ); ?></a></p>
+			</td></tr></table>
 		</form>
 		<?php
 	}
