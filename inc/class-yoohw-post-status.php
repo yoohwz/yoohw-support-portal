@@ -739,8 +739,9 @@ final class YoOhw_Post_Status_Resolved {
 			return;
 		}
 
-		// Admin reply must be older than 2 days.
-		if ( $latest_comment_time > ( time() - ( 2 * DAY_IN_SECONDS ) ) ) {
+		// Read the current policy for every topic; disabling stops even an active batch.
+		$resolve_hours = YoOhw_Support_Settings::auto_resolve_hours();
+		if ( 0 === $resolve_hours || $latest_comment_time > ( time() - ( $resolve_hours * HOUR_IN_SECONDS ) ) ) {
 			return;
 		}
 
@@ -763,6 +764,11 @@ final class YoOhw_Post_Status_Resolved {
 		);
 
 		if ( ! empty( $author_replies_after_admin ) ) {
+			return;
+		}
+
+		$resolve_hours = YoOhw_Support_Settings::auto_resolve_hours();
+		if ( 0 === $resolve_hours || $latest_comment_time > time() - ( $resolve_hours * HOUR_IN_SECONDS ) ) {
 			return;
 		}
 

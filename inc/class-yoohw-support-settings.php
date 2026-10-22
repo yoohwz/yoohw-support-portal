@@ -74,6 +74,7 @@ class YoOhw_Support_Settings {
 			'collapse_older_replies'     => '1',
 			'reply_batch_size'           => 5,
 			'topics_per_page'            => 8,
+			'auto_resolve_hours'         => 48,
 			'reply_avatar_mode'          => 'wordpress',
 			'docs_url'                   => self::default_site_url( '/docs/' ),
 			'dedicated_portal_mode'      => self::STORAGE_WORDPRESS,
@@ -106,6 +107,34 @@ class YoOhw_Support_Settings {
 		}
 
 		return array_merge( self::defaults(), $settings );
+	}
+
+	public static function auto_resolve_hours(): int {
+		// Cron must observe policy changes made by another request during a batch.
+		wp_cache_delete( self::OPTION_NAME, 'options' );
+		wp_cache_delete( 'alloptions', 'options' );
+		wp_cache_delete( 'notoptions', 'options' );
+		return max( 0, (int) self::get()['auto_resolve_hours'] );
+	}
+
+	private static function validate_closing_policy( array $value, array $current ): array {
+		$resolve = (int) $value['auto_resolve_hours'];
+		$warning = YoOhw_Support_Email_Settings::reminder_hours( 'close', $value );
+		if ( $resolve > 0 && $warning >= $resolve ) {
+			add_settings_error( 'yoohw_support_portal', 'closing_policy', __( 'The closing warning must be earlier than auto-resolve. Your changes were not saved. Adjust the warning in Emails or the duration in General first.', 'yoohw-support-portal' ) );
+			return $current;
+		}
+		return $value;
+	}
+
+	public static function render_auto_resolve_field(): void {
+		$settings = self::get();
+		?>
+		<input type="number" class="small-text" id="yoohw-auto-resolve-hours" name="<?php echo esc_attr( self::OPTION_NAME ); ?>[auto_resolve_hours]" min="0" step="1" value="<?php echo esc_attr( $settings['auto_resolve_hours'] ); ?>" <?php disabled( self::uses_isolated_storage() ); ?>> <?php esc_html_e( 'hours', 'yoohw-support-portal' ); ?>
+		<p class="description"><?php esc_html_e( 'Hours after the latest support reply without a customer response. Leave empty or enter 0 to disable. Resolving also closes comments. Changes apply to existing open topics; shortening this time or re-enabling may resolve overdue topics on a later cron pass. Resolved topics are not reopened.', 'yoohw-support-portal' ); ?></p>
+		<?php if ( self::uses_isolated_storage() ) : ?>
+			<p class="description"><?php esc_html_e( 'Auto-resolve requires WordPress posts/comments storage. Your saved preference is retained in isolated storage.', 'yoohw-support-portal' ); ?></p>
+		<?php endif;
 	}
 
 	public static function feature_enabled( string $key ): bool {
@@ -459,6 +488,9 @@ class YoOhw_Support_Settings {
 		add_settings_field( 'attachment_options', __( 'Attachments', 'yoohw-support-portal' ), [ __CLASS__, 'render_attachment_options' ], 'yoohw-support-portal', 'yoohw_support_portal_features' );
 		add_settings_field( 'conversation_options', __( 'Conversations and lists', 'yoohw-support-portal' ), [ __CLASS__, 'render_conversation_options' ], 'yoohw-support-portal', 'yoohw_support_portal_features' );
 
+		add_settings_section( 'yoohw_support_portal_lifecycle', __( 'Topic lifecycle', 'yoohw-support-portal' ), '__return_false', 'yoohw-support-portal' );
+		add_settings_field( 'auto_resolve_hours', __( 'Auto-resolve after', 'yoohw-support-portal' ), [ __CLASS__, 'render_auto_resolve_field' ], 'yoohw-support-portal', 'yoohw_support_portal_lifecycle', [ 'label_for' => 'yoohw-auto-resolve-hours' ] );
+
 		add_settings_section( 'yoohw_support_portal_shortcodes', __( 'Shortcodes', 'yoohw-support-portal' ), [ __CLASS__, 'render_shortcode_guide' ], 'yoohw-support-portal' );
 	}
 
@@ -479,7 +511,7 @@ class YoOhw_Support_Settings {
 		$current  = self::get();
 		$tab      = isset( $value['_tab'] ) && is_string( $value['_tab'] ) ? $value['_tab'] : '';
 		if ( 'emails' === $tab ) {
-			return array_merge( $current, YoOhw_Support_Email_Settings::sanitize( $value, $current ) );
+			return self::validate_closing_policy( array_merge( $current, YoOhw_Support_Email_Settings::sanitize( $value, $current ) ), $current );
 		}
 
 		foreach ( self::field_labels() as $key => $label ) {
@@ -536,7 +568,17 @@ class YoOhw_Support_Settings {
 		$clean['attachment_display'] = 'links' === ( $value['attachment_display'] ?? $current['attachment_display'] ) ? 'links' : 'preview';
 		$clean['reply_avatar_mode'] = 'initials' === ( $value['reply_avatar_mode'] ?? $current['reply_avatar_mode'] ) ? 'initials' : 'wordpress';
 
-		return array_merge( $clean, YoOhw_Support_Email_Settings::sanitize( 'general' === $tab ? [] : $value, $current ) );
+		$clean['auto_resolve_hours'] = $current['auto_resolve_hours'];
+		if ( array_key_exists( 'auto_resolve_hours', $value ) ) {
+			$raw = is_scalar( $value['auto_resolve_hours'] ) && ! is_bool( $value['auto_resolve_hours'] ) ? trim( (string) $value['auto_resolve_hours'] ) : null;
+			$hours = '' === $raw ? 0 : filter_var( $raw, FILTER_VALIDATE_INT, [ 'options' => [ 'min_range' => 0, 'max_range' => intdiv( PHP_INT_MAX, HOUR_IN_SECONDS ) ] ] );
+			if ( null === $raw || false === $hours ) {
+				add_settings_error( 'yoohw_support_portal', 'auto_resolve_hours', __( 'Enter a non-negative whole number of hours for auto-resolve. The previous duration was retained.', 'yoohw-support-portal' ) );
+			} else {
+				$clean['auto_resolve_hours'] = $hours;
+			}
+		}
+		return self::validate_closing_policy( array_merge( $clean, YoOhw_Support_Email_Settings::sanitize( 'general' === $tab ? [] : $value, $current ) ), $current );
 	}
 
 	public static function render_section_description(): void {
