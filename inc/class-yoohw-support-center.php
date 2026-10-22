@@ -50,6 +50,7 @@ class YoOhw_Support_Center {
         include_once YOOHW_SUPPORT_PORTAL_PATH . 'inc/class-yoohw-lost-password-form.php';
 
         if ( ! YoOhw_Support_Settings::uses_isolated_storage() ) {
+            include_once YOOHW_SUPPORT_PORTAL_PATH . 'inc/class-yoohw-support-background.php';
             include_once YOOHW_SUPPORT_PORTAL_PATH . 'inc/class-yoohw-comment-editor.php';
             include_once YOOHW_SUPPORT_PORTAL_PATH . 'inc/class-yoohw-comment-bubble.php';
             include_once YOOHW_SUPPORT_PORTAL_PATH . 'inc/class-yoohw-post-restriction.php';
