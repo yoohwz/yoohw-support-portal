@@ -9,9 +9,15 @@ if ( class_exists( 'YoOhw_Support_Center', false ) ) {
 $mode = 'isolated';
 $settings_filter = static function () use ( &$mode ) { return [ 'dedicated_portal_mode' => $mode ]; };
 add_filter( 'pre_option_yoohw_support_portal_settings', $settings_filter );
-// Fail closed if any code attempts actual email during this loading-only test.
-$mail_filter = static function () { throw new RuntimeException( 'Unexpected email in isolated loading test.' ); };
-add_filter( 'pre_wp_mail', $mail_filter, PHP_INT_MAX );
+// Fail closed except for the explicit synthetic sample tested below.
+$allow_sample = false;
+$samples = [];
+$mail_filter = static function ( $result, $mail ) use ( &$allow_sample, &$samples ) {
+	if ( ! $allow_sample ) { throw new RuntimeException( 'Unexpected email in isolated loading test.' ); }
+	$samples[] = $mail;
+	return true;
+};
+add_filter( 'pre_wp_mail', $mail_filter, PHP_INT_MAX, 2 );
 try {
 	require_once WP_PLUGIN_DIR . '/yoohw-support-portal/yoohw-support-portal.php';
 	yoohw_support_portal_init();
@@ -25,7 +31,17 @@ try {
 	if ( has_filter( 'wp_mail', [ 'YoOhw_Email_Notification', 'apply_global_email_template' ] ) ) {
 		throw new RuntimeException( 'Native global email template must not load in isolated mode.' );
 	}
+	ob_start(); YoOhw_Support_Email_Settings::render_fields(); $fields = ob_get_clean();
+	if ( false === strpos( $fields, 'disabled' ) || ! has_action( 'admin_post_yoohw_support_email_preview' ) ) {
+		throw new RuntimeException( 'Isolated topic controls must be disabled while preview stays available.' );
+	}
+	$allow_sample = true;
+	if ( ! YoOhw_Support_Email_Template::send_test( 'sample@example.invalid' ) || 1 !== count( $samples ) || false === strpos( $samples[0]['message'], 'No support conversation data' ) ) {
+		throw new RuntimeException( 'Isolated preview/test must use the shared fixed sample renderer.' );
+	}
+	$allow_sample = false;
 	WP_CLI::log( 'notification-isolated-ok: native workers remain unloaded; queued hooks are inert' );
+	WP_CLI::log( 'email-settings-isolated-ok: disabled topic controls; shared sample test intercepted' );
 } finally {
 	remove_filter( 'pre_wp_mail', $mail_filter, PHP_INT_MAX );
 	remove_filter( 'pre_option_yoohw_support_portal_settings', $settings_filter );

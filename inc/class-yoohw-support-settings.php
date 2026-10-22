@@ -4,6 +4,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// Settings are also loaded directly by activation and site setup before runtime initialization.
+require_once __DIR__ . '/class-yoohw-support-email-settings.php';
+
 class YoOhw_Support_Settings {
 
 	const OPTION_NAME        = 'yoohw_support_portal_settings';
@@ -84,7 +87,7 @@ class YoOhw_Support_Settings {
 			'reply_customer_badge_label' => 'Customer',
 		];
 
-		return apply_filters( 'yoohw_support_settings_defaults', $defaults );
+		return apply_filters( 'yoohw_support_settings_defaults', array_merge( $defaults, YoOhw_Support_Email_Settings::defaults() ) );
 	}
 
 	public static function get(): array {
@@ -473,6 +476,11 @@ class YoOhw_Support_Settings {
 		$clean    = [];
 		$value    = is_array( $value ) ? $value : [];
 		$defaults = self::defaults();
+		$current  = self::get();
+		$tab      = isset( $value['_tab'] ) && is_string( $value['_tab'] ) ? $value['_tab'] : '';
+		if ( 'emails' === $tab ) {
+			return array_merge( $current, YoOhw_Support_Email_Settings::sanitize( $value, $current ) );
+		}
 
 		foreach ( self::field_labels() as $key => $label ) {
 			$default = $defaults[ $key ] ?? '';
@@ -528,7 +536,7 @@ class YoOhw_Support_Settings {
 		$clean['attachment_display'] = 'links' === ( $value['attachment_display'] ?? $current['attachment_display'] ) ? 'links' : 'preview';
 		$clean['reply_avatar_mode'] = 'initials' === ( $value['reply_avatar_mode'] ?? $current['reply_avatar_mode'] ) ? 'initials' : 'wordpress';
 
-		return $clean;
+		return array_merge( $clean, YoOhw_Support_Email_Settings::sanitize( 'general' === $tab ? [] : $value, $current ) );
 	}
 
 	public static function render_section_description(): void {
@@ -829,11 +837,17 @@ class YoOhw_Support_Settings {
 		<?php
 	}
 
+	private static function active_tab(): string {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only tab selection.
+		return isset( $_GET['tab'] ) && 'emails' === $_GET['tab'] ? 'emails' : 'general';
+	}
+
 	public static function render_options_page(): void {
 		if ( ! current_user_can( YoOhw_Support_Capabilities::MANAGE_SETTINGS ) ) {
 			return;
 		}
 
+		$tab = self::active_tab();
 		?>
 		<div class="wrap">
 			<h1><?php esc_html_e( 'Support Portal', 'yoohw-support-portal' ); ?></h1>
@@ -843,18 +857,30 @@ class YoOhw_Support_Settings {
 					<p><?php esc_html_e( 'Support Portal setup is complete. You can fine-tune the portal settings below.', 'yoohw-support-portal' ); ?></p>
 				</div>
 			<?php endif; ?>
+			<nav class="nav-tab-wrapper" aria-label="<?php esc_attr_e( 'Support Portal settings', 'yoohw-support-portal' ); ?>">
+				<?php foreach ( [ 'general' => __( 'General', 'yoohw-support-portal' ), 'emails' => __( 'Emails', 'yoohw-support-portal' ) ] as $key => $label ) : ?>
+					<a class="nav-tab<?php echo $tab === $key ? ' nav-tab-active' : ''; ?>" <?php echo $tab === $key ? 'aria-current="page"' : ''; ?> href="<?php echo esc_url( add_query_arg( [ 'page' => 'yoohw-support-portal', 'tab' => $key ], admin_url( 'options-general.php' ) ) ); ?>"><?php echo esc_html( $label ); ?></a>
+				<?php endforeach; ?>
+			</nav>
 			<?php
-			if ( class_exists( 'YoOhw_Support_Site_Check' ) ) {
+			if ( 'general' === $tab && class_exists( 'YoOhw_Support_Site_Check' ) ) {
 				YoOhw_Support_Site_Check::render_setup_panel();
 			}
 			?>
+			<?php settings_errors( 'yoohw_support_portal' ); ?>
 			<form method="post" action="options.php">
+				<input type="hidden" name="<?php echo esc_attr( self::OPTION_NAME . '[_tab]' ); ?>" value="<?php echo esc_attr( $tab ); ?>">
 				<?php
 				settings_fields( 'yoohw_support_portal' );
-				do_settings_sections( 'yoohw-support-portal' );
+				if ( 'emails' === $tab ) {
+					YoOhw_Support_Email_Settings::render_fields();
+				} else {
+					do_settings_sections( 'yoohw-support-portal' );
+				}
 				submit_button();
 				?>
 			</form>
+			<?php if ( 'emails' === $tab ) { YoOhw_Support_Email_Settings::render_tools(); } ?>
 			</div>
 		<?php
 	}
