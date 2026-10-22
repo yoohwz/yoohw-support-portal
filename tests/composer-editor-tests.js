@@ -48,4 +48,10 @@ check(parse(richFence.html).querySelector('pre').textContent === '  one\n\n  two
 const link = api.normalize('<a href="javascript:alert(1)" onclick="alert(1)">Bad</a><a href="https://example.invalid" target="_blank">Good</a>');
 check(!link.html.includes('javascript:') && !link.html.includes('onclick'), 'Unsafe client links removed');
 check(parse(link.html).querySelector('[target="_blank"]').getAttribute('rel') === 'noopener noreferrer', 'New-tab links protected');
+for (const literal of ['<code>literal</code>', '<pre><code>literal</code></pre>']) {
+  const result = api.normalize(api.fromText('```html\n' + literal + '\n```'));
+  check(parse(result.html).querySelector('pre code').textContent === literal, 'Fenced literal HTML not interpreted');
+  const inline = api.normalize(api.fromText('Use `' + literal + '` here'));
+  check(parse(inline.html).querySelector('code').textContent === literal, 'Inline literal HTML not interpreted');
+}
 console.log(`composer-editor-ok: ${checks} checks using real DOM parsing; no network`);

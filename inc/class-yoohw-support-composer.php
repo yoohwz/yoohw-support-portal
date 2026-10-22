@@ -45,24 +45,33 @@ class YoOhw_Support_Composer {
 			$code[$key] = $block ? '<pre class="wp-code-block"><code>' . htmlspecialchars( $text, ENT_NOQUOTES | ENT_SUBSTITUTE, 'UTF-8' ) . '</code></pre>' : '<code>' . htmlspecialchars( $text, ENT_NOQUOTES | ENT_SUBSTITUTE, 'UTF-8' ) . '</code>';
 			return $block ? "\n\n" . $key . "\n\n" : $key;
 		};
-		// Isolate code before any whitespace, markup or URL transformations.
-		$html = preg_replace_callback( '~<(pre|code)\b([^>]*)>(.*?)(?:</\1\s*>|$)~is', static function ( $m ) use ( $stash ) {
-			$attrs = wp_kses_hair( $m[2], wp_allowed_protocols() );
-			if ( isset( $attrs['hidden'] ) || 'true' === strtolower( $attrs['aria-hidden']['value'] ?? '' ) || preg_match( '/(?:display\s*:\s*none|visibility\s*:\s*hidden)/i', $attrs['style']['value'] ?? '' ) ) { return ''; }
-			$text = preg_replace( '~<br\s*/?>~i', "\n", $m[3] );
-			// Boundary sentinels prevent wp_strip_all_tags() from trimming code whitespace.
-			$text = substr( wp_strip_all_tags( 'x' . $text . 'x' ), 1, -1 );
-			$text = html_entity_decode( $text, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
-			return $stash( $text, 'pre' === strtolower( $m[1] ) );
+		// Match the outermost code form first. Tags inside Markdown are literal payload,
+		// while Markdown inside an explicit pre/code element is already code text.
+		$pattern = <<<'REGEX'
+~(?<html><(?<tag>pre|code)\b(?<attrs>[^>]*)>(?<body>.*?)(?:</\k<tag>\s*>|$))
+|(?<rich><(?<paragraph>p|div)\b[^>]*>[ 	]*(?<rich_fence>`{3,}|\~{3,})[a-zA-Z0-9_+.#-]*[ 	]*</\k<paragraph>>\s*(?<rich_body>.*?)<(?:p|div)\b[^>]*>[ 	]*\k<rich_fence>[ 	]*</(?:p|div)>)
+|(?<fenced>(?:^|\n)[ 	]*(?<fence>`{3,}|\~{3,})[a-zA-Z0-9_+.#-]*[ 	]*\r?\n(?<fence_body>.*?)\r?\n[ 	]*\k<fence>[ 	]*(?=\r?\n|$))
+|(?<inline>(?<!`)`(?<inline_body>[^`\r\n]+)`(?!`))
+|(?<other><(?:[^>"']|"[^"]*"|'[^']*')*>)~isx
+REGEX;
+		$html = preg_replace_callback( $pattern, static function ( $m ) use ( $stash ) {
+			if ( ! empty( $m['fenced'] ) ) { return $stash( $m['fence_body'], true ); }
+			if ( ! empty( $m['inline'] ) ) { return $stash( html_entity_decode( $m['inline_body'], ENT_QUOTES | ENT_HTML5, 'UTF-8' ), false ); }
+			if ( ! empty( $m['html'] ) || ! empty( $m['rich'] ) ) {
+				if ( ! empty( $m['html'] ) ) {
+					$attrs = wp_kses_hair( $m['attrs'], wp_allowed_protocols() );
+					if ( isset( $attrs['hidden'] ) || 'true' === strtolower( $attrs['aria-hidden']['value'] ?? '' ) || preg_match( '/(?:display\s*:\s*none|visibility\s*:\s*hidden)/i', $attrs['style']['value'] ?? '' ) ) { return ''; }
+					$text = $m['body'];
+				} else {
+					$text = preg_replace( '~</(?:p|div)>\s*<(?:p|div)\b[^>]*>~i', "\n", $m['rich_body'] );
+				}
+				$text = preg_replace( '~<br\s*/?>~i', "\n", $text );
+				// Boundary sentinels prevent wp_strip_all_tags() trimming code whitespace.
+				$text = substr( wp_strip_all_tags( 'x' . $text . 'x' ), 1, -1 );
+				return $stash( html_entity_decode( $text, ENT_QUOTES | ENT_HTML5, 'UTF-8' ), ! empty( $m['rich'] ) || 'pre' === strtolower( $m['tag'] ) );
+			}
+			return $m[0];
 		}, $html );
-		// Rich clipboard sources sometimes store Markdown fence lines as paragraphs.
-		$html = preg_replace_callback( '~<(p|div)\b[^>]*>[ \t]*(`{3,}|\~{3,})[a-zA-Z0-9_+.#-]*[ \t]*</\1>\s*(.*?)<(?:p|div)\b[^>]*>[ \t]*\2[ \t]*</(?:p|div)>~is', static function ( $m ) use ( $stash ) {
-			$text = preg_replace( '~</(?:p|div)>\s*<(?:p|div)\b[^>]*>~i', "\n", $m[3] );
-			$text = preg_replace( '~<br\s*/?>~i', "\n", $text );
-			$text = substr( wp_strip_all_tags( 'x' . $text . 'x' ), 1, -1 );
-			return $stash( html_entity_decode( $text, ENT_QUOTES | ENT_HTML5, 'UTF-8' ), true );
-		}, $html );
-		$html = preg_replace_callback( '/(?:^|\n)[ \t]*(`{3,}|~{3,})[a-zA-Z0-9_+.#-]*[ \t]*\r?\n(.*?)\r?\n[ \t]*\1[ \t]*(?=\r?\n|$)/s', static function ( $m ) use ( $stash ) { return $stash( $m[2], true ); }, $html );
 		$out = '';
 		$skip = [];
 		$void = [ 'br', 'img', 'hr', 'input', 'meta', 'link', 'source', 'embed', 'wbr', 'area', 'base', 'col', 'param', 'track' ];
@@ -95,7 +104,6 @@ class YoOhw_Support_Composer {
 				$out .= wp_kses( $part, self::allowed_html() );
 			} elseif ( ! $skip && 0 !== strpos( $part, '<!--' ) && 0 !== strpos( $part, '<?' ) ) {
 				$part = str_replace( [ "\r\n", "\r" ], "\n", $part );
-				$part = preg_replace_callback( '/(?<!`)`([^`\r\n]+)`(?!`)/', static function ( $m ) use ( $stash ) { return $stash( html_entity_decode( $m[1], ENT_QUOTES | ENT_HTML5, 'UTF-8' ), false ); }, $part );
 				$part = str_replace( [ '&nbsp;', '&#160;', "\xc2\xa0" ], ' ', $part );
 				$out .= preg_replace( '/[\t \f\v]+/', ' ', $part );
 			}

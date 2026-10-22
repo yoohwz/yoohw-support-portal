@@ -51,6 +51,20 @@ try {
 	$assert( "  one\n\n  two" === $code_text( YoOhw_Support_Composer::normalize( '<p>Before</p><p>```js</p><p>  one</p><p></p><p>  two</p><p>```</p><p>After</p>' ) ), 'Paragraph-split fences match client behavior.' );
 	$assert( '  a  b' === $code_text( YoOhw_Support_Composer::normalize( '<pre>  a  b' ) ), 'Unclosed code block is safely closed without collapsing its whitespace.' );
 
+	foreach ( [ '<code>literal</code>', '<pre><code>literal</code></pre>', "  <div>literal</div>\n\n  &amp; https://example.invalid/code" ] as $literal ) {
+		$normalized = YoOhw_Support_Composer::normalize( "```html\n" . $literal . "\n```" );
+		$assert( $literal === $code_text( $normalized ) && ! preg_match( '/YSPCODE[a-f0-9]{32}[0-9]+END/', $normalized ), 'Fenced HTML tags stay literal with no internal marker leakage.' );
+		$assert( $normalized === YoOhw_Support_Composer::normalize( $normalized ), 'Fenced literal HTML remains stable on repeat cleanup.' );
+	}
+	foreach ( [ '<div>literal</div>', '<pre>literal</pre>', 'https://example.invalid/code' ] as $literal ) {
+		$normalized = YoOhw_Support_Composer::normalize( 'Use `' . $literal . '` here' );
+		$assert( false !== strpos( $normalized, '<code>' . htmlspecialchars( $literal, ENT_NOQUOTES | ENT_SUBSTITUTE, 'UTF-8' ) . '</code>' ), 'Inline literal HTML/URL protected before tag parsing.' );
+	}
+	$literal = "```html\n<code>literal</code>\n```";
+	$assert( $literal === $code_text( YoOhw_Support_Composer::normalize( '<pre>' . htmlspecialchars( $literal, ENT_NOQUOTES | ENT_SUBSTITUTE, 'UTF-8' ) . '</pre>' ) ), 'Explicit pre protects its Markdown-looking contents.' );
+	$normalized = YoOhw_Support_Composer::normalize( '<p><a href="https://example.invalid/" title="Use `code`">Link</a></p>' );
+	$assert( false !== strpos( $normalized, 'title="Use `code`"' ) && false === strpos( $normalized, 'YSPCODE' ), 'Backticks in an HTML attribute are not code syntax.' );
+
 	$category = wp_insert_term( $prefix, 'category' ); $assert( ! is_wp_error( $category ), 'Synthetic category.' ); $category = (int) $category['term_id'];
 	foreach ( [ 'owner', 'other' ] as $who ) { $id = wp_insert_user( [ 'user_login' => $prefix . $who, 'user_email' => $prefix . $who . '@example.invalid', 'user_pass' => wp_generate_password(), 'role' => 'subscriber' ] ); $assert( ! is_wp_error( $id ), 'Synthetic user.' ); $users[$who] = $id; }
 	wp_set_current_user( $users['owner'] ); $_SERVER['REQUEST_METHOD'] = 'POST'; $_FILES = [];
