@@ -10,7 +10,6 @@
 			var wrapper = document.createElement("div");
 			var toolbar = document.createElement("div");
 			var label = document.createElement("span");
-			var wrapButton = document.createElement("button");
 			var copyButton = document.createElement("button");
 			var code = pre.querySelector("code") || pre;
 
@@ -18,25 +17,16 @@
 			toolbar.className = "yoohw-codeblock-toolbar";
 			label.className = "yoohw-codeblock-lang";
 			label.textContent = "code";
-			wrapButton.type = "button";
-			wrapButton.className = "yoohw-codeblock-btn";
-			wrapButton.textContent = "Wrap";
-			wrapButton.setAttribute("aria-pressed", "false");
 			copyButton.type = "button";
 			copyButton.className = "yoohw-codeblock-btn";
 			copyButton.textContent = "Copy";
 
 			pre.parentNode.insertBefore(wrapper, pre);
 			wrapper.appendChild(pre);
+			pre.tabIndex = 0;
 			toolbar.appendChild(label);
-			toolbar.appendChild(wrapButton);
 			toolbar.appendChild(copyButton);
 			wrapper.insertBefore(toolbar, pre);
-
-			wrapButton.addEventListener("click", function () {
-				var enabled = wrapper.classList.toggle("is-wrapped");
-				wrapButton.setAttribute("aria-pressed", enabled ? "true" : "false");
-			});
 
 			copyButton.addEventListener("click", function () {
 				var text = code.innerText || code.textContent || "";

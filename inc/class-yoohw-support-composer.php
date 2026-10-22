@@ -134,7 +134,7 @@ REGEX;
 				'toolbar1' => 'bold,italic,underline,bullist,numlist,link,unlink,blockquote,yoohw_support_inlinecode,yoohw_support_codeblock,removeformat',
 				'height' => 220, 'toolbar2' => 'undo,redo,pastetext', 'paste_data_images' => false,
 				'extended_valid_elements' => 'pre[class],code,a[href|target|rel|title],ol[start|reversed|type],li[value]',
-				'content_style' => 'pre.wp-code-block{white-space:pre;tab-size:4;font-family:monospace;font-size:13px;line-height:1.45}code{font-family:monospace;white-space:pre-wrap}table{max-width:100%}',
+				'content_style' => 'pre.wp-code-block{max-height:420px;overflow:auto;white-space:pre;tab-size:4;font-family:monospace;font-size:13px;line-height:1.45}code{font-family:monospace;white-space:pre-wrap}pre code{white-space:inherit}table{max-width:100%}',
 				'setup' => 'function(editor){window.YoOhwSupportEditor.setup(editor);}',
 			],
 		];
