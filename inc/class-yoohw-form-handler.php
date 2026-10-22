@@ -55,15 +55,14 @@ class YoOhw_Form_Handler {
 
 		$category = absint( $_POST['yoohw_post_category'] );
 
-		// phpcs:disable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw editor HTML is unslashed here and passed through wp_kses_post() immediately below.
-		$content = isset( $_POST['yoohw_post_content'] )
+		// phpcs:disable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw editor HTML is unslashed here and passed through the shared KSES-based composer normalizer immediately below.
+		$content = isset( $_POST['yoohw_post_content'] ) && is_string( $_POST['yoohw_post_content'] )
 			? wp_unslash( $_POST['yoohw_post_content'] )
 			: '';
 		// phpcs:enable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 
-		$content = wp_kses_post( $content );
-		$content = YoOhw_Shortcode::yoohw_clean_content( $content );
-		$content = YoOhw_Shortcode::auto_link_and_target_blank( $content );
+		$content = YoOhw_Support_Composer::prepare( $content );
+		if ( is_wp_error( $content ) ) { wp_die( esc_html( $content->get_error_message() ), '', [ 'response' => 400 ] ); }
 
 		// Check real text content after cleaning HTML.
 		$plain_content = trim( wp_strip_all_tags( $content ) );
@@ -116,7 +115,7 @@ class YoOhw_Form_Handler {
             'post_category' => [ $category ],
         ];
 
-		$post_id = wp_insert_post( $post_data, true );
+		$post_id = wp_insert_post( wp_slash( $post_data ), true );
 
 		if ( is_wp_error( $post_id ) ) {
 			wp_die( esc_html( $post_id->get_error_message() ) );

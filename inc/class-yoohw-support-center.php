@@ -33,6 +33,7 @@ class YoOhw_Support_Center {
         include_once YOOHW_SUPPORT_PORTAL_PATH . 'inc/class-yoohw-support-setup-wizard.php';
         include_once YOOHW_SUPPORT_PORTAL_PATH . 'inc/class-yoohw-support-router.php';
         include_once YOOHW_SUPPORT_PORTAL_PATH . 'inc/class-yoohw-support-settings.php';
+        include_once YOOHW_SUPPORT_PORTAL_PATH . 'inc/class-yoohw-support-composer.php';
         include_once YOOHW_SUPPORT_PORTAL_PATH . 'inc/class-yoohw-support-email-template.php';
         include_once YOOHW_SUPPORT_PORTAL_PATH . 'inc/class-yoohw-support-email-settings.php';
         include_once YOOHW_SUPPORT_PORTAL_PATH . 'inc/class-yoohw-support-database.php';

@@ -77,3 +77,8 @@
 	.yoohw-latest-comment-bubble-text { display: none; }
 	.yoohw-latest-comment-bubble-icon { width: 24px; height: 24px; background: transparent; }
 }
+
+/* Normalized composer content also appears in theme-hosted topics/replies. */
+.entry-content code, .comment-content code { white-space: pre-wrap; }
+.entry-content pre code, .comment-content pre code { white-space: inherit; }
+.entry-content table, .comment-content table { display: block; max-width: 100%; overflow-x: auto; }

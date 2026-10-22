@@ -26,6 +26,7 @@ class YoOhw_Comment_Editor {
 		add_filter( 'comment_text', [ __CLASS__, 'filter_comment_text_links' ], 9 );
 
 		add_filter( 'preprocess_comment', [ __CLASS__, 'validate_comment_attachments' ], 8 );
+		add_filter( 'preprocess_comment', [ __CLASS__, 'normalize_new_support_reply' ], 9 );
 		add_action( 'comment_post', [ __CLASS__, 'store_comment_attachments' ], 20, 2 );
 		add_filter( 'comment_text', [ __CLASS__, 'append_comment_attachments' ], 20, 3 );
 	}
@@ -81,6 +82,18 @@ class YoOhw_Comment_Editor {
 			esc_html__( 'Reply not allowed', 'yoohw-support-portal' ),
 			[ 'response' => 403 ]
 		);
+	}
+
+	public static function normalize_new_support_reply( $data ) {
+		// Only the portal's new-reply submission; never normalize edits or historic reads.
+		if ( empty( $_POST['yoohw_support_comment_nonce'] ) ) { return $data; }
+		if ( ! is_string( $_POST['yoohw_support_comment_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['yoohw_support_comment_nonce'] ) ), 'yoohw_support_comment' ) ) {
+			wp_die( esc_html__( 'Security check failed.', 'yoohw-support-portal' ), '', [ 'response' => 403 ] );
+		}
+		$content = YoOhw_Support_Composer::prepare( wp_unslash( $data['comment_content'] ?? '' ) );
+		if ( is_wp_error( $content ) ) { wp_die( esc_html( $content->get_error_message() ), '', [ 'response' => 400 ] ); }
+		$data['comment_content'] = wp_slash( $content );
+		return $data;
 	}
 
 	public static function preprocess_comment_links( $commentdata ) {
@@ -171,144 +184,7 @@ class YoOhw_Comment_Editor {
 			</label>
 			<div class="yoohw-reply-editor-shell">
 			<?php
-			wp_editor(
-				'',
-				'comment',
-				[
-					'textarea_name' => 'comment',
-					'textarea_rows' => 8,
-					'media_buttons' => false,
-					'teeny'         => false,
-					'quicktags'     => false,
-					'tinymce'       => [
-						'toolbar1'                => 'bold,italic,underline,bullist,numlist,link,unlink,blockquote,yoohw_support_codeblock',
-						'height'                  => 220,
-						'extended_valid_elements' => 'pre[class],a[href|target|rel|title]',
-						'content_style'           => 'pre.wp-code-block{white-space:pre;tab-size:4;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:13px;line-height:1.45;}',
-						'setup'                   => 'function (editor) {
-							function inPre(){ return editor.dom.getParent(editor.selection.getStart(), "pre"); }
-							function setActive(api){ function update(){ api.setActive(!!inPre()); } editor.on("NodeChange", update); return function(){ editor.off("NodeChange", update); }; }
-							function htmlEscape(s){ s=(s||""); return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
-
-							function togglePre(){
-								editor.undoManager.transact(function(){
-									var pre = inPre();
-									if (pre) {
-										var html = pre.textContent.replace(/\\n/g, "<br>");
-										var p = editor.dom.create("p", {}, html);
-										editor.dom.replace(p, pre);
-										editor.selection.setCursorLocation(p, 0);
-									} else {
-										var content = editor.selection.getContent({format:"text"});
-										if (!content) {
-											var node = editor.selection.getStart();
-											content = (node && node.textContent) ? node.textContent : "";
-										}
-										content = htmlEscape(content);
-										if (content === "") content = "\\n";
-										editor.insertContent("<pre class=\\"wp-code-block\\">" + content + "</pre>");
-									}
-								});
-							}
-
-							function looksLikeCode(t, h){
-								t = t || ""; h = h || "";
-								var multi     = /\\n/.test(t);
-								var indented  = /^(?:\\t| {2,})\\S/m.test(t);
-								var braces    = /[{};]/.test(t);
-								var fnlike    = /^[\\t ]*(?:function|class|if|for|while|switch|return|const|let|var|public|private|protected)\\b/m.test(t);
-								var php       = /^[\\t ]*<\\?php/m.test(t);
-								var codeHtml  = /<(pre|code)/i.test(h);
-								return codeHtml || ((multi || indented) && (braces || fnlike || php));
-							}
-
-							editor.on("paste", function(e){
-								var html = "", text = "";
-
-								if (e.clipboardData && e.clipboardData.getData) {
-									html = e.clipboardData.getData("text/html") || "";
-									text = e.clipboardData.getData("text/plain") || "";
-								} else if (window.clipboardData && window.clipboardData.getData) {
-									text = window.clipboardData.getData("Text") || "";
-								}
-
-								if (inPre()) {
-									e.preventDefault();
-									text = (text || "").replace(/\\r\\n?/g, "\\n");
-									editor.insertContent(htmlEscape(text));
-									return;
-								}
-
-								var hasRichTags = /<(ul|ol|li|b|strong|i|em|a|p|br|h[1-6]|table|tr|td|th|blockquote)/i.test(html);
-
-								if (looksLikeCode(text, html) && !hasRichTags) {
-									e.preventDefault();
-									text = (text || "").replace(/\\r\\n?/g, "\\n");
-									editor.insertContent("<pre class=\\"wp-code-block\\">" + htmlEscape(text) + "</pre>");
-									return;
-								}
-							});
-
-							var enterCount = 0, enterTimer = null;
-							editor.on("keydown", function(e){
-								var key = e.key || e.keyCode;
-								var isEnter = (key === "Enter" || key === 13);
-								var pre = inPre();
-
-								if (!pre) {
-									if (enterTimer){ clearTimeout(enterTimer); enterTimer=null; }
-									enterCount = 0;
-									return;
-								}
-
-								if (isEnter) {
-									if (e.shiftKey) { enterCount = 0; return; }
-									enterCount++;
-									if (enterTimer){ clearTimeout(enterTimer); }
-									enterTimer = setTimeout(function(){ enterCount=0; enterTimer=null; }, 700);
-
-									if (enterCount >= 2) {
-										e.preventDefault();
-										editor.undoManager.transact(function(){
-											var txt = pre.textContent || "";
-											if (/\\n$/.test(txt)) { pre.textContent = txt.replace(/\\n$/, ""); }
-											var p = editor.dom.create("p", {}, "");
-											if (pre.nextSibling) pre.parentNode.insertBefore(p, pre.nextSibling);
-											else pre.parentNode.appendChild(p);
-											if (!(pre.textContent || "").trim()) { pre.parentNode.removeChild(pre); }
-											editor.selection.setCursorLocation(p, 0);
-										});
-										enterCount = 0;
-										if (enterTimer){ clearTimeout(enterTimer); enterTimer=null; }
-									}
-								} else if (e.keyCode !== 16) {
-									if (enterTimer){ clearTimeout(enterTimer); enterTimer=null; }
-									enterCount = 0;
-								}
-							});
-
-							if (editor.ui && editor.ui.registry && editor.ui.registry.addToggleButton) {
-								editor.ui.registry.addToggleButton("yoohw_support_codeblock", {
-									tooltip: "Code block",
-									text: "</>",
-									onAction: togglePre,
-									onSetup: function(api){ return setActive(api); }
-								});
-							} else if (editor.addButton) {
-								editor.addButton("yoohw_support_codeblock", {
-									text: "</>",
-									tooltip: "Code block",
-									onclick: togglePre,
-									onpostrender: function(){
-										var ctrl = this;
-										editor.on("NodeChange", function(){ ctrl.active(!!inPre()); });
-									}
-								});
-							}
-						}',
-					],
-				]
-			);
+			wp_editor( '', 'comment', YoOhw_Support_Composer::editor_settings( 'comment' ) );
 			?>
 			</div>
 		</div>
@@ -368,7 +244,7 @@ class YoOhw_Comment_Editor {
 	}
 
 	public static function allow_code_tags_in_comments( $tags, $context ) {
-		if ( 'comment' === $context ) {
+		if ( in_array( $context, [ 'comment', 'pre_comment_content' ], true ) ) {
 			$tags['pre']          = isset( $tags['pre'] ) ? $tags['pre'] : [];
 			$tags['pre']['class'] = true;
 
@@ -378,9 +254,7 @@ class YoOhw_Comment_Editor {
 			$tags['a']['target'] = true;
 			$tags['a']['rel']    = true;
 
-			if ( isset( $tags['code'] ) ) {
-				unset( $tags['code'] );
-			}
+			$tags = array_merge( $tags, YoOhw_Support_Composer::allowed_html() );
 		}
 
 		return $tags;

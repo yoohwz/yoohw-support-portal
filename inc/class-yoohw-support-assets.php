@@ -101,6 +101,8 @@ class YoOhw_Support_Assets {
 	}
 
 	public static function enqueue_editor_assets(): void {
+		wp_enqueue_editor();
+		wp_add_inline_style( 'editor-buttons', '.yoohw-composer-code-tool .mce-ico{transform:translateY(2px)}' );
 		$js_path = YOOHW_SUPPORT_PORTAL_PATH . 'assets/js/editor.js';
 
 		wp_enqueue_script(
@@ -110,6 +112,11 @@ class YoOhw_Support_Assets {
 			file_exists( $js_path ) ? (string) filemtime( $js_path ) : self::VERSION,
 			true
 		);
+		wp_localize_script( 'yoohw-support-editor', 'YoOhwComposerLabels', [
+			'inlineCode' => __( 'Inline code', 'yoohw-support-portal' ),
+			'codeBlock' => __( 'Code block', 'yoohw-support-portal' ),
+			'removedMedia' => __( 'Pasted images or embedded media were removed. Use Attachments where available.', 'yoohw-support-portal' ),
+		] );
 	}
 
 	public static function isolate_support_assets(): void {

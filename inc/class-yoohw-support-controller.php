@@ -1472,20 +1472,7 @@ class YoOhw_Support_Controller {
 	}
 
 	public static function editor_settings( string $editor_id ): array {
-		return [
-			'textarea_name' => $editor_id,
-			'textarea_rows' => 10,
-			'media_buttons' => false,
-			'teeny'         => false,
-			'quicktags'     => false,
-			'tinymce'       => [
-				'toolbar1'                => 'bold,italic,underline,bullist,numlist,link,unlink,blockquote,yoohw_support_codeblock',
-				'height'                  => 220,
-				'extended_valid_elements' => 'pre[class],a[href|target|rel|title]',
-				'content_style'           => 'pre.wp-code-block{white-space:pre;tab-size:4;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:13px;line-height:1.45;}',
-				'setup'                   => 'function(editor){ if (window.YoOhwSupportEditor && window.YoOhwSupportEditor.setup) { window.YoOhwSupportEditor.setup(editor); } }',
-			],
-		];
+		return YoOhw_Support_Composer::editor_settings( $editor_id );
 	}
 
 	public static function topic_url( $post ): string {
@@ -1777,8 +1764,10 @@ class YoOhw_Support_Controller {
 
 		$topic_id = absint( $_POST['topic_id'] ?? 0 );
 		$topic    = YoOhw_Support_Database::get_topic_by_id( $topic_id );
-		$content  = isset( $_POST['comment'] ) ? wp_kses_post( wp_unslash( $_POST['comment'] ) ) : '';
-		$content  = YoOhw_Shortcode::yoohw_clean_content( $content );
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw HTML reaches the KSES-based composer normalizer on the next line.
+		$content  = isset( $_POST['comment'] ) && is_string( $_POST['comment'] ) ? wp_unslash( $_POST['comment'] ) : '';
+		$content  = YoOhw_Support_Composer::prepare( $content );
+		if ( is_wp_error( $content ) ) { wp_die( esc_html( $content->get_error_message() ), '', [ 'response' => 400 ] ); }
 
 		if ( ! $topic || ! self::current_user_can_view_isolated_topic( $topic ) || 'resolved' === $topic['status'] ) {
 			wp_die( esc_html__( 'This topic is not available for replies.', 'yoohw-support-portal' ) );
