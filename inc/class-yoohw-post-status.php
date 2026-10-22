@@ -211,11 +211,6 @@ final class YoOhw_Post_Status_Resolved {
 		}
 
 		// Update status to resolved.
-		$resolve_hours = YoOhw_Support_Settings::auto_resolve_hours();
-		if ( 0 === $resolve_hours || $latest_comment_time > time() - ( $resolve_hours * HOUR_IN_SECONDS ) ) {
-			return;
-		}
-
 		wp_update_post(
 			[
 				'ID'          => $post_id,

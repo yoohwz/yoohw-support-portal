@@ -11,7 +11,7 @@ $settings['dedicated_portal_mode'] = 'wordpress';
 $prefix = 'ysp25-' . strtolower( wp_generate_password( 8, false, false ) );
 $posts = $users = $attempts = [];
 $checks = 0; $cursor = 0; $change_during_query = null;
-$original_user = get_current_user_id(); $original_get = $_GET;
+$original_user = get_current_user_id(); $original_get = $_GET; $original_request = $_REQUEST;
 $original_errors = $GLOBALS['wp_settings_errors'] ?? [];
 $settings_read = static function () use ( &$settings ) { return $settings; };
 $cursor_read = static function () use ( &$cursor ) { return $cursor; };
@@ -91,6 +91,20 @@ try {
 	$save( 'general', [ 'auto_resolve_hours' => 72 ] );
 	$assert( 'publish' === get_post_status( $pid ), 'Re-enable waits for cron.' ); $resolve( $pid );
 	$assert( 'yoohw_resolved' === get_post_status( $pid ), 'Re-enable considers existing eligible open topic.' );
+	// Manual staff resolution is independent of the automatic timer.
+	wp_set_current_user( $users['support'] );
+	$stop_redirect = static function ( $location ) { throw new RuntimeException( 'manual-redirect', 302 ); };
+	add_filter( 'wp_redirect', $stop_redirect, -999 );
+	try {
+		foreach ( [ 0, 72 ] as $duration ) {
+			$save( 'general', [ 'auto_resolve_hours' => $duration ] );
+			$manual = $topic( 0 );
+			$_GET = [ 'post_id' => $manual ]; $_REQUEST = [ '_wpnonce' => wp_create_nonce( 'yoohw_support_post_resolve_' . $manual ) ];
+			try { YoOhw_Post_Status_Resolved::handle_resolve_row_action(); throw new RuntimeException( 'Manual action returned before redirect.' ); }
+			catch ( RuntimeException $error ) { $assert( 302 === $error->getCode(), 'Manual resolve reaches guarded redirect with automatic timer off or enabled.' ); }
+			$assert( 'yoohw_resolved' === get_post_status( $manual ) && 'closed' === get_post( $manual )->comment_status, 'Staff manually resolves a new topic regardless of automatic duration.' );
+		}
+	} finally { remove_filter( 'wp_redirect', $stop_redirect, -999 ); $_GET = $original_get; $_REQUEST = $original_request; }
 	$pid = $topic( 71.9 ); $resolve( $pid ); $assert( 'publish' === get_post_status( $pid ), 'No resolve before custom deadline.' );
 	$pid = $topic( 72 ); $resolve( $pid ); $assert( 'yoohw_resolved' === get_post_status( $pid ), 'Resolve at custom deadline.' );
 	foreach ( [ 'owner', 'other' ] as $who ) {
@@ -153,7 +167,7 @@ try {
 	$change_during_query = null;
 	foreach ( $posts as $pid ) { wp_delete_post( $pid, true ); }
 	wp_set_current_user( $original_user ); foreach ( $users as $uid ) { wp_delete_user( $uid ); }
-	$_GET = $original_get; $GLOBALS['wp_settings_errors'] = $original_errors;
+	$_GET = $original_get; $_REQUEST = $original_request; $GLOBALS['wp_settings_errors'] = $original_errors;
 	remove_filter( 'pre_option_' . YoOhw_Support_Settings::OPTION_NAME, $settings_read );
 	remove_filter( 'pre_option_yoohw_support_cursor_auto_resolve', $cursor_read ); remove_filter( 'pre_update_option_yoohw_support_cursor_auto_resolve', $cursor_write, 999 );
 	remove_filter( 'pre_wp_mail', $mail, PHP_INT_MAX ); remove_filter( 'query', $query );
