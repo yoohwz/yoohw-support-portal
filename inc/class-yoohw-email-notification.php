@@ -469,13 +469,13 @@ class YoOhw_Email_Notification extends YoOhw_Support_Email_Template {
 
 		$notice_time = $latest_comment_time + ( YoOhw_Support_Email_Settings::reminder_hours( 'close' ) * HOUR_IN_SECONDS );
 
-		// The warning time is configurable; the auto-resolve deadline stays at 48 hours.
+		// A warning is useful only before the current auto-resolve deadline.
 		if ( time() < $notice_time ) {
 			return;
 		}
 
-		// If already inside/past the auto-resolve window, skip reminder.
-		if ( time() >= ( $latest_comment_time + ( 2 * DAY_IN_SECONDS ) ) ) {
+		$resolve_hours = YoOhw_Support_Settings::auto_resolve_hours();
+		if ( 0 === $resolve_hours || time() >= ( $latest_comment_time + ( $resolve_hours * HOUR_IN_SECONDS ) ) ) {
 			return;
 		}
 
@@ -507,9 +507,16 @@ class YoOhw_Email_Notification extends YoOhw_Support_Email_Template {
 			return;
 		}
 
+		// Recheck after eligibility reads in case another request changed the policy.
+		$resolve_hours = YoOhw_Support_Settings::auto_resolve_hours();
+		$warning_hours = YoOhw_Support_Email_Settings::reminder_hours( 'close' );
+		if ( ! YoOhw_Support_Email_Settings::reminder_allowed( 'close', (int) $latest_comment->comment_ID ) || time() < $latest_comment_time + ( $warning_hours * HOUR_IN_SECONDS ) || time() >= $latest_comment_time + ( $resolve_hours * HOUR_IN_SECONDS ) ) {
+			return;
+		}
+
 		$subject = '[Topic Closing Soon] ' . wp_strip_all_tags( $post->post_title );
 
-		$remaining_hours = (int) ceil( ( $latest_comment_time + ( 2 * DAY_IN_SECONDS ) - time() ) / HOUR_IN_SECONDS );
+		$remaining_hours = (int) ceil( ( $latest_comment_time + ( $resolve_hours * HOUR_IN_SECONDS ) - time() ) / HOUR_IN_SECONDS );
 		$content = '
 			<p>Your support topic is scheduled to be automatically marked as resolved in about ' . esc_html( $remaining_hours ) . ' hours because our latest reply has not received a response from you.</p>
 			<p><strong>Topic title:</strong> ' . esc_html( $post->post_title ) . '</p>

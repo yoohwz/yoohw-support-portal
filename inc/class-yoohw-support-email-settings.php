@@ -39,7 +39,7 @@ class YoOhw_Support_Email_Settings {
 		// Keep get_option filters, but discard its per-request caches at send boundaries.
 		self::refresh_option_cache( YoOhw_Support_Settings::OPTION_NAME );
 		if ( in_array( $type, [ 'followup', 'close' ], true ) ) {
-			return self::reminder_hours( $type ) > 0;
+			return self::reminder_hours( $type ) > 0 && ( 'close' !== $type || YoOhw_Support_Settings::auto_resolve_hours() > self::reminder_hours( 'close' ) );
 		}
 		return in_array( $type, [ 'admin', 'author', 'reply', 'followup', 'close' ], true ) && YoOhw_Support_Settings::feature_enabled( 'email_notify_' . $type );
 	}
@@ -101,10 +101,10 @@ class YoOhw_Support_Email_Settings {
 				continue;
 			}
 			$raw = is_scalar( $value[$key] ) && ! is_bool( $value[$key] ) ? trim( (string) $value[$key] ) : null;
-			$max = 'close' === $type ? 47 : intdiv( PHP_INT_MAX, HOUR_IN_SECONDS );
+			$max = intdiv( PHP_INT_MAX, HOUR_IN_SECONDS );
 			$hours = '' === $raw ? 0 : filter_var( $raw, FILTER_VALIDATE_INT, [ 'options' => [ 'min_range' => 0, 'max_range' => $max ] ] );
 			if ( null === $raw || false === $hours ) {
-				add_settings_error( 'yoohw_support_portal', $key, 'close' === $type ? __( 'Enter whole hours from 0 to 47 for the closing warning. Invalid values were not saved.', 'yoohw-support-portal' ) : __( 'Enter a non-negative whole number of hours for the support reminder. Invalid values were not saved.', 'yoohw-support-portal' ) );
+				add_settings_error( 'yoohw_support_portal', $key, __( 'Enter a non-negative whole number of hours for the reminder. Invalid values were not saved.', 'yoohw-support-portal' ) );
 				continue;
 			}
 			$clean[$key] = $hours;
@@ -199,7 +199,7 @@ class YoOhw_Support_Email_Settings {
 	private static function reminder_field( string $type, string $label, string $description ): void {
 		$key = 'email_' . $type . '_hours';
 		$id = 'yoohw-' . $key;
-		echo '<tr><th scope="row"><label for="' . esc_attr( $id ) . '">' . esc_html( $label ) . '</label></th><td><input class="small-text" type="number" min="0" step="1" ' . ( 'close' === $type ? 'max="47" ' : '' ) . 'id="' . esc_attr( $id ) . '" name="' . esc_attr( YoOhw_Support_Settings::OPTION_NAME . '[' . $key . ']' ) . '" value="' . esc_attr( self::reminder_hours( $type ) ) . '"> ' . esc_html__( 'hours', 'yoohw-support-portal' ) . '<p class="description">' . esc_html( $description ) . '</p></td></tr>';
+		echo '<tr><th scope="row"><label for="' . esc_attr( $id ) . '">' . esc_html( $label ) . '</label></th><td><input class="small-text" type="number" min="0" step="1" ' . ( 'close' === $type && YoOhw_Support_Settings::auto_resolve_hours() > 0 ? 'max="' . esc_attr( YoOhw_Support_Settings::auto_resolve_hours() - 1 ) . '" ' : '' ) . 'id="' . esc_attr( $id ) . '" name="' . esc_attr( YoOhw_Support_Settings::OPTION_NAME . '[' . $key . ']' ) . '" value="' . esc_attr( self::reminder_hours( $type ) ) . '"> ' . esc_html__( 'hours', 'yoohw-support-portal' ) . '<p class="description">' . esc_html( $description ) . '</p></td></tr>';
 	}
 
 	public static function render_fields(): void {
@@ -231,11 +231,15 @@ class YoOhw_Support_Email_Settings {
 			<table class="form-table" role="presentation">
 			<?php
 			self::reminder_field( 'followup', __( 'Support follow-up', 'yoohw-support-portal' ), __( 'Hours after the latest customer reply to remind support. Leave empty or enter 0 to disable.', 'yoohw-support-portal' ) );
-			self::reminder_field( 'close', __( 'Topic closing warning', 'yoohw-support-portal' ), __( 'Hours after the latest support reply to warn the topic owner. Must be less than 48 hours. Leave empty or enter 0 to disable.', 'yoohw-support-portal' ) );
+			self::reminder_field( 'close', __( 'Topic closing warning', 'yoohw-support-portal' ), __( 'Hours after the latest support reply to warn the topic owner. Must be earlier than auto-resolve. No closing warning is sent while auto-resolve is disabled. Leave empty or enter 0 to disable.', 'yoohw-support-portal' ) );
 			?>
 			</table>
 		</fieldset>
-		<p class="description"><?php esc_html_e( 'Topics automatically resolve after 48 hours without a customer response to the latest support reply. Disabling email does not disable auto-resolve. Re-enabling a notification applies to new events only; old events are not backfilled. Failed immediate notifications retry after 15 minutes, up to 3 times.', 'yoohw-support-portal' ); ?></p>
+		<p class="description"><?php
+		$resolve_hours = YoOhw_Support_Settings::auto_resolve_hours();
+		echo esc_html( $resolve_hours > 0 ? sprintf( __( 'Topics automatically resolve %d hours after the latest support reply without a customer response.', 'yoohw-support-portal' ), $resolve_hours ) : __( 'Auto-resolve is disabled. The saved closing warning is retained but will not be sent.', 'yoohw-support-portal' ) );
+		?> <a href="<?php echo esc_url( admin_url( 'options-general.php?page=yoohw-support-portal&tab=general#yoohw-auto-resolve-hours' ) ); ?>"><?php esc_html_e( 'Change in General', 'yoohw-support-portal' ); ?></a></p>
+		<p class="description"><?php esc_html_e( 'Disabling email does not disable auto-resolve. Re-enabling a notification applies to new events only; old events are not backfilled. Failed immediate notifications retry after 15 minutes, up to 3 times.', 'yoohw-support-portal' ); ?></p>
 		<h2><?php esc_html_e( 'Email appearance', 'yoohw-support-portal' ); ?></h2>
 		<table class="form-table" role="presentation"><tr><th scope="row"><?php esc_html_e( 'Email template', 'yoohw-support-portal' ); ?></th><td>
 		<?php self::checkbox( 'email_global_template', __( 'Apply the Support Portal template to all WordPress emails', 'yoohw-support-portal' ) ); ?>
