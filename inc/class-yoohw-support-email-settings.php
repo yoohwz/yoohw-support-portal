@@ -33,12 +33,24 @@ class YoOhw_Support_Email_Settings {
 	}
 
 	public static function enabled( string $type ): bool {
+		// A long-running worker must observe a different request disabling this type.
+		// Keep get_option filters, but discard its per-request caches at send boundaries.
+		self::refresh_option_cache( YoOhw_Support_Settings::OPTION_NAME );
 		return in_array( $type, [ 'admin', 'author', 'reply', 'followup', 'close' ], true ) && YoOhw_Support_Settings::feature_enabled( 'email_notify_' . $type );
 	}
 
+	private static function refresh_option_cache( string $name ): void {
+		wp_cache_delete( $name, 'options' );
+		wp_cache_delete( 'alloptions', 'options' );
+		wp_cache_delete( 'notoptions', 'options' );
+	}
+
 	public static function reminder_allowed( string $type, int $comment_id ): bool {
+		if ( ! self::enabled( $type ) ) {
+			return false;
+		}
 		$cutoffs = YoOhw_Support_Settings::get()['email_resume_after'];
-		return self::enabled( $type ) && $comment_id > (int) ( $cutoffs[$type] ?? 0 );
+		return $comment_id > (int) ( $cutoffs[$type] ?? 0 );
 	}
 
 	public static function admin_recipient(): string {
@@ -96,6 +108,8 @@ class YoOhw_Support_Email_Settings {
 
 	public static function cancel_disabled_retries( $old, $value ): void {
 		$value = array_merge( self::defaults(), is_array( $value ) ? $value : [] );
+		// init may have cached cron before a different worker queued its retry.
+		self::refresh_option_cache( 'cron' );
 		foreach ( _get_cron_array() as $events ) {
 			foreach ( $events[self::RETRY_HOOK] ?? [] as $event ) {
 				$type = $event['args'][0] ?? '';

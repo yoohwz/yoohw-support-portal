@@ -113,6 +113,72 @@ try {
 	$set( [ 'email_notify_reply' => '1' ] ); YoOhw_Email_Notification::retry_notification( 'reply', $cid );
 	$assert( 1 === count( $attempts ), 'Re-enabling does not resume an explicitly canceled fanout.' );
 
+	// Real get_option cache path: emulate a different request changing the backing row.
+	// Only SELECT is intercepted; no site settings are written and cron stays in memory.
+	$race_pid = $topic(); $race_cid = $reply( $race_pid );
+	$backing = array_merge( $settings, [ 'email_notify_author' => '1' ] );
+	$uncache_autoload = static function ( $all ) { unset( $all[YoOhw_Support_Settings::OPTION_NAME] ); return $all; };
+	$backing_query = static function ( $sql ) use ( $wpdb, &$backing ) {
+		if ( 0 === strpos( $sql, "SELECT option_value FROM {$wpdb->options} WHERE option_name =" ) && false !== strpos( $sql, YoOhw_Support_Settings::OPTION_NAME ) ) {
+			return $wpdb->prepare( 'SELECT %s AS option_value', maybe_serialize( $backing ) );
+		}
+		return $sql;
+	};
+	remove_filter( 'pre_option_' . YoOhw_Support_Settings::OPTION_NAME, $settings_filter );
+	add_filter( 'alloptions', $uncache_autoload ); add_filter( 'query', $backing_query, 20 );
+	try {
+		wp_cache_set( YoOhw_Support_Settings::OPTION_NAME, $backing, 'options' );
+		wp_cache_delete( 'notoptions', 'options' );
+		$assert( YoOhw_Support_Email_Settings::enabled( 'author' ), 'Race fixture begins enabled through real get_option.' );
+		$fail = true; $attempts = [];
+		$during_mail = static function () use ( &$backing ) {
+			$old = $backing; $backing['email_notify_author'] = '0';
+			YoOhw_Support_Email_Settings::cancel_disabled_retries( $old, $backing );
+		};
+		YoOhw_Email_Notification::send_author_notification( $race_cid, 1 );
+		$assert( 1 === count( $attempts ) && ! wp_next_scheduled( YoOhw_Support_Email_Settings::RETRY_HOOK, [ 'author', $race_cid ] ), 'Fresh backing setting prevents retry resurrection after cross-request disable.' );
+		$assert( get_comment_meta( $race_cid, '_yoohw_email_suppressed_author_v1', true ), 'Cross-request disable permanently suppresses the old failed event.' );
+		$backing['email_notify_author'] = '1'; $fail = false;
+		YoOhw_Email_Notification::retry_notification( 'author', $race_cid );
+		$assert( 1 === count( $attempts ), 'Re-enable cannot backfill event canceled by another request.' );
+		$fan_pid = $topic(); $reply( $fan_pid, 'participant', 120 ); $reply( $fan_pid, 'other', 60 ); $fan_cid = $reply( $fan_pid );
+		$backing['email_notify_reply'] = '1'; $attempts = [];
+		$during_mail = static function () use ( &$backing ) {
+			$old = $backing; $backing['email_notify_reply'] = '0'; YoOhw_Support_Email_Settings::cancel_disabled_retries( $old, $backing );
+		};
+		YoOhw_Email_Notification::send_reply_notification( $fan_cid, 1 );
+		$assert( 1 === count( $attempts ), 'Fresh backing settings stop fanout after another request disables it.' );
+		$backing['email_notify_reply'] = '1'; YoOhw_Email_Notification::retry_notification( 'reply', $fan_cid );
+		$assert( 1 === count( $attempts ), 'Cross-request canceled fanout cannot backfill.' );
+		$cached = $backing; $cached['email_resume_after'] = []; wp_cache_set( YoOhw_Support_Settings::OPTION_NAME, $cached, 'options' );
+		$backing['email_resume_after']['close'] = $fan_cid;
+		$assert( ! YoOhw_Support_Email_Settings::reminder_allowed( 'close', $fan_cid ), 'Reminder eligibility refreshes resume cutoff before reading it.' );
+	} finally {
+		remove_filter( 'alloptions', $uncache_autoload ); remove_filter( 'query', $backing_query, 20 );
+		wp_cache_delete( YoOhw_Support_Settings::OPTION_NAME, 'options' ); wp_cache_delete( 'alloptions', 'options' ); wp_cache_delete( 'notoptions', 'options' );
+		add_filter( 'pre_option_' . YoOhw_Support_Settings::OPTION_NAME, $settings_filter );
+		$during_mail = null; $fail = false;
+	}
+
+	// A disable request must also reload cron cached before another request queued a retry.
+	$queue_pid = $topic(); $queue_cid = $reply( $queue_pid ); $saved_cron = $cron;
+	$queue_time = time() + 900; wp_schedule_single_event( $queue_time, YoOhw_Support_Email_Settings::RETRY_HOOK, [ 'author', $queue_cid ] );
+	$backing_cron = $cron;
+	$uncache_cron = static function ( $all ) { unset( $all['cron'] ); return $all; };
+	$cron_query = static function ( $sql ) use ( $wpdb, $backing_cron ) {
+		if ( 0 === strpos( $sql, "SELECT option_value FROM {$wpdb->options} WHERE option_name = 'cron'" ) ) { return $wpdb->prepare( 'SELECT %s AS option_value', maybe_serialize( $backing_cron ) ); }
+		return $sql;
+	};
+	remove_filter( 'pre_option_cron', $cron_read ); add_filter( 'alloptions', $uncache_cron ); add_filter( 'query', $cron_query, 20 );
+	wp_cache_set( 'cron', [ 'version' => 2 ], 'options' ); wp_cache_delete( 'notoptions', 'options' );
+	try {
+		YoOhw_Support_Email_Settings::cancel_disabled_retries( $settings, array_merge( $settings, [ 'email_notify_author' => '0' ] ) );
+		$assert( get_comment_meta( $queue_cid, '_yoohw_email_suppressed_author_v1', true ) && empty( $cron[$queue_time][YoOhw_Support_Email_Settings::RETRY_HOOK] ), 'Disabling reloads a stale cron cache and cancels newly queued retry.' );
+	} finally {
+		remove_filter( 'alloptions', $uncache_cron ); remove_filter( 'query', $cron_query, 20 ); add_filter( 'pre_option_cron', $cron_read ); $cron = $saved_cron;
+		wp_cache_delete( 'cron', 'options' ); wp_cache_delete( 'alloptions', 'options' ); wp_cache_delete( 'notoptions', 'options' );
+	}
+
 	// First save uses add_option, not update_option: pending default-on mail must also be canceled.
 	$first_pid = $topic(); $first_cid = $reply( $first_pid ); $fail = true;
 	YoOhw_Email_Notification::send_author_notification( $first_cid, 1 );
