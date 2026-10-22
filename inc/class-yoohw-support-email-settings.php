@@ -237,6 +237,7 @@ class YoOhw_Support_Email_Settings {
 		</fieldset>
 		<p class="description"><?php
 		$resolve_hours = YoOhw_Support_Settings::auto_resolve_hours();
+		/* translators: %d: Number of hours after the latest support reply before automatic resolution. */
 		echo esc_html( $resolve_hours > 0 ? sprintf( __( 'Topics automatically resolve %d hours after the latest support reply without a customer response.', 'yoohw-support-portal' ), $resolve_hours ) : __( 'Auto-resolve is disabled. The saved closing warning is retained but will not be sent.', 'yoohw-support-portal' ) );
 		?> <a href="<?php echo esc_url( admin_url( 'options-general.php?page=yoohw-support-portal&tab=general#yoohw-auto-resolve-hours' ) ); ?>"><?php esc_html_e( 'Change in General', 'yoohw-support-portal' ); ?></a></p>
 		<p class="description"><?php esc_html_e( 'Disabling email does not disable auto-resolve. Re-enabling a notification applies to new events only; old events are not backfilled. Failed immediate notifications retry after 15 minutes, up to 3 times.', 'yoohw-support-portal' ); ?></p>
