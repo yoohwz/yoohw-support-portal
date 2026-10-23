@@ -43,7 +43,6 @@
         size.textContent = file.size < 1024 ? file.size + " B" : file.size < 1048576 ? Math.round(file.size / 1024) + " KB" : (file.size / 1048576).toFixed(1) + " MB";
         remove.type = "button";
         remove.className = "yoohw-upload-remove";
-        remove.textContent = "×";
         remove.setAttribute("aria-label", (labels.remove || "Remove %s").replace("%s", file.name));
         remove.title = remove.getAttribute("aria-label");
         remove.addEventListener("click", function () {

@@ -36,6 +36,7 @@
 }
 
 .yoohw-upload-file .yoohw-upload-remove {
+	position: relative;
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
@@ -49,8 +50,20 @@
 	border-radius: 50%;
 	background: transparent;
 	color: inherit;
-	font: 20px/1 sans-serif;
 	cursor: pointer;
 }
+.yoohw-upload-remove::before,
+.yoohw-upload-remove::after {
+	content: "";
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: 12px;
+	height: 2px;
+	border-radius: 1px;
+	background: currentColor;
+	transform: translate(-50%, -50%) rotate(45deg);
+}
+.yoohw-upload-remove::after { transform: translate(-50%, -50%) rotate(-45deg); }
 .yoohw-upload-file .yoohw-upload-remove:hover { background: var(--yoohw-surface-muted, #f2f4f7); }
 .yoohw-upload-file .yoohw-upload-remove:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
