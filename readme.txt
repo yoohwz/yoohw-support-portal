@@ -1,6 +1,6 @@
 === Support Portal ===
 Contributors: yoohw
-Tags: customer support, help desk, support portal, ticket system, private support
+Tags: customer support, help desk, ticket system, helpdesk, support
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
@@ -8,141 +8,146 @@ Stable tag: 1.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Build a private support portal with conversations, access controls, flexible storage, and protected attachments in posts/comments mode.
+Create a private customer support portal with topics, replies, theme shortcodes, and protected attachments in WordPress posts/comments mode.
 
 == Description ==
 
-Support Portal adds a private, account-based support area to WordPress. Customers can open support topics, exchange replies with authorized staff, and follow conversations from open to resolved.
+Support Portal brings private customer support into your WordPress site. Customers sign in to open topics, reply to your team, and track their conversations. Authorized support staff can view and manage customer topics from the portal.
 
-When the portal uses WordPress posts and comments storage, customers can also upload protected attachments that are delivered through authorization checks. Attachment uploads are not currently available in isolated support storage.
+Use a dedicated support area or embed individual forms and topic lists in pages built with your theme. Choose isolated support storage for an existing website, or WordPress posts/comments storage for a dedicated help desk with protected attachments, topic emails, and automatic resolution.
 
-The plugin is designed for sites that need customer support to stay separate from public content while remaining fully managed inside WordPress.
+= Customer conversations =
 
-= Core features =
+* Private customer dashboards and support topics with replies.
+* Search, category filters, open/resolved status filters, and pagination for topic lists.
+* Rich-text editing with lists, links, quotes, tables, inline code, and scrollable code blocks. Pasted content is cleaned up while preserving supported structure and code text.
+* Conversation-style replies: your replies on the right and other accounts' replies on the left.
+* Expandable reply history, configurable batch sizes, and WordPress avatars or initials. The full conversation remains readable without JavaScript.
+* Built-in login, registration, lost-password, and password-reset screens, with registration subject to the site's settings.
 
-* Private support dashboard for customers and support staff.
-* Customer-created support topics with threaded replies.
-* Protected attachment uploads and authorized delivery in WordPress posts/comments storage mode.
-* Open and resolved conversation workflow.
-* Category access by user role or access code.
-* Dedicated support capabilities for administrators, editors, and custom roles.
-* Customer profile access limited to authorized support staff.
-* Built-in login, registration, lost-password, and password-reset screens for the portal experience.
-* Configurable portal colors, typography, identity, labels, and documentation link.
-* First-run setup wizard with storage guidance based on the site.
-* Privacy-policy guidance for site owners.
-* Optional YoOhw footer credit, disabled by default.
+= Access and appearance =
 
-== Storage Modes ==
+* Dedicated support capabilities for staff and custom roles.
+* Customers can access their own topics; customer profiles are restricted to authorized support staff.
+* Category access controlled by user role or access code.
+* Configurable portal colors, fonts, labels, documentation link, and site identity.
+* Responsive portal layouts and an optional YoOhw footer credit, disabled by default.
+* First-run setup guidance to help choose the appropriate storage mode.
 
-Support Portal supports two storage modes so the portal can fit both established websites and dedicated support installations.
+= Attachments, email, and automation =
 
-= Isolated support storage =
+The following features require WordPress posts/comments storage:
 
-Topics and replies are stored in dedicated plugin database tables and served through the plugin's `/support/` portal routes.
+* Protected image, video, and ZIP attachments stored outside the web document root and delivered through authorization checks.
+* Separate upload switches for new topics and replies, with configurable file counts, sizes, allowed file groups, and previews or download links.
+* Email notifications for new topics and replies, plus support follow-up and topic-closing reminders.
+* Email sender and administrator-recipient settings, notification switches, reminder timing, and sample preview/test tools.
+* Automatic topic resolution after a configurable period without a customer response to the latest support reply.
 
-This mode is recommended for an existing website, store, content site, or community where support conversations should remain separate from normal WordPress posts and comments.
+These features are unavailable in isolated storage. Saved native-mode preferences are retained when using isolated storage.
 
-Dedicated support tables are created lazily after isolated storage is selected and saved.
+= Two storage modes =
 
-Protected attachment uploads are not currently available in isolated support storage.
+**Isolated support storage:** Topics and replies use dedicated plugin database tables, created only after this mode is selected and saved. The portal runs under `/support/`, while ordinary site content continues to use your theme. Choose this mode for an existing website, store, or community where support should stay separate from WordPress posts and comments.
 
-= WordPress posts and comments =
-
-Support topics are stored as WordPress posts and replies as comments.
-
-This mode is best suited to a new or dedicated WordPress installation that is used primarily as a customer support portal.
-
-Protected attachment uploads and authorized attachment delivery are available in this storage mode.
-
-= Important storage note =
+**WordPress posts and comments:** Topics use WordPress posts and replies use comments. Choose this mode for a new or dedicated support installation. The site homepage becomes the portal dashboard, and standard WordPress pages can also use the plugin UI. Protected uploads, topic notifications, reminders, and auto-resolve are available in this mode.
 
 Switching modes does not migrate or delete either dataset. Each dataset remains in its original storage system. Choose the appropriate mode before putting the portal into regular use.
 
+= Use support components with your theme =
+
+Add a Shortcode block to a regular WordPress page:
+
+* `[yoohw_post_form]` — New support topic form.
+* `[yoohw_support_topics]` — Authorized topic list with search, filters, and pagination.
+* `[yoohw_login_form]` — Login form.
+* `[yoohw_lost_password_form]` — Password recovery form.
+
+Topic details and replies open in the dedicated portal. See the FAQ for theme setup and caching requirements.
+
 == Installation ==
 
-1. Install Support Portal from the WordPress plugin screen, or upload the plugin ZIP through Plugins > Add New.
-2. Activate the plugin.
-3. Complete the first-run setup wizard and choose the storage mode that fits the site.
-4. Open Settings > Support Portal to configure portal appearance, labels, and behavior.
-5. Create or assign customer accounts and configure category access where required.
-6. Test the customer and support-staff experience before opening the portal to users.
+1. Install Support Portal from Plugins > Add New, or upload the plugin ZIP, then activate it.
+2. Complete the first-run setup wizard and choose your storage mode.
+3. Open Settings > Support Portal > General to configure appearance, support features, and topic lifecycle settings.
+4. For WordPress posts/comments storage, review the Emails tab and verify that your hosting supports private attachment storage if you need uploads.
+5. Create or assign customer and staff accounts. Configure support capabilities and category access as needed.
+6. Optionally add the support shortcodes to theme pages and exclude those pages from caches.
+7. Test the customer and staff experience, attachment access, and email delivery before opening the portal to users.
 
 == Frequently Asked Questions ==
 
-= Which storage mode should I use? =
+= Who can read support conversations? =
 
-Use isolated support storage when the site already contains public posts, comments, products, pages, or community content. Use WordPress posts and comments when the installation is new or dedicated primarily to customer support, or when you need protected attachment uploads.
-
-= Are dedicated support tables created on every installation? =
-
-No. Dedicated topic and reply tables are created only after isolated support storage is selected and saved.
+Customers can view their own topics, subject to category-access rules. Staff access depends on the plugin's dedicated support capabilities. Custom roles can be granted the capabilities they need. Customer profiles are restricted to authorized support staff.
 
 = Can I switch storage modes later? =
 
-Yes. Switching modes does not migrate or delete either dataset. The portal begins reading and writing through the selected storage mode while the other dataset remains in place.
+Yes, but switching does not migrate, merge, or delete conversations. The portal reads and writes the selected dataset, while the other dataset remains in place. Isolated support tables are created only after isolated storage is selected and saved.
 
-= Who can view a customer's support topic? =
+= What attachment options are available? =
 
-Customers can view their own topics. Users with the plugin's dedicated support capabilities can view and manage the topics permitted by those capabilities. Custom roles can also be granted the relevant capabilities.
+In WordPress posts/comments storage, enable uploads separately for new topics and replies. Set 1–20 files per submission, 1–1024 MB per file, and permitted image, video, or ZIP groups. WordPress and PHP limits may reduce the effective upload size. Selecting no file groups disables new uploads.
 
-= Which features can I configure? =
+Choose image/video previews or download links only for existing attachments. Disabling uploads or removing an allowed group does not delete or hide existing files or change their protected download permissions. Uploads are unavailable in isolated storage.
 
-Under Settings > Support Portal > Support features, configure new-topic and reply uploads separately, file count (1-20), size per file (1-1024 MB), and allowed file groups (images, videos, ZIP). Effective upload limits are capped by WordPress/PHP. No selected file groups means new uploads are disabled. Attachment controls are unavailable in isolated storage, and native-mode preferences are retained when saving isolated-mode settings.
+= How are attachments protected? =
 
-Existing attachments can use image/video previews or download links only. Disabling new uploads or removing an allowed file group does not delete or hide previously uploaded files or change their protected download permissions.
+New support attachments and generated image variants are stored outside the public uploads path and served through an authorization check. Their private storage directory is outside the web document root. Downloads require authorization for the related conversation. PHP must be able to write to the private directory, and the plugin must be able to verify the storage location; uploads are rejected when verification fails.
 
-Configure older-reply collapsing, the number of replies shown initially/per expansion (1-100), topics per page (1-100), and WordPress reply avatars versus initials only. Topic page size also applies to embedded lists and customer profiles. WordPress avatar visibility is still respected.
+The hosting operator must ensure that aliases, other virtual hosts, symlinks, or CDN mappings do not expose this directory. Include it in private backups. See `inc/attachment-storage.md` in the plugin for hosting requirements and configuration.
 
-Defaults preserve the existing experience: uploads enabled in native storage, five files up to 5 MB each (subject to server limits), all existing file groups, previews, reply collapsing in groups of five, eight topics per page, and WordPress avatars.
+Existing files from 1.0.0 need an explicit securing step. Activation does not move or delete files; follow the Upgrade Notice before upgrading.
 
-= How are topic replies displayed? =
+= How do email notifications work? =
 
-Your own replies appear on the right; other accounts' replies appear on the left. Support and customer colors and configurable labels remain tied to the author's support classification. WordPress account avatars, including compatible local-avatar filters and Gravatar, are shown when available; initials remain the fallback, and the WordPress avatar visibility setting is respected.
+In Settings > Support Portal > Emails, configure the sender name/address, administrator notification recipient, and new-topic notifications and new-reply notifications to topic owners and previous participants. Configure follow-up reminders after a customer reply and closing warnings after a support reply. Reminder durations are measured in hours; 0 or an empty value disables that reminder.
 
-By default, the conversation initially shows the five newest replies in chronological order. A highlighted history panel shows the number of older replies remaining and how many replies are visible. Its button reveals another configured batch (five by default) above them each time, with an immediate busy state and a short reveal animation that respects reduced-motion preferences. The browser gets a paint opportunity for the busy state; there is no artificial timed wait. This expands replies already present on the authorized page, without a separate data request. Direct links to older replies reveal their target. With JavaScript disabled, the full conversation remains readable. The original topic body, total reply count, and reply form stay in place.
+Topic notifications and reminders require WordPress posts/comments storage. They use WordPress mail delivery; your hosting or SMTP configuration determines actual delivery. Save settings before using the fixed-sample preview and test email. An accepted test confirms only that the mail transport accepted the message, not inbox delivery.
 
-= Can I embed support components in my theme? =
+Support notifications use the portal email template. In WordPress posts/comments mode, you can also apply that template to other WordPress emails; this option is enabled by default. Topic notification switches do not disable registration or password-reset emails.
 
-Yes. Add a Shortcode block to a regular WordPress page with [yoohw_post_form], [yoohw_login_form], [yoohw_lost_password_form], or [yoohw_support_topics]. Use one copy of each shortcode per page, and put login and lost-password forms on separate pages. Topic details and replies continue to open the dedicated portal.
+= When are topics automatically resolved? =
 
-In WordPress posts/comments storage mode, disable "Render standard WordPress pages with the plugin UI" to use the theme on those pages, and use pretty permalinks (root-path page_id requests belong to the native portal dashboard). In isolated mode, regular pages already use the theme. Use a page slug outside the portal routes. The list's filters and pagination stay on that page.
+In WordPress posts/comments storage, the default is 48 hours after the latest support reply without a customer response. Change this duration under General, or enter 0 or leave it empty to disable auto-resolve. Resolving a topic also closes replies.
 
-Exclude all shortcode pages from page, CDN, and fragment caches, including for guests. The plugin sends no-cache signals, but an upstream cache can respond before WordPress runs. Builders must render the shortcodes server-side before footer scripts.
+A closing warning must be earlier than the auto-resolve duration. Disabling email does not disable auto-resolve. Changes apply to existing open topics, so shortening the duration or re-enabling auto-resolve can resolve overdue topics on a later background run. Resolved topics are not reopened automatically. Background processing depends on WordPress cron, so timing may vary with the site's cron setup.
 
-= How is category access controlled? =
+= Can I change reply history and topic list sizes? =
 
-Categories can be restricted by user role or by access code, depending on how the portal is configured.
+Yes. Configure reply collapsing, the number of replies shown initially and per expansion (1–100), and topics per page (1–100). Defaults are five replies per batch and eight topics per page. Topic page size also applies to embedded lists and customer profiles.
 
-= Are uploaded support attachments public? =
+Choose WordPress avatars or initials only. WordPress avatar visibility is respected, and initials are the fallback when an avatar is unavailable.
 
-Protected attachment uploads are currently available only in WordPress posts/comments storage mode. In that mode, support attachments handled by the protected attachment system are stored outside the public uploads path and served through an authorization check. Upgrading from 1.0.0 requires the administrator to secure existing support attachments explicitly. Activation does not move or delete files. See the attachment storage guide included in the plugin and the Upgrade Notice below.
+= How do I embed support components in my theme? =
 
-= Does YoOhw receive my support conversations or attachments? =
+Create a regular WordPress page with a slug outside portal routes such as `/support/`, `/topics/`, `/new/`, or `/login/`, then add a shortcode listed above. Use one copy of each shortcode per page, and place login and lost-password forms on separate pages.
 
-No. Support Portal does not transmit support conversations, attachments, or account data to YoOhw or another external service.
+In WordPress posts/comments storage, disable "Render standard WordPress pages with the plugin UI" and use pretty permalinks for theme pages. The homepage remains the portal dashboard. In isolated storage, regular pages already use the theme. Topic details, replies, and successful topic submissions continue to open the dedicated portal.
 
-= Does the plugin add a public YoOhw credit? =
+Exclude all shortcode pages from page, CDN, and fragment caches, including for guests. The plugin sends no-cache signals, but upstream caches can respond before WordPress runs. Page builders must render shortcodes server-side before footer scripts. See `docs/theme-shortcodes.md` in the source repository for detailed integration guidance.
 
-Only if the site administrator explicitly enables the optional footer-credit setting. It is disabled by default.
+= Does YoOhw receive support conversations or attachments? =
 
-= What happens when the plugin is uninstalled? =
+No. Support Portal does not transmit support conversations, attachments, or account data to YoOhw. Email notifications are sent through your site's configured WordPress mail transport to the relevant recipients.
 
-The plugin removes its settings, scheduled hooks, and custom capabilities. Support conversations, attachments, users, categories, and isolated support tables are intentionally retained to reduce the risk of accidental data loss.
+= What happens when I uninstall the plugin? =
+
+The plugin removes its settings, scheduled hooks, and custom capabilities. Support conversations, attachments, users, categories, and isolated support tables are intentionally retained to reduce the risk of accidental data loss. Private attachment files and recovery copies also need to be covered by your own retention policy.
 
 == Privacy ==
 
-Support topics and replies may contain personal or confidential information, including account identifiers, message content, timestamps, categories, and workflow status. In WordPress posts/comments storage mode, support conversations may also include uploaded files.
+Support data can include account identifiers, names, message content, timestamps, categories, status, and, in WordPress posts/comments storage, uploaded files. Conversations and files are stored on your WordPress site. Notifications may include conversation details and links, processed through your configured mail transport.
 
-This information is stored on the WordPress site. Support Portal does not transmit support conversations, attachments, or account data to YoOhw or another external service.
-
-The plugin adds suggested privacy-policy text to the WordPress privacy-policy guide. Site owners remain responsible for establishing appropriate retention periods, access policies, backups, and procedures for verified export or erasure requests.
+The plugin adds suggested text to the WordPress privacy-policy guide. Site owners are responsible for access policies, retention, private backups, and verified export or erasure requests.
 
 == External Services ==
 
-Support Portal does not require an external service to provide its core support portal functionality and does not transmit support conversation data to YoOhw.
+No YoOhw account or external help desk service is required. Support Portal does not send support data to YoOhw or provide its own external mail service. If your WordPress mail transport uses an external provider, notification content is processed through that provider.
 
-If a site administrator configures an external documentation URL, that link is presented as a normal outbound link and does not send support conversation content to that destination.
+When WordPress avatars are enabled, WordPress may request avatars from Gravatar or a configured avatar provider. Choose initials only to avoid avatar requests in conversation replies.
+
+An optional documentation URL is a normal outbound link and does not send support conversation content to its destination.
 
 == License ==
 
