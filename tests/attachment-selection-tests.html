@@ -1,0 +1,96 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Attachment selection checks</title>
+<link rel="stylesheet" href="../assets/css/attachments.css">
+<style>body{max-width:900px;margin:32px auto;font:16px system-ui}form{margin:24px 0;padding:20px;border:1px solid #ccc}label{display:block;padding:16px;border:1px dashed #999;margin-bottom:12px}#results{white-space:pre-wrap}</style>
+<h1>Attachment selection checks</h1>
+<p>Browser-only fixtures; no upload, network submission or stored records.</p>
+<form id="topic"><label class="yoohw-upload-dropzone" for="topic_files">New topic: choose or drop files</label><input id="topic_files" type="file" multiple name="yoohw_attachments[]" data-max-files="3" data-max-size="1024"><div data-upload-selected-for="topic_files" class="yoohw-upload-selected"></div></form>
+<form id="reply"><label class="yoohw-upload-dropzone" for="reply_files">Reply: choose or drop files</label><input id="reply_files" type="file" multiple name="yoohw_attachments[]" data-max-files="3" data-max-size="1024"><div data-upload-selected-for="reply_files" class="yoohw-upload-selected"></div></form>
+<form id="shortcode"><div data-upload-dropzone><label for="shortcode_files">Shortcode attachments</label><input id="shortcode_files" type="file" multiple name="yoohw_attachments[]" data-max-files="3" data-max-size="1024"></div><input type="file" name="unrelated" id="unrelated"></form>
+<pre id="results">Running…</pre>
+<script src="../assets/js/attachments.js"></script>
+<script>
+// Real File, DataTransfer and FormData browser APIs; never submits a form.
+document.addEventListener('DOMContentLoaded', async function () {
+  var checks = 0;
+  var alerts = [];
+  var alertOriginal = window.alert;
+  window.alert = function (message) { alerts.push(message); };
+  function check(ok, label) { if (!ok) throw new Error(label); checks++; }
+  function names(input) { return Array.from(input.files).map(function (f) { return f.name; }).join(','); }
+  function pick(input, files) {
+    var transfer = new DataTransfer();
+    files.forEach(function (file) { transfer.items.add(file); });
+    input.files = transfer.files;
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+  function drop(zone, files) {
+    var transfer = new DataTransfer();
+    files.forEach(function (file) { transfer.items.add(file); });
+    zone.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: transfer }));
+  }
+  var a = new File(['alpha'], 'alpha.txt', {type:'text/plain', lastModified:1});
+  var b = new File(['beta'], 'beta.txt', {type:'text/plain', lastModified:2});
+  var c = new File(['gamma'], 'gamma.txt', {type:'text/plain', lastModified:3});
+  var d = new File(['delta'], 'delta.txt', {type:'text/plain', lastModified:4});
+  var big = new File([new Uint8Array(1025)], 'big.txt', {lastModified:5});
+  try {
+    for (var id of ['topic', 'reply', 'shortcode']) {
+      var form = document.getElementById(id);
+      var input = document.getElementById(id + '_files');
+      var zone = form.querySelector('label.yoohw-upload-dropzone, [data-upload-dropzone]');
+      var target = form.querySelector('.yoohw-upload-selected');
+      check(target.textContent === 'No files selected', id + ': empty state');
+      pick(input, [a]); pick(input, [b]);
+      check(names(input) === 'alpha.txt,beta.txt', id + ': pick appends');
+      pick(input, []);
+      check(names(input) === 'alpha.txt,beta.txt', id + ': canceled/empty picker preserves files');
+      pick(input, [a]);
+      check(input.files.length === 2, id + ': exact duplicate is not added');
+      drop(zone, [c]);
+      check(names(input) === 'alpha.txt,beta.txt,gamma.txt', id + ': drop appends after pick');
+      var before = alerts.length;
+      drop(zone, [d]);
+      check(alerts.length === before + 1 && input.files.length === 3, id + ': combined count limit preserves old files');
+      target.querySelectorAll('button')[1].click();
+      check(names(input) === 'alpha.txt,gamma.txt', id + ': remove middle file');
+      check(new FormData(form).getAll('yoohw_attachments[]').map(function (f) { return f.name; }).join(',') === 'alpha.txt,gamma.txt', id + ': removed file is absent from multipart');
+      check(Array.from(target.querySelectorAll('button')).every(function (button) { return button.type === 'button'; }), id + ': remove never submits form');
+      check(document.activeElement === target.querySelectorAll('button')[1], id + ': focus moves to adjacent remove button');
+      before = alerts.length;
+      pick(input, [big]);
+      check(alerts.length === before + 1 && names(input) === 'alpha.txt,gamma.txt', id + ': oversized picker batch preserves old files');
+      before = alerts.length;
+      drop(zone, [big]);
+      check(alerts.length === before + 1 && names(input) === 'alpha.txt,gamma.txt', id + ': oversized drop preserves old files');
+      drop(zone, [b]);
+      check(names(input) === 'alpha.txt,gamma.txt,beta.txt', id + ': removed file can be added again');
+      var submitted = new FormData(form).getAll('yoohw_attachments[]');
+      check(submitted.map(function (f) { return f.name; }).join(',') === names(input), id + ': multipart fields match selected list');
+      check(submitted.map(function (f) { return f.size; }).join(',') === '5,5,4', id + ': multipart sizes preserved');
+      check(await submitted[0].text() === 'alpha' && await submitted[1].text() === 'gamma', id + ': selected file bytes unchanged');
+      while (target.querySelector('button')) target.querySelector('button').click();
+      check(input.files.length === 0 && target.classList.contains('is-empty'), id + ': remove all');
+      pick(input, [a]); form.reset();
+      check(input.files.length === 0 && target.textContent === 'No files selected', id + ': reset clears state');
+      drop(zone, [b]); pick(input, [c]);
+      check(names(input) === 'beta.txt,gamma.txt', id + ': pick appends after drop');
+      form.reset();
+    }
+    var hostile = new File(['safe'], '<img src=x onerror=alert(1)>.txt');
+    pick(document.getElementById('topic_files'), [hostile]);
+    check(!document.querySelector('#topic img') && document.querySelector('#topic .yoohw-upload-file-name').textContent === hostile.name, 'Filename is text, not HTML');
+    check(document.querySelector('#topic button').getAttribute('aria-label') === 'Remove ' + hostile.name, 'Remove has filename-specific accessible label');
+    document.getElementById('topic').reset();
+    check(!document.getElementById('unrelated').nextElementSibling, 'Unrelated file input not enhanced');
+    pick(document.getElementById('reply_files'), [a]);
+    check(!document.getElementById('topic_files').files.length, 'Forms have independent state');
+    document.getElementById('reply').reset();
+    document.getElementById('results').textContent = 'PASS: ' + checks + ' browser checks (real File/DataTransfer/FormData); no uploads.';
+  } catch (error) {
+    document.getElementById('results').textContent = 'FAIL after ' + checks + ': ' + error.message;
+    throw error;
+  } finally { window.alert = alertOriginal; }
+});
+</script>

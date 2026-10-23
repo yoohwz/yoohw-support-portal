@@ -1,0 +1,56 @@
+.yoohw-upload-selected {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 7px;
+	min-height: 24px;
+	color: var(--yoohw-muted, #667085);
+	font-size: 13px;
+	font-weight: 700;
+	line-height: 1.3;
+}
+
+.yoohw-upload-file {
+	display: inline-flex;
+	align-items: center;
+	gap: 7px;
+	max-width: 100%;
+	padding: 6px 9px;
+	border: 1px solid var(--yoohw-border, #d0d5dd);
+	border-radius: 999px;
+	background: var(--yoohw-surface, #fff);
+	color: var(--yoohw-text, #18212f);
+}
+
+.yoohw-upload-file-name {
+	overflow: hidden;
+	max-width: min(420px, 70vw);
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.yoohw-upload-file small {
+	color: var(--yoohw-muted, #667085);
+	font-size: 11px;
+	font-weight: 800;
+	white-space: nowrap;
+}
+
+.yoohw-upload-file .yoohw-upload-remove {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	width: 24px;
+	height: 24px;
+	min-height: 0;
+	margin: -3px 0;
+	padding: 0;
+	border: 0;
+	border-radius: 50%;
+	background: transparent;
+	color: inherit;
+	font: 20px/1 sans-serif;
+	cursor: pointer;
+}
+.yoohw-upload-file .yoohw-upload-remove:hover { background: var(--yoohw-surface-muted, #f2f4f7); }
+.yoohw-upload-file .yoohw-upload-remove:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
