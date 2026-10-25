@@ -2,7 +2,7 @@
 /*
 Plugin Name: Support Portal
 Description: A dedicated support portal for customer conversations, private topics, replies, attachments, and support workflows.
-Version: 1.1.0
+Version: 1.1.1
 Requires at least: 6.2
 Requires PHP: 7.4
 Author: YoOhw
@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
 
 // Define constants.
 define( 'YOOHW_SUPPORT_PORTAL_FILE', __FILE__ );
-define( 'YOOHW_SUPPORT_PORTAL_VERSION', '1.1.0' );
+define( 'YOOHW_SUPPORT_PORTAL_VERSION', '1.1.1' );
 define( 'YOOHW_SUPPORT_PORTAL_PATH', plugin_dir_path( __FILE__ ) );
 define( 'YOOHW_SUPPORT_PORTAL_URL', plugin_dir_url( __FILE__ ) );
 
