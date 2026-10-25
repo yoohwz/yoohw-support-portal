@@ -4,7 +4,7 @@ Tags: customer support, help desk, ticket system, helpdesk, support
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.1.0
+Stable tag: 1.1.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -156,6 +156,14 @@ Support Portal is licensed under the GNU General Public License v2.0 or later. S
 Third-party components and their license notices are documented in `third-party-licenses.txt`.
 
 == Changelog ==
+
+= 1.1.1 =
+* Improved: Email notifications retry failed deliveries with bounded attempts, avoid resending to successfully notified participants, and use complete cursor-based topic scans for scheduled reminders.
+* New: General and Emails settings tabs let administrators configure notification switches, sender and admin-recipient addresses, reminder intervals, and fixed-sample email preview and test delivery.
+* New: Configure automatic topic resolution after a chosen number of hours, or disable it. Closing warnings respect the active auto-resolve deadline.
+* Improved: Topic and reply editors share safer paste cleanup, preserve lists, links, tables and literal code, and support inline code and code blocks in both storage modes without rewriting existing conversations.
+* Improved: Long code blocks scroll vertically and horizontally within a 420px display area while keeping Copy accessible; the Wrap toggle was removed.
+* Updated: WordPress.org feature descriptions, FAQ, privacy guidance and helpdesk tags.
 
 = 1.1.0 =
 * Security: New support attachments and image variants use private filesystem storage outside the web document root, with upload rejection when storage verification fails. Existing installations must explicitly secure old support files; see the Upgrade Notice.
