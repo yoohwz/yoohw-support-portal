@@ -4,7 +4,7 @@ Tags: customer support, help desk, ticket system, helpdesk, support
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.1.1
+Stable tag: 1.1.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -156,6 +156,12 @@ Support Portal is licensed under the GNU General Public License v2.0 or later. S
 Third-party components and their license notices are documented in `third-party-licenses.txt`.
 
 == Changelog ==
+
+= 1.1.2 =
+* New: Add more files to a topic or reply without replacing files already selected, using the file picker or drag and drop in the portal and theme-embedded forms.
+* New: Remove individual pending attachments with the × button before submitting. Files already saved to a conversation are unchanged.
+* Improved: Skip duplicate file selections and retain previously selected files when an added batch exceeds the file-count or size limit.
+* Updated: Dashboard workspace labels clarify that the project summary refers to your own custom work projects.
 
 = 1.1.1 =
 * Improved: Email notifications retry failed deliveries with bounded attempts, avoid resending to successfully notified participants, and use complete cursor-based topic scans for scheduled reminders.
