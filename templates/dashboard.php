@@ -29,16 +29,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<span class="yoohw-workspace-home-icon"><?php YoOhw_Support_Icons::output( 'briefcase' ); ?></span>
 			<div>
 				<p class="yoohw-kicker"><?php esc_html_e( 'Workspace', 'yoohw-support-portal' ); ?></p>
-				<h2><?php esc_html_e( 'Custom work projects', 'yoohw-support-portal' ); ?></h2>
-				<p><?php esc_html_e( 'Create project requests, share requirements, and work with the development team on custom implementation tasks.', 'yoohw-support-portal' ); ?></p>
+				<h2><?php esc_html_e( 'Your custom work projects', 'yoohw-support-portal' ); ?></h2>
+				<p><?php esc_html_e( 'Create and track your project requests, share requirements, and work with the development team on your custom implementation tasks.', 'yoohw-support-portal' ); ?></p>
 			</div>
 		</div>
 
 		<?php if ( ! empty( $workspace['counts'] ) ) : ?>
-			<div class="yoohw-workspace-home-stats" aria-label="<?php esc_attr_e( 'Workspace project summary', 'yoohw-support-portal' ); ?>">
+			<div class="yoohw-workspace-home-stats" aria-label="<?php esc_attr_e( 'Your workspace project summary', 'yoohw-support-portal' ); ?>">
 				<div>
 					<strong><?php echo esc_html( number_format_i18n( absint( $workspace['counts']['total'] ?? 0 ) ) ); ?></strong>
-					<span><?php esc_html_e( 'Projects', 'yoohw-support-portal' ); ?></span>
+					<span><?php esc_html_e( 'Your projects', 'yoohw-support-portal' ); ?></span>
 				</div>
 				<div>
 					<strong><?php echo esc_html( number_format_i18n( absint( $workspace['counts']['active'] ?? 0 ) ) ); ?></strong>
