@@ -57,6 +57,10 @@ try {
 
 	foreach ( [ 'wordpress', 'isolated' ] as $mode ) {
 		$assert( 'wordpress' === $mode || YoOhw_Support_Database::tables_exist(), 'Isolated tables must already exist.' );
+		wp_dequeue_style( 'yoohw-support-attachments' );
+		wp_dequeue_script( 'yoohw-support-attachments' );
+		YoOhw_Support_Assets::enqueue_frontend();
+		$assert( wp_style_is( 'yoohw-support-attachments', 'enqueued' ) && wp_script_is( 'yoohw-support-attachments', 'enqueued' ), "$mode: theme form attachment assets queue before rendering/head." );
 		for ( $i = 0; $i < 11; ++$i ) {
 			$author = $i < 10 ? $users['owner'] : $users['other'];
 			$title = $prefix . '-' . ( $i < 10 ? 'owner' : 'other' ) . '-' . $i;
@@ -102,6 +106,7 @@ try {
 		$assert( 8 === substr_count( $html, 'class="yoohw-topic-card"' ) && 3 === substr_count( $staff_next, 'class="yoohw-topic-card"' ) && false !== strpos( $html . $staff_next, $prefix . '-other' ), "$mode: capability grants staff visibility." );
 		wp_set_current_user( $users['owner'] );
 		$html = $render( 'yoohw_post_form' );
+		$assert( wp_style_is( 'yoohw-support-attachments', 'enqueued' ) && wp_script_is( 'yoohw-support-attachments', 'enqueued' ), "$mode: composer retains shared attachment assets." );
 		$assert( false !== strpos( $html, 'yoohw_submit_post_nonce' ) && false !== strpos( $html, 'yoohw_post_content' ), "$mode: compose includes nonce and editor." );
 		$assert( ( 'wordpress' === $mode ) === ( false !== strpos( $html, 'name="yoohw_attachments[]"' ) ), "$mode: attachment availability unchanged." );
 		wp_set_current_user( 0 );

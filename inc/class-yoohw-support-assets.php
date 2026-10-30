@@ -18,6 +18,10 @@ class YoOhw_Support_Assets {
 
 	public static function enqueue_frontend(): void {
 		if ( ! class_exists( 'YoOhw_Support_Router' ) || ! YoOhw_Support_Router::is_plugin_ui_request() ) {
+			// Theme shortcodes/comment forms render after wp_head; queue their CSS early.
+			if ( is_singular() ) {
+				self::enqueue_attachment_assets();
+			}
 			return;
 		}
 
@@ -25,6 +29,7 @@ class YoOhw_Support_Assets {
 	}
 
 	public static function enqueue_support_assets(): void {
+		self::enqueue_attachment_assets();
 		$css_path = YOOHW_SUPPORT_PORTAL_PATH . 'assets/css/support-center.css';
 		$js_path  = YOOHW_SUPPORT_PORTAL_PATH . 'assets/js/support-center.js';
 		$script_deps = [];
@@ -101,6 +106,7 @@ class YoOhw_Support_Assets {
 	}
 
 	public static function enqueue_editor_assets(): void {
+		self::enqueue_attachment_assets();
 		wp_enqueue_editor();
 		wp_add_inline_style( 'editor-buttons', '.yoohw-composer-code-tool .mce-ico{transform:translateY(2px)}' );
 		$js_path = YOOHW_SUPPORT_PORTAL_PATH . 'assets/js/editor.js';
@@ -116,6 +122,27 @@ class YoOhw_Support_Assets {
 			'inlineCode' => __( 'Inline code', 'yoohw-support-portal' ),
 			'codeBlock' => __( 'Code block', 'yoohw-support-portal' ),
 			'removedMedia' => __( 'Pasted images or embedded media were removed. Use Attachments where available.', 'yoohw-support-portal' ),
+		] );
+	}
+
+	private static function enqueue_attachment_assets(): void {
+		foreach ( [ 'style' => 'css', 'script' => 'js' ] as $type => $extension ) {
+			$file = 'assets/' . $extension . '/attachments.' . $extension;
+			$version = (string) filemtime( YOOHW_SUPPORT_PORTAL_PATH . $file );
+			if ( 'style' === $type ) {
+				wp_enqueue_style( 'yoohw-support-attachments', YOOHW_SUPPORT_PORTAL_URL . $file, [], $version );
+			} else {
+				wp_enqueue_script( 'yoohw-support-attachments', YOOHW_SUPPORT_PORTAL_URL . $file, [], $version, true );
+			}
+		}
+		wp_localize_script( 'yoohw-support-attachments', 'YoOhwAttachmentLabels', [
+			'empty' => __( 'No files selected', 'yoohw-support-portal' ),
+			/* translators: %s: Selected attachment filename. */
+			'remove' => __( 'Remove %s', 'yoohw-support-portal' ),
+			/* translators: %d: Maximum number of attachments. */
+			'tooMany' => __( 'You can upload a maximum of %d attachments.', 'yoohw-support-portal' ),
+			/* translators: %s: Effective maximum file size. */
+			'tooLarge' => sprintf( __( 'Each attachment must be %s or smaller.', 'yoohw-support-portal' ), size_format( YoOhw_Support_Settings::attachment_max_bytes() ) ),
 		] );
 	}
 

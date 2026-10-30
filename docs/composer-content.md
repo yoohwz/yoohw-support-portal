@@ -20,3 +20,9 @@ NODE_PATH=/tmp/ysp27-dom/node_modules node tests/composer-editor-tests.js
 ```
 
 The npm runtime is test-only and is not included in the plugin distribution. Also run the existing theme-shortcode/reply/feature suites, relevant native/isolated/cold-activation regressions, PHP/JS syntax, focused Plugin Check and distribution contracts. Verify real TinyMCE paste, media feedback, code actions and Undo in the Local browser.
+
+## Pending attachments
+
+`assets/js/attachments.js` manages the native `yoohw_attachments[]` field on portal and theme-hosted composers. Picker and drop batches append; exact matches by name/size/last-modified/type are not added twice. Rejecting an over-limit batch keeps the previous selection. The × buttons remove pending files only; the underlying FileList is synchronized before normal multipart submission. Form reset clears the selection. Server upload policy and protected-file operations are unchanged. Browsers without DataTransfer retain native file selection.
+
+Serve the repository locally and open `tests/attachment-selection-tests.html` in a browser for real File/DataTransfer/FormData fixtures (no form submissions or uploads). Verify the real picker by choosing a file, choosing another file in a second pass, then removing one. `tests/theme-shortcodes-tests.php` also checks that shared assets enqueue before theme form rendering in both storage modes.

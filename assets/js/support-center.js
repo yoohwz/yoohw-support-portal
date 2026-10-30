@@ -7,44 +7,6 @@
     return (config().messages && config().messages[key]) || fallback;
   }
 
-  function formatFileSize(bytes) {
-    bytes = parseInt(bytes, 10) || 0;
-
-    if (bytes < 1024) return bytes + " B";
-    if (bytes < 1024 * 1024) return Math.round(bytes / 1024) + " KB";
-
-    return (bytes / (1024 * 1024)).toFixed(bytes >= 10 * 1024 * 1024 ? 0 : 1) + " MB";
-  }
-
-  function renderSelectedFiles(input) {
-    var target = document.querySelector('[data-upload-selected-for="' + input.id + '"]');
-
-    if (!target) return;
-
-    var files = Array.prototype.slice.call(input.files || []);
-    target.replaceChildren();
-    target.classList.toggle("is-empty", files.length === 0);
-
-    if (!files.length) {
-      target.textContent = target.getAttribute("data-empty-label") || message("noFilesSelected", "No files selected");
-      return;
-    }
-
-    files.forEach(function (file) {
-      var item = document.createElement("span");
-      var name = document.createElement("span");
-      var size = document.createElement("small");
-
-      item.className = "yoohw-upload-file";
-      name.textContent = file.name;
-      size.textContent = formatFileSize(file.size);
-
-      item.appendChild(name);
-      item.appendChild(size);
-      target.appendChild(item);
-    });
-  }
-
   function setupNavigation() {
     var toggle = document.querySelector(".yoohw-nav-toggle");
     var nav = document.getElementById("yoohw-support-nav");
@@ -175,65 +137,6 @@
       input.addEventListener("keyup", update);
       input.addEventListener("change", update);
       update();
-    });
-  }
-
-  function setupAttachmentValidation() {
-    document.querySelectorAll('.yoohw-support input[type="file"][data-max-files]').forEach(function (input) {
-      var dropzone = document.querySelector('label[for="' + input.id + '"].yoohw-upload-dropzone');
-
-      input.addEventListener("change", function () {
-        var maxFiles = parseInt(input.getAttribute("data-max-files"), 10) || config().maxFiles || 5;
-        var maxSize = parseInt(input.getAttribute("data-max-size"), 10) || config().maxSize || 5242880;
-        var files = input.files || [];
-
-        if (files.length > maxFiles) {
-          alert(message("tooManyFiles", "You can upload a maximum of %d attachments.").replace("%d", maxFiles));
-          input.value = "";
-          renderSelectedFiles(input);
-          return;
-        }
-
-        for (var i = 0; i < files.length; i++) {
-          if (files[i].size > maxSize) {
-            alert(message("fileTooLarge", "Each attachment must be 5 MB or smaller."));
-            input.value = "";
-            renderSelectedFiles(input);
-            return;
-          }
-        }
-
-        renderSelectedFiles(input);
-      });
-
-      if (!dropzone) return;
-
-      ["dragenter", "dragover"].forEach(function (eventName) {
-        dropzone.addEventListener(eventName, function (event) {
-          event.preventDefault();
-          event.stopPropagation();
-          dropzone.classList.add("is-dragover");
-        });
-      });
-
-      ["dragleave", "drop"].forEach(function (eventName) {
-        dropzone.addEventListener(eventName, function (event) {
-          event.preventDefault();
-          event.stopPropagation();
-          dropzone.classList.remove("is-dragover");
-        });
-      });
-
-      dropzone.addEventListener("drop", function (event) {
-        if (!event.dataTransfer || !event.dataTransfer.files.length) return;
-
-        try {
-          input.files = event.dataTransfer.files;
-          input.dispatchEvent(new Event("change", { bubbles: true }));
-        } catch (error) {
-          input.click();
-        }
-      });
     });
   }
 
@@ -431,7 +334,6 @@
     setupNavigation();
     setupPasswordToggles();
     setupPasswordStrength();
-    setupAttachmentValidation();
     setupSubmitLocks();
     setupCodeBlocks();
   });
