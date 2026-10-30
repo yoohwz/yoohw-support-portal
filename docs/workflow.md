@@ -1,138 +1,99 @@
-# YSP Lean Delivery
+# YSP Codex delivery
 
-The workflow optimizes for fast implementation loops while keeping strong controls only where Support Portal's private-data and safety boundaries justify them.
+Human gives a goal directly to Codex. Codex owns framing, technical planning, implementation, validation, review, corrections and an exact-head PR handoff. Human owns product acceptance, unresolved product/scope/safety decisions, merge and production actions. ChatGPT is not a required participant or approval gate.
+
+This workflow is adapted from Thumbnail Manager's `AGENTS.md` at [`1533a17e337ffaa92fd85745c4b73bee0cd329d1`](https://github.com/yoohwz/thumbnail-manager/blob/1533a17e337ffaa92fd85745c4b73bee0cd329d1/AGENTS.md). YSP keeps its Local-first workspace, support-data contract, existing CI and publisher.
 
 ## Sources of truth
 
-Use one authority for each fact:
-
 | Fact | Authority |
 | --- | --- |
-| Task goal/scope/invariants/acceptance | GitHub Issue for non-trivial work, or the draft PR for very small work |
-| Current implementation | Git branch / PR head |
-| Diff and ancestry | Git |
+| Goal, scope, plan, decisions, acceptance criteria, evidence | Existing GitHub Issue or PR; PR is the primary execution record |
+| Implementation, diff and ancestry | Git branch / PR head and Git |
 | CI | GitHub Actions/Checks |
-| Independent review | Exact-head PR review/comment when required |
-| Acceptance | SHA-bound ChatGPT record on the PR after successful final validation |
+| Independent review when required | Exact-head PR review/comment |
+| Product acceptance and merge authorization | Human |
 | Merge | GitHub PR merge record |
 | Product safety | `docs/support-data-safety.md` |
-| Release/publication | Separate Human authorization |
+| Release/publication/deployment | Separate Human authorization |
 
-Do not create another mutable task-state database, allocator, evidence ledger or approval parser.
+Do not create another mutable task-state database, allocator, ledger or approval parser. Issue `#N` is `YSP-N` when an issue exists; do not require a new issue solely to plan or approve work.
 
-## Local development model
+## Local workspace and task shape
 
-The dedicated Support Portal Codex project opens the plugin source folder that is installed on the project's Local WordPress site.
+Implement directly in the dedicated Support Portal plugin folder installed on Local WordPress:
 
-Codex edits that plugin source directly during implementation. Because the same files are loaded by the Local site, relevant changes can be exercised immediately in the real Local WordPress environment without copying or deploying the plugin elsewhere first.
+`edit plugin source -> focused checks -> relevant Local runtime verification -> continue`
 
-Use this direct Local workflow by default:
+No extra clone/worktree for ordinary implementation, and no runtime ceremony for trivial non-runtime work. Concurrent implementation and mandatory independent safety-critical review use separate worktrees or clean checkouts.
 
-`edit plugin source -> run focused checks -> exercise relevant behavior on Local -> continue implementation`
+Start from current `origin/main` after inspecting branch/task/PR state. Preserve unrelated files. Use `agent/<issue>-<scope>` or `agent/<scope>`. One task = one draft PR, with logical commits. Split only at a real semantic/dependency boundary or when reviewability requires it. Never force-push, rewrite shared history or weaken protection.
 
-Do not create another clone or worktree for ordinary work. Local runtime checks are encouraged where they add useful evidence, but they are not mandatory ceremony for trivial docs or non-runtime changes.
+## Execution cycle
 
-## Create, Run, Acceptance Review, Merge
+1. Recover conversation, issue/PR, binding Human decisions, current head/base, checks and unresolved findings. Read both PR conversation comments and review submissions in time order and by head applicability. A top-level mirror is actionable for the same decision, but must not conceal newer review evidence.
+2. Record a minimum brief: goal, scope, acceptance criteria, validation and risk lane. Codex resolves technical choices within scope.
+3. For Controlled work, record the plan before risky runtime changes: invariants, constraints, scenarios and expected outcomes, material risks, validation, unresolved decisions and a proportional complexity budget/stop-loss. State expected schema, lock/recovery domains and destructive authority. Unexpected expansion or repeated blockers requires plan revision; only Human-owned decisions require Human input. Fresh subagent plan critique is required for safety-critical changes or new destructive/persistence/locking architecture.
+4. Implement, run focused tests/runtime checks, review adversarially, fix blocking findings and maintain the same Draft PR. Record a Structural, Functional, Safety-critical or Release evidence profile without adding another risk lane.
+5. Complete required independent review, then mark the blocker-free candidate Ready. Observe applicable Final CI to terminal success on the exact head. Recheck head/base compatibility, required review, scope and blockers.
+6. Post the exact-head `READY_FOR_HUMAN_MERGE` handoff. Human separately authorizes merge. A changed head invalidates the handoff and affected evidence; a moved base requires compatibility and CI reassessment.
 
-1. **Create** — ChatGPT reduces the request to goal, scope, acceptance, relevant invariants, expected validation and `STANDARD` or `CONTROLLED`. Use Issue `#N` as `YSP-N` when an Issue is warranted.
-2. **Run** — Codex recovers current Issue/PR/head/base from GitHub, implements directly in the project's Local plugin source folder, runs focused checks and maintains one Draft PR. Do not wait for full final CI on every edit.
-3. **Plan Review / Review** — `Plan Review YSP-N` resolves only an actual unresolved product/security/data/architecture/compatibility decision. For `CONTROLLED`, a fresh independent Technical Review of the frozen candidate is required; `Review YSP-N` is a standalone fallback, not an extra mandatory process for `STANDARD`.
-4. **Acceptance Review YSP-N** — ChatGPT first performs an exact-candidate precheck while the PR is Draft. If blocker-free, it marks the unchanged PR Ready, observes final `YSP Required CI` on the current candidate to a terminal result, fresh-verifies head/base and any required review, and records explicit SHA-bound Acceptance PASS in the PR only if all requirements pass. It never merges.
-5. **Merge YSP-N** — only a subsequent explicit Human instruction authorizes merge of the unchanged accepted candidate. ChatGPT rechecks exact SHA, current CI, required review, mergeability and blockers. GitHub makes the final merge/protection decision. It does not authorize release or deployment.
+## Risk and review intensity
 
-`Continue YSP-N` means recover and resume; it never means restart the task or ask the Human to repeat GitHub-recoverable context.
+### Fast
 
-## Risk levels
+Use for isolated docs/governance, ordinary presentation/JS/settings, tests/tooling, understood bugs and behavior-preserving refactors outside sensitive semantics. No separate plan approval or mandatory subagent.
 
-### STANDARD
+`Human goal -> Codex brief + implementation + focused validation + proportional review -> applicable Final CI -> Human merge gate`
 
-Use for ordinary bounded work that does not change sensitive-data or safety-control semantics. Examples include presentation, templates, ordinary JavaScript/settings, copy/docs, understood bugs, test/tool maintenance and behavior-preserving refactors.
+### Controlled
 
-Flow:
+Use for material changes to authentication, authorization/category access/customer visibility, protected attachments/files/path containment, REST/AJAX/admin-post security, support-data persistence/schema/storage/migration, privacy/export/erasure/retention, email recipients/private disclosure, destructive cleanup/uninstall or release/publication semantics. Classification follows behavior, not filenames. Promote Fast work before touching an exposed sensitive boundary.
 
-`Create/brief -> Run -> draft PR -> focused checks -> Iteration Gate -> freeze candidate -> Acceptance Review (precheck -> YSP Required CI -> SHA-bound Acceptance) -> READY_TO_MERGE -> Merge`
+`Human goal -> Codex discovery + recorded plan -> implementation + tests/runtime evidence + required review + corrections -> applicable Final CI -> Human merge gate`
 
-Independent review is optional and should not be added merely because runtime code changed.
+Fresh independent exact-head review is mandatory for safety-critical security/authorization, private-data disclosure, destructive file/path behavior, persistence/schema/migration, storage integrity, locks/replay or recovery changes. The reviewer uses a fresh subagent context and separate checkout, examines task/plan/invariants/diff/evidence without reusing the implementer's private verdict, and records identity, SHA and material findings. Lead Codex resolves blockers before handoff. Missing mandatory evidence means unfinished work.
 
-### CONTROLLED
+Other Controlled work may use lead Codex adversarial verification plus strong evidence. Pure Structural work can avoid mandatory independence only with explicitly unchanged semantics, mechanically proven source/body/API equivalence where practical, dependency characterization and no sensitive contract changes. Human may request an independent review at any time.
 
-Use when work materially affects authentication, authorization, private visibility, protected files, REST/AJAX/admin-post security, persistence/schema/storage semantics, privacy, email recipients/private disclosure, destructive cleanup, uninstall retention, distribution/release safety or equivalent architecture.
+Review corrections as a delta on the new head and affected invariants; restart full review only for material scope expansion. Advisory preferences do not create correction loops. Correctness, security, safety, regression, acceptance failure, broken required CI and contract violations do.
 
-CONTROLLED uses the same flow plus exactly one fresh independent technical review of the frozen candidate, normally before the internal Acceptance precheck. A head-changing correction requires refreshed affected review and CI evidence before final Acceptance.
+## Validation and CI
 
-A separate Plan Review is required only when the task boundary is not sufficient to decide a product/architecture/data/permission/compatibility question. A fully bounded CONTROLLED bug/fix may implement directly.
+Run only meaningful checks for the change. Documentation/governance needs repository contracts and diff hygiene; runtime changes need relevant automated and Local evidence; changed JS/UI needs the affected browser flow. Security/private-data work needs negative paths for relevant guests, owners, unrelated customers and staff, and both storage modes where affected. Release work needs existing package/publisher checks. Record `NOT RUN — reason` instead of claiming unavailable checks passed.
 
-## Draft iteration versus final candidate
+Existing CI is unchanged:
 
-Development cost is reduced by separating cheap feedback from merge evidence.
+| Candidate | Signal and checks |
+| --- | --- |
+| Draft | `Iteration Gate`: repository/distribution contracts, diff hygiene, modern PHP syntax, JavaScript syntax, source-safety characterization |
+| Ready / final | `YSP Required CI`: the draft checks plus PHP 7.4 support floor and WordPress Plugin Check against the exact staged payload |
 
-### Draft PR: Iteration Gate
+Keep Draft through implementation, corrections and review. `Iteration Gate` is feedback, never merge evidence. The final aggregate fails closed for failure, cancellation or unexpected skip. Superseded PR runs are cancelled. Wait for exact-head final success before merge-ready handoff; CI cannot substitute for runtime evidence it does not execute. Do not import Thumbnail Manager's full matrix, gate names or classifier. Broad compatibility/release matrices remain explicit release work.
 
-Run fast checks only:
+## Durable handoff and Human gate
 
-- repository/workflow/distribution contracts;
-- `git diff --check`;
-- PHP syntax on one modern runtime;
-- JavaScript syntax;
-- source-level safety characterization.
+Keep PR evidence current: brief, plan when applicable, binding Human decisions, changes, affected invariants, validation/profile, PASS/NOT RUN evidence, blockers/corrections and release boundary. Use linked artifacts for verbose logs.
 
-Superseded runs for the same PR are cancelled. Keep the PR Draft during implementation, corrections, Technical Review and the internal Acceptance precheck; Ready starts final-candidate validation.
+Only two Human handoff statuses are active:
 
-`Iteration Gate` is feedback only and must never satisfy branch protection.
+- `READY_FOR_HUMAN_MERGE`: local validation, required review and applicable Final CI are complete on the exact current head; no material blockers remain. Post one canonical top-level PR comment containing task/PR identity, full head SHA, evidence and `Next: Human - Merge PR #N`.
+- `HUMAN_DECISION_REQUIRED`: record the specific Human-owned decision, options and recommendation in the existing issue/PR, ending `Next: Human - Decide YSP-N`. Continue independent authorized work where possible.
 
-### Final non-draft candidate: YSP Required CI
+Internal planning, tests, findings and CI progress use ordinary evidence, not new statuses. A final workflow response with a clear next action ends with exactly one matching copy-ready `Next:` hint. For unfinished Codex work use `Next: Codex - Continue YSP-N`; do not pause authorized work merely to produce a hint.
 
-The stable merge check is exactly `YSP Required CI`. It aggregates required final checks and fails closed on failure, cancellation or unexpected skip.
+Before executing an explicit Human merge instruction, freshly verify the handoff SHA equals the PR head, target compatibility, successful required CI, current required independent review, no material blockers and GitHub mergeability/protection. Neither Run, Review, CI nor a handoff authorizes merge by itself. Merge never authorizes release/version/tag/publication/deployment.
 
-Final validation stays intentionally bounded:
+## Legacy tasks and commands
 
-- repository/distribution contracts;
-- PHP 7.4 syntax support floor and modern PHP syntax;
-- JavaScript syntax;
-- current source-level safety characterization;
-- exact staged WordPress.org payload checks;
-- WordPress Plugin Check against that staged payload.
+`Run YSP-N`, `Continue YSP-N` and `Codex - Continue YSP-N` recover and continue. `Review YSP-N` performs review/corrections internally. `Create` records the useful brief and continues authorized work.
 
-Do not add a broad WordPress/PHP Cartesian runtime matrix to every PR. Add focused runtime coverage as the test harness grows and reserve full compatibility/release matrices for explicit release work.
+Historical STANDARD/CONTROLLED map to Fast/Controlled, subject to semantic reassessment. Legacy Plan Review, Technical Review, Acceptance Review and READY_TO_MERGE records remain evidence/recovery inputs, not mandatory ChatGPT stages. Preserve Human decisions and unresolved findings, revalidate current head and apply the new handoff. Never infer safety-contract approval or merge permission from migration.
 
-## Review
+## Distribution and release
 
-For CONTROLLED work, the independent reviewer:
+Use `bash scripts/stage-distribution.sh <source> <destination>` and `.distignore` to stage tracked product files. Repository/development artifacts must stay out of WordPress.org payloads. Plugin Check runs on the staged payload; normal PR CI does not create release ZIPs.
 
-- starts in a fresh review context and does not reuse the implementer's verdict;
-- reviews the complete current candidate diff and task boundary;
-- checks the affected safety invariants and negative paths;
-- may use the same dedicated Codex project and Local WordPress environment for focused verification;
-- records blockers or PASS against the reviewed candidate.
+Use the existing [WordPress.org release runbook](releasing.md) only for separately authorized release work. Human chooses the version. Verify the actual published baseline, net customer-visible changelog and exact prepared artifact. Retain both manual release workflows, dry-run/preflight, immutable candidate and separate production approval/recovery controls. Source version metadata is not proof of public publication.
 
-No separate local clone/worktree is required just to manufacture review isolation. Keep review lightweight and proportional to the risk.
-
-A head-changing correction invalidates the old terminal review. Keep corrections in the same PR. Repeated material blockers or a required architecture/scope change stop for a boundary decision instead of starting an unlimited review loop.
-
-## Acceptance Review and Merge contract
-
-For `Acceptance Review YSP-N`, ChatGPT checks the current Issue/scope, frozen PR head and base, focused validation and any required independent review while the PR is still Draft. This internal precheck is not final Acceptance. If no blocker remains, mark the **unchanged** PR Ready and observe its `YSP Required CI` on the current candidate to a terminal result. Recheck head/base compatibility, review and blockers after CI. Only then record explicit SHA-bound Acceptance PASS on the PR and report `READY_TO_MERGE`. A missing, stale, queued, cancelled or failed check never produces Acceptance PASS; report the precise blocker or pending state instead.
-
-For `Merge YSP-N`, the Human's separate command authorizes only the accepted, unchanged candidate. Immediately before merging, ChatGPT verifies:
-
-- the current PR head exactly matches the SHA recorded in final Acceptance;
-- current target `main` is compatible and GitHub reports the required `YSP Required CI` success for the current PR candidate;
-- the required independent Technical Review is current for `CONTROLLED` work;
-- there is no unresolved material blocker or scope drift and the PR is mergeable;
-- merge is not treated as permission to version, tag, package, publish or deploy.
-
-A changed candidate head invalidates previous Technical Review, CI and Acceptance evidence as applicable; return to Draft for corrections and repeat affected review/Acceptance. A moved target base requires a fresh compatibility and CI assessment before merge. Neither `Run`, `Review` nor `Acceptance Review` grants merge authority.
-
-## Distribution
-
-`bash scripts/stage-distribution.sh <source> <destination>` stages the installable plugin from tracked product files, with `.distignore` retained as defense-in-depth. CI verifies that repository/development artifacts do not enter the staged tree. Plugin Check runs on the staged tree, not the raw repository.
-
-Do not create ZIPs in normal PR CI.
-
-## Release boundary
-
-Merge is not release. Use the **existing** [WordPress.org release runbook](releasing.md) after a separate Human-selected version/release-notes task is accepted and merged: verify the last actually published WordPress.org baseline, prepare the immutable candidate, run dry-run SVN preflight, obtain separate Human production authorization, and verify the public release. Current version metadata on `main` is not evidence of a newly published version. Release packaging, tags, publication and deployment never follow automatically from Merge or Acceptance. Keep the existing publisher and recovery controls; do not add another release process or redundant certification matrix.
-
-## Workflow evolution
-
-Do not optimize by adding machinery in advance. Measure actual repeated CI/review friction first. After several real tasks, change this workflow only for a concrete observed failure mode or material cost, and keep the correction smaller than the problem it solves.
+Do not add workflow services, status ledgers, extra approval gates, certification frameworks or broad test matrices without demonstrated need.
