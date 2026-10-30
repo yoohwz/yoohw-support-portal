@@ -1,111 +1,102 @@
 # Support Portal — agent instructions
 
-These instructions apply to the whole repository after the Foundation workflow is accepted and merged.
+These instructions apply to the whole repository. The delivery model follows Thumbnail Manager's Codex-owned workflow, adapted to Support Portal's private-data boundaries and existing CI. See `docs/workflow.md` for execution details.
 
 ## Authority
 
 - `main` is reviewed product history. Do not push implementation work directly to `main`.
-- Human owns product direction, merge, release, WordPress.org publication and unresolved trade-offs.
-- ChatGPT owns task framing, unresolved product/architecture boundaries and final Acceptance.
-- Codex/implementation agents own repository discovery, implementation, focused validation, commits, branch/PR upkeep and corrections.
-- A fresh independent Codex reviewer is required only for `CONTROLLED` work.
-- ChatGPT records exact-SHA Acceptance; the Human separately authorizes Merge of that unchanged candidate.
-- Git/GitHub own branch/head/base/diff/check/review/merge facts. Do not copy those facts into a second workflow state machine.
+- Human owns product direction, unresolved product/scope/safety decisions, product acceptance, merge, version, release, WordPress.org publication, deployment and rollback.
+- Codex owns task framing, risk classification, technical architecture, planning, implementation, tests, review, corrections and branch/PR upkeep. One lead Codex is accountable for the complete result and evidence.
+- Subagents perform bounded delegated work and report findings to the lead; they do not create another approval stage.
+- ChatGPT is not a required participant. Technical planning, review and acceptance evidence must not depend on a ChatGPT handoff or approval. These project roles take precedence over generic role descriptions.
+- Git/GitHub own branch/head/base/diff/check/review/merge facts and durable task evidence. Do not copy those facts into a second workflow state machine.
 
 ## Local development workspace
 
-Codex works directly in the source folder configured for the dedicated **Support Portal** project. That folder is also the plugin installed on the project's Local WordPress site.
+Work directly in the source folder configured for the dedicated Support Portal project. It is also the plugin installed on the project's Local WordPress site.
 
-Implementation work should edit the plugin files directly in that configured folder. This is intentional: code changes are immediately available to the Local site, so Codex can use the Local environment for focused manual/runtime verification while implementing.
+Do not create another clone or worktree for ordinary implementation. Use Local for proportional runtime verification where relevant; trivial documentation work needs no runtime ceremony. Concurrent implementation tasks and mandatory independent safety-critical reviews use separate worktrees or clean checkouts.
 
-Do not create another clone or worktree for normal implementation. Use the existing project source folder, Git branch and PR workflow. A separate checkout is only needed when a specific task genuinely requires one.
+## Git safety and task shape
 
-For relevant changes, prefer testing the real plugin behavior on the Local WordPress site in addition to cheap automated checks. Keep Local verification proportional to the task; do not turn it into a mandatory ceremony for trivial documentation or non-runtime changes.
+- Inspect current branch, task/PR state and current `origin/main` before editing.
+- Use `agent/<issue>-<scope>` or `agent/<scope>` for issue-less work.
+- One task uses one branch and one draft PR by default. Use logical commits, and split only at a real semantic/dependency boundary or when the diff cannot be safely reviewed as one change.
+- The PR is the primary execution record. Reuse an existing issue where useful; a separate issue or planning document is not mandatory. Issue `#N` remains `YSP-N`; there is no allocator or identity registry.
+- Preserve unrelated work. Never force-push, destructively reset/clean, rewrite shared history or weaken protection to make a task pass.
+- A changed head invalidates the merge-ready handoff and affected head-bound review/CI. Refresh affected evidence. Reassess compatibility and CI if target `main` moves.
 
-## Git safety
+## Human commands and continuation
 
-- Start from current `origin/main`; inspect current branch and existing task/PR state before editing.
-- Use `agent/<issue>-<scope>` for normal work. Very small issue-less work may use `agent/<scope>`.
-- One task uses one branch and one draft PR by default.
-- Preserve unrelated work. Never use force-push, destructive reset/clean, history rewrite or protection weakening to make a task pass.
-- A changed candidate head invalidates head-bound Technical Review, CI and Acceptance evidence as applicable; refresh affected evidence before merge. Reassess compatibility if the target `main` moves.
+Resolve `Chạy task này`, `Tiếp tục`, `Review` and `Sửa tiếp` from conversation and GitHub state without asking Human to repeat recoverable context.
 
-## Human commands
+- `Create ...` — Codex records the minimum useful brief and continues authorized work.
+- `Run YSP-N`, `Continue YSP-N`, or `Codex - Continue YSP-N` — recover scope, decisions, current PR/head/base, CI and findings; perform the next Codex-owned action.
+- `Review YSP-N` or `Codex - Review YSP-N` — perform risk-appropriate review, fix blockers and continue toward the Human gate.
+- Legacy `Plan Review YSP-N`, `Acceptance Review YSP-N` and historical review/Acceptance statuses are recovery inputs, not required external gates. Preserve binding Human decisions, resolve outstanding technical work internally and revalidate the current head. Never infer permission to change a safety contract or merge from migration.
+- `Merge YSP-N` or `Human - Merge PR #N` — explicit Human authorization for only the unchanged merge-ready candidate, after a fresh head/base/CI/review/blocker check. No release is authorized.
 
-Keep operator commands short:
+Read both top-level PR comments and review submissions in time order and check exact-head applicability. Prefer a top-level mirror for the same decision, but never let an older handoff hide newer applicable findings. Report genuinely conflicting state specifically.
 
-- `Create ...` — ChatGPT creates/records the minimum useful task boundary.
-- `Run YSP-N` — Codex recovers Issue `#N`, branch/PR/current state and performs the next implementation-owned step.
-- `Continue YSP-N` — recover current GitHub state and continue without restarting or asking the Human to repeat known context.
-- `Plan Review YSP-N` — ChatGPT resolves a genuinely unresolved product, security, data, architecture or compatibility boundary; `CONTROLLED` alone does not require it.
-- `Review YSP-N` — optional standalone trigger for the fresh independent Technical Review required on a frozen `CONTROLLED` candidate.
-- `Acceptance Review YSP-N` — ChatGPT performs an exact-candidate precheck while Draft, makes the unchanged PR Ready only if blocker-free, observes final `YSP Required CI` to a terminal result, rechecks head/base and required review, and records SHA-bound Acceptance PASS only with current successful evidence. It never merges.
-- `Merge YSP-N` — the Human separately authorizes merge of the unchanged accepted candidate. ChatGPT fresh-verifies exact SHA, checks, review, target compatibility and blockers before the GitHub merge; no release is authorized.
+## Risk lanes
 
-GitHub Issue `#N` is the canonical identity `YSP-N`; there is no allocator or identity registry.
+Use only `Fast` and `Controlled`. Historical `STANDARD` maps to Fast and `CONTROLLED` to Controlled; reassess actual semantics rather than trusting an old label.
 
-## Risk
+### Fast
 
-Use only two risk levels.
+Bounded documentation/governance, ordinary UI/templates/JS/settings, tooling/tests, understood bugs and behavior-preserving refactors that cannot materially change private data, persistence or safety boundaries.
 
-### STANDARD
+`Human goal -> Codex brief + implementation + focused validation + proportional review -> PR + applicable Final CI -> Human merge gate`
 
-Default for bounded work without sensitive-data or safety-control semantics: ordinary UI/templates/JS/settings, copy, documentation, tests/tooling, understood bugs and behavior-preserving refactors.
+No separate plan approval or mandatory subagent. Pure governance or CI maintenance can be Fast; changes to release/publication semantics or actual safety boundaries are Controlled.
 
-Normal flow:
+### Controlled
 
-`brief -> Codex Run -> draft PR -> focused validation -> Iteration Gate -> frozen candidate -> Acceptance Review (precheck -> YSP Required CI -> SHA-bound Acceptance) -> READY_TO_MERGE -> Human Merge`
+Required when work materially touches or may change authentication/password flows; capabilities, category access or customer/topic visibility; private attachments/upload/download/delete/path containment; REST/AJAX/admin-post security; support-data persistence/schema/storage modes/migration; privacy/export/erasure/retention; email recipients/private disclosure; destructive cleanup/uninstall; or release/publication semantics and equivalent sensitive contracts.
 
-No separate Plan Review or independent reviewer is required by default.
+Record a plan in the existing issue or PR before risky runtime implementation: affected invariants, constraints, material risks, relevant scenarios/expected outcomes, validation, and unresolved decisions. State a proportional complexity budget and stop-loss, including whether schema, lock/recovery domains or destructive authority are expected. Unexpected expansion or repeated material blockers requires plan revision; ask Human only for Human-owned choices.
 
-### CONTROLLED
+For safety-critical work or new destructive/persistence/locking architecture, have a fresh subagent challenge the plan before implementation. Planning critique and implementation review are focused internal checks, not additional workflow stages.
 
-Required when work materially touches or may change:
+`Human goal -> Codex discovery + recorded plan -> implementation + tests/runtime evidence + required review + corrections -> PR + applicable Final CI -> Human merge gate`
 
-- authentication/password flows;
-- capabilities, authorization, category access or customer/topic visibility;
-- private attachments, upload/download/delete/path containment;
-- REST/AJAX/admin-post security;
-- support-data persistence, schema, storage-mode semantics or migration;
-- privacy/export/erasure/retention;
-- email recipient selection or private-data disclosure;
-- destructive cleanup or uninstall data semantics;
-- CI coverage, distribution or release safety controls;
-- public/shared contracts or architecture with privacy/security implications.
+Stop before risky implementation and promote Fast work when discovery finds a Controlled boundary.
 
-CONTROLLED follows the same lifecycle as STANDARD plus one fresh independent technical review of the exact candidate. Plan Review is added only when discovery exposes a genuinely unresolved product/architecture/data/permission/compatibility boundary.
+## Review and validation
 
-If STANDARD discovery finds a CONTROLLED trigger, stop before the sensitive change, keep the same task/PR and escalate the risk.
+- Codex self-reviews every diff and runs focused tests. Select a proportional evidence profile: Structural, Functional, Safety-critical or Release; profiles are not extra lanes/statuses.
+- Fresh independent exact-head review is mandatory for safety-critical changes to authorization/security, private-data disclosure, destructive files/path containment, persistence/schema/migration, storage integrity, locking/replay or crash recovery. Use a fresh subagent context and separate worktree/clean checkout; provide task, plan, invariants, diff and evidence without the implementer's private verdict.
+- Record reviewer identity, reviewed SHA, findings and corrections in the PR. Missing mandatory independent evidence means unfinished work, not merge readiness.
+- Other Controlled work may use the lead's adversarial verification and strong relevant evidence. A mechanical Structural change can avoid mandatory independent review only with unchanged semantics, source/body/API equivalence where practical, dependency characterization and no sensitive contract changes.
+- Corrections stay in the same PR. Review the delta and affected invariants on a new head; repeat a full review only if scope materially expands.
+- Correctness, safety, security, regression, acceptance failure, broken required CI and contract violations are blockers. Naming preferences and optional refactors are advisory.
+- Validate changed runtime behavior on Local where useful, including relevant negative paths and both storage modes. Green CI proves only what it runs. Mark unavailable checks `NOT RUN — reason`.
 
-## Review and corrections
+## Subagents
 
-- Codex performs repo-local self-review and focused tests for all work.
-- CONTROLLED candidates receive one fresh independent reviewer context. The reviewer examines the current task, PR/diff and relevant evidence without reusing the implementer's verdict.
-- The reviewer may use the same dedicated Codex project and Local environment. No separate clone/worktree is required solely for review ceremony.
-- Corrections stay in the same PR. A correction that changes the reviewed head requires refreshed affected CI/review and invalidates any prior Acceptance.
-- Repeated material blockers or changed architecture/scope stop for ChatGPT/Human boundary review instead of creating an unbounded loop or replacement PR.
+Delegate bounded work only where it adds value. Lead Codex owns integration; subagents never independently approve their own implementation. Avoid overlapping file ownership and use separate checkouts for concurrent implementation.
 
-Useful handoff text is intentionally small: `ACCEPTANCE_REVIEW_REQUIRED` and `READY_TO_MERGE`, and only when needed `PLAN_REVIEW_REQUIRED`, `TECHNICAL_REVIEW_REQUIRED`, or `HUMAN_DECISION_REQUIRED`. These are navigation hints, not a machine-parsed lifecycle.
+Codex may choose subagent model/effort without a new Human approval: default to `gpt-6.1-sol` with proportional supported effort. Use `gpt-6-astra` only for a concrete bounded reasoning problem where evidence, decomposition or greater Sol effort is insufficient or clearly unsuitable. Record the reason and outcome briefly in existing PR evidence. Risk labels or reviewer roles alone do not justify escalation. Model choice never changes authority, independence or evidence requirements; do not claim unavailable runtime switches.
 
-## CI policy
+## CI and handoff
 
-- Draft PRs use cheap `Iteration Gate` feedback and cancel superseded runs for the same PR.
-- Keep the PR Draft through implementation, correction, Technical Review and the internal Acceptance precheck. A blocker-free precheck allows transition to Ready and the final `YSP Required CI`.
-- A final non-draft candidate emits the sole stable merge check: `YSP Required CI`. CI alone is not ChatGPT Acceptance; record Acceptance against the current SHA after final verification.
-- CI never parses Issue/review prose or approval comments.
-- Normal PR CI must remain proportional. Full compatibility/release matrices belong to explicit release validation rather than every implementation iteration.
+- Preserve existing CI: Draft uses cheap `Iteration Gate`; non-draft uses the sole stable merge check `YSP Required CI`. Draft results cannot satisfy merge protection. Superseded runs for the same PR are cancelled.
+- Keep Draft during implementation, corrections and required review. When blocker-free, mark Ready, observe applicable Final CI to terminal success on the exact current head, then recheck head/base, required review and blockers before handoff.
+- Required CI fails closed on failed, cancelled or unexpectedly skipped jobs. Never bypass or weaken it. Do not copy another plugin's runtime matrix into YSP without a concrete need.
+- Use only `READY_FOR_HUMAN_MERGE` and `HUMAN_DECISION_REQUIRED` for Human handoffs. Internal planning/review/CI progress needs no workflow status.
+- Update the PR body and post one canonical top-level exact-head handoff with scope, decisions, evidence (`PASS` / `NOT RUN`), findings/corrections, release boundary and next action. A later commit invalidates it.
+- A final user-facing workflow response with a clear next action ends with exactly one copy-ready `Next: <Target> - <short command>`, matching the durable handoff. Use `Next: Human - Merge PR #N`, `Next: Human - Decide YSP-N`, or `Next: Codex - Continue YSP-N` as applicable. Do not stop autonomous work merely to emit a hint.
 
 ## Product safety
 
-Read `docs/support-data-safety.md` before changes involving support data, identity, authorization, storage, REST, files, email or destructive operations. Existing behavior is not permission to weaken an invariant silently.
+Read `docs/support-data-safety.md` before changes involving support data, identity, authorization, storage, REST, files, email or destructive operations. Its existing invariants remain binding. Historical uppercase lane names in that contract retain the mapping above; this workflow does not relax any safety invariant.
 
 ## Distribution and release
 
-- Repository-only development files must not enter the WordPress.org payload. Use `.distignore` and `scripts/stage-distribution.sh`.
-- Merge permission never grants version/tag/release/publication/deployment permission.
-- For an actual WordPress.org release, use the existing `docs/releasing.md` and two manual GitHub Actions. Human chooses the new version; verify the last actually published baseline, newest changelog and exact prepared artifact before a separately approved production publication.
-- Do not build a release ledger, publisher state machine or release-cert framework until a concrete release task demonstrates the need.
+Repository-only development files must not enter the WordPress.org payload. Use `.distignore` and `scripts/stage-distribution.sh`.
+
+Merge permission never grants version/tag/release/publication/deployment permission. Use `docs/releasing.md` and the existing two manual GitHub Actions for separately authorized release work. Human chooses the version; verify the actual published baseline, newest changelog and exact artifact before separate production authorization. No automatic post-merge publication.
 
 ## Explicit non-goals
 
-Do not introduce task allocators, governance identity refs, mutable workflow-state JSON, evidence schemas/ledgers, predecessor chains, comment approval parsers, custom merge-authority engines, model/compute policy or roadmap machinery merely to serialize GitHub-native facts.
+Do not introduce task allocators, governance identity refs, mutable workflow-state JSON, evidence schemas/ledgers, predecessor chains, comment approval parsers, custom merge-authority engines, model/compute policy machinery or release-cert frameworks merely to serialize GitHub-native facts.

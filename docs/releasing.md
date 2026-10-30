@@ -1,7 +1,8 @@
 # Support Portal — WordPress.org release
 
 This is a release-only control plane. It does not replace normal YSP PR review,
-`YSP Required CI`, independent review for CONTROLLED work, recorded SHA-bound Acceptance, or separate Human `Merge YSP-N` authorization.
+`YSP Required CI`, risk-appropriate independent review, an exact-head Codex
+merge-ready handoff, or separate Human merge authorization.
 Merging a release-tooling change never grants publication authority.
 
 The design follows the proven `wc-order-splitter` publisher pattern while keeping
@@ -100,11 +101,11 @@ specific collision; never delete/retarget published tags to make a run pass.
    paths, both storage modes, and protected upload/read/download behavior as
    affected. Mark unavailable test environments clearly; never claim unrun
    combinations as passed.
-5. Complete YSP Technical Review when `CONTROLLED`, exact-head
-   `YSP Required CI`, ChatGPT Acceptance and a separate Human
-   `Merge YSP-N` on the **final versioned candidate**. Do not change
-   metadata or customer notes after Acceptance without restarting the affected
-   reviews/checks. A candidate selected for Prepare must be on protected
+5. Complete risk-appropriate review under `AGENTS.md`, exact-head
+   `YSP Required CI`, the Codex `READY_FOR_HUMAN_MERGE` handoff and separate
+   Human merge authorization on the **final versioned candidate**. Do not change
+   metadata or customer notes after the handoff without refreshing affected
+   reviews/checks and posting a new exact-head handoff. A candidate selected for Prepare must be on protected
    `main` with its **exact** header, Stable tag, and current top changelog.
    The release-only Prepare guard rejects missing, stale or empty top changelog
    notes. It does **not** by itself prove a version is unpublished.

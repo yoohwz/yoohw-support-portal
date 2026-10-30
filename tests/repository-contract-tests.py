@@ -109,16 +109,29 @@ def workflow_contract() -> None:
     ci = text(".github/workflows/ci.yml")
 
     for required in (
-        "STANDARD",
-        "CONTROLLED",
-        "READY_TO_MERGE",
-        "Acceptance Review YSP-N",
+        "Fast",
+        "Controlled",
+        "READY_FOR_HUMAN_MERGE",
+        "HUMAN_DECISION_REQUIRED",
+        "Next: Human - Merge PR #N",
         "Merge YSP-N",
         "YSP Required CI",
         "Iteration Gate",
         "Git/GitHub",
     ):
         assert required in agents or required in workflow, required
+
+    release = text("docs/releasing.md")
+    for document in (agents, workflow):
+        assert "ChatGPT is not a required participant" in document
+        assert "Human" in document and "product acceptance" in document
+        assert "separate" in document and "checkout" in document
+        assert "NOT RUN" in document
+        assert "changed head invalidates" in document
+        assert "private-data disclosure" in document
+    assert "READY_FOR_HUMAN_MERGE" in release
+    assert "ChatGPT Acceptance" not in release
+    assert "recorded SHA-bound Acceptance" not in release
 
     for forbidden in (
         "DIRECT_YSP",
