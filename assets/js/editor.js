@@ -70,7 +70,7 @@
           return;
         }
         // Preserve visible clipboard line breaks before removing presentation styles.
-        var whitespace = node.style.whiteSpace;
+        var whitespace = node.style ? node.style.whiteSpace : "";
         walk(node, !whitespace || whitespace === "inherit" ? preserveBreaks : /^(pre|pre-wrap|pre-line|break-spaces)$/.test(whitespace));
         if (tag === "div") {
           if (node.querySelector("p,div,ul,ol,pre,blockquote,table,h3,h4")) { node.replaceWith.apply(node, Array.prototype.slice.call(node.childNodes)); return; }

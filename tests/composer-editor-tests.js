@@ -36,6 +36,7 @@ for (const [source, text] of samples) {
   check(!result.html.includes('HIDDEN') && !result.html.includes('<br><br><br>'), 'Hidden content and excessive breaks removed');
   check(api.normalize(result.html).html === result.html, 'Prose normalization idempotent');
 }
+check(api.normalize('<math><mi>x</mi></math>').html === 'x', 'Unsupported elements without a style API still unwrap safely');
 const message = 'Thank you for the detailed report. To identify why order <strong>#51514</strong> remains pending, could you or your developer provide the following <strong>read-only diagnostic information</strong>?';
 for (const mode of ['pre', 'pre-wrap', 'pre-line', 'break-spaces']) {
   const result = api.normalize('<span style="white-space:' + mode + '"><span>Hi there,\n\n</span>' + message + '</span>');
