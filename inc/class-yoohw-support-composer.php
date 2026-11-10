@@ -105,7 +105,8 @@ REGEX;
 			} elseif ( ! $skip && 0 !== strpos( $part, '<!--' ) && 0 !== strpos( $part, '<?' ) ) {
 				$part = str_replace( [ "\r\n", "\r" ], "\n", $part );
 				$part = str_replace( [ '&nbsp;', '&#160;', "\xc2\xa0" ], ' ', $part );
-				$out .= preg_replace( '/[\t \f\v]+/', ' ', $part );
+				// PCRE \v includes newlines; collapse only explicit spacing characters.
+				$out .= preg_replace( '/[\t \f\x0B]+/', ' ', $part );
 			}
 		}
 		$out = force_balance_tags( wp_kses( $out, self::allowed_html() ) );

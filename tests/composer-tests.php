@@ -24,6 +24,16 @@ try {
 		$assert( $clean === YoOhw_Support_Composer::normalize( $clean ), 'Normalization is idempotent with protected code.' );
 		$assert( false === strpos( $clean, '<script>' ) && false === strpos( $clean, 'href="https://example.invalid/code' ), 'Code never becomes executable markup or an autolink.' );
 	}
+	$message = 'Thank you for the detailed report. To identify why order **#51514** remains pending, could you or your developer provide the following **read-only diagnostic information**?';
+	foreach ( [ "\n", "\r\n", "\r" ] as $newline ) {
+		$plain = 'Hi there,' . $newline . $newline . $message;
+		$clean = YoOhw_Support_Composer::normalize( $plain );
+		$assert( '<p>Hi there,</p><p>' . $message . '</p>' === $clean, 'Plain-text paragraph break survives cleanup for LF, CRLF and CR.' );
+		$assert( "<p>Hi there,<br />\n" . $message . '</p>' === YoOhw_Support_Composer::normalize( 'Hi there,' . $newline . $message ), 'Single prose line break survives cleanup.' );
+		$assert( $clean === YoOhw_Support_Composer::normalize( $clean ), 'Paragraph cleanup remains idempotent.' );
+	}
+	$assert( '<p>Hi there, thank you.</p>' === YoOhw_Support_Composer::normalize( "Hi there,\t \x0B\x0Cthank you." ), 'Redundant horizontal spacing is still collapsed.' );
+	$assert( '<p>Hi there,</p><p><strong>Thank you</strong> for the report.</p>' === YoOhw_Support_Composer::normalize( '<p>Hi there,</p><p><strong>Thank you</strong> for the report.</p>' ), 'Typed rich-text paragraphs and emphasis survive cleanup.' );
 	$fixtures = [
 		'<div><span style="font-size:80px" class="MsoNormal">Hello</span></div><p>&nbsp;<br></p><p><br><br></p>' => [ 'Hello', 'style=', 'class="Mso' ],
 		'<div hidden>HIDDEN</div><div style="display:none">HIDDEN</div><!-- HIDDEN --><p>Visible</p>' => [ 'Visible', 'HIDDEN', '<!--' ],
@@ -68,7 +78,7 @@ try {
 	$category = wp_insert_term( $prefix, 'category' ); $assert( ! is_wp_error( $category ), 'Synthetic category.' ); $category = (int) $category['term_id'];
 	foreach ( [ 'owner', 'other' ] as $who ) { $id = wp_insert_user( [ 'user_login' => $prefix . $who, 'user_email' => $prefix . $who . '@example.invalid', 'user_pass' => wp_generate_password(), 'role' => 'subscriber' ] ); $assert( ! is_wp_error( $id ), 'Synthetic user.' ); $users[$who] = $id; }
 	wp_set_current_user( $users['owner'] ); $_SERVER['REQUEST_METHOD'] = 'POST'; $_FILES = [];
-	$raw = '<div style="font-size:90px"><p>Before `inline  code`</p><p>&nbsp;</p>' . $code_html . '<p>After</p></div>';
+	$raw = "Hi there,\n\n" . $message . "\n\n" . '<div style="font-size:90px"><p>Before `inline  code`</p><p>&nbsp;</p>' . $code_html . '<p>After</p></div>';
 	$expected = YoOhw_Support_Composer::prepare( $raw ); $assert( ! is_wp_error( $expected ), 'Submission sample valid.' );
 	$legacy = wp_insert_post( wp_slash( [ 'post_title' => $prefix . '-old', 'post_content' => '<div style="margin:800px"><p>Historic</p><p>&nbsp;</p></div>', 'post_status' => 'publish', 'post_author' => $users['owner'] ] ) );
 	$old_content = get_post( $legacy )->post_content;
@@ -85,6 +95,7 @@ try {
 			$isolated[] = $topic_id; $stored = YoOhw_Support_Database::get_topic_by_id( $topic_id )['content'];
 		}
 		$assert( $code === $code_text( $stored ), "$mode topic: code survives actual persistence." );
+		$assert( 0 === strpos( $stored, '<p>Hi there,</p><p>' . $message . '</p>' ), "$mode topic: plain-text paragraph break survives actual persistence." );
 		$assert( false === strpos( $stored, 'style=' ) && false !== strpos( $stored, '<code>inline  code</code>' ), "$mode topic: normalized prose and inline code persisted." );
 		if ( 'wordpress' === $mode ) {
 			$_POST = [ 'yoohw_support_comment_nonce' => wp_create_nonce( 'yoohw_support_comment' ) ]; $_REQUEST = $_POST;
@@ -97,6 +108,7 @@ try {
 			$rows = YoOhw_Support_Database::get_replies( $topic_id ); $reply = end( $rows )['content']; $rendered = apply_filters( 'the_content', $reply );
 		}
 		$assert( $code === $code_text( $reply ), "$mode reply: code survives actual persistence." );
+		$assert( 0 === strpos( $reply, '<p>Hi there,</p><p>' . $message . '</p>' ), "$mode reply: plain-text paragraph break survives actual persistence." );
 		$assert( $code === $code_text( $rendered ) && false !== strpos( $rendered, '<code>inline  code</code>' ), "$mode reply: code survives actual display filters." );
 		wp_set_current_user( $users['other'] );
 		if ( 'wordpress' === $mode ) {
