@@ -23,7 +23,7 @@
     var template = document.createElement("template");
     template.innerHTML = html;
     var removedMedia = false;
-    function walk(parent) {
+    function walk(parent, preserveBreaks) {
       // Word/Docs may split a fenced block into sibling paragraphs.
       var children = Array.prototype.slice.call(parent.childNodes);
       children.forEach(function (node, index) {
@@ -42,9 +42,16 @@
         if (node.nodeType === 3) {
           var text = node.nodeValue;
           var parts = text.split(/(?<!`)`([^`\r\n]+)`(?!`)/);
-          if (parts.length > 1) {
+          if (parts.length > 1 || (preserveBreaks && /\n/.test(text))) {
             var fragment = document.createDocumentFragment();
-            parts.forEach(function (part, i) { var item = i % 2 ? document.createElement("code") : document.createTextNode(part.replace(/\u00a0/g, " ").replace(/[\t \f\v]+/g, " ")); if (i % 2) item.textContent = part; fragment.appendChild(item); });
+            parts.forEach(function (part, i) {
+              if (i % 2) { var code = document.createElement("code"); code.textContent = part; fragment.appendChild(code); return; }
+              part = part.replace(/\u00a0/g, " ").replace(/[\t \f\v]+/g, " ");
+              (preserveBreaks ? part.split("\n") : [part]).forEach(function (line, index) {
+                if (index) fragment.appendChild(document.createElement("br"));
+                fragment.appendChild(document.createTextNode(line));
+              });
+            });
             node.replaceWith(fragment);
           } else node.nodeValue = text.replace(/\u00a0/g, " ").replace(/[\t \f\v]+/g, " ");
           return;
@@ -62,7 +69,9 @@
           else node.textContent = text;
           return;
         }
-        walk(node);
+        // Preserve visible clipboard line breaks before removing presentation styles.
+        var whitespace = node.style.whiteSpace;
+        walk(node, !whitespace || whitespace === "inherit" ? preserveBreaks : /^(pre|pre-wrap|pre-line|break-spaces)$/.test(whitespace));
         if (tag === "div") {
           if (node.querySelector("p,div,ul,ol,pre,blockquote,table,h3,h4")) { node.replaceWith.apply(node, Array.prototype.slice.call(node.childNodes)); return; }
           var paragraph = document.createElement("p"); while (node.firstChild) paragraph.appendChild(node.firstChild); node.replaceWith(paragraph); node = paragraph; tag = "p";

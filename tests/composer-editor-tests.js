@@ -36,6 +36,15 @@ for (const [source, text] of samples) {
   check(!result.html.includes('HIDDEN') && !result.html.includes('<br><br><br>'), 'Hidden content and excessive breaks removed');
   check(api.normalize(result.html).html === result.html, 'Prose normalization idempotent');
 }
+const message = 'Thank you for the detailed report. To identify why order <strong>#51514</strong> remains pending, could you or your developer provide the following <strong>read-only diagnostic information</strong>?';
+for (const mode of ['pre', 'pre-wrap', 'pre-line', 'break-spaces']) {
+  const result = api.normalize('<span style="white-space:' + mode + '"><span>Hi there,\n\n</span>' + message + '</span>');
+  check(result.html === 'Hi there,<br><br>' + message, 'Visible clipboard paragraph break survives removal of ' + mode);
+  check(api.normalize(result.html).html === result.html, 'Clipboard paragraph cleanup is idempotent');
+}
+check(api.normalize('<span style="white-space:pre-wrap">A\n<span style="white-space:normal">B\nC</span></span>').html === 'A<br>B\nC', 'Explicit normal whitespace overrides inherited preserved breaks');
+check(api.normalize('<p>A\n<strong>B</strong></p>').html === '<p>A\n<strong>B</strong></p>', 'Ordinary HTML source newlines are not converted into visible breaks');
+check(parse(api.normalize('<div style="white-space:pre-wrap"><pre>' + encoded + '</pre></div>').html).querySelector('pre code').textContent === code, 'Clipboard whitespace conversion leaves code payload untouched');
 for (const media of ['<img src="https://example.invalid/pixel">', '<iframe src="https://example.invalid"></iframe>', '<svg><text>hidden</text></svg>']) {
   const result = api.normalize('<p>Visible</p>' + media);
   check(result.removedMedia && !parse(result.html).querySelector('img,iframe,svg'), 'Media explicitly reported and removed');

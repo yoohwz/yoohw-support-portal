@@ -1,6 +1,6 @@
 # Composer content
 
-New topic/reply forms share `YoOhw_Support_Composer::editor_settings()` and `assets/js/editor.js`, including theme shortcodes and isolated replies. Paste normalization is undoable and warns when unsupported media is removed. Inline code and code block actions use native TinyMCE icons with translated tooltips; Clear formatting and Paste as text remain available.
+New topic/reply forms share `YoOhw_Support_Composer::editor_settings()` and `assets/js/editor.js`, including theme shortcodes and isolated replies. Paste normalization is undoable and warns when unsupported media is removed. Visible newlines in clipboard HTML with whitespace-preserving styles become explicit breaks before those styles are removed. Inline code and code block actions use native TinyMCE icons with translated tooltips; Clear formatting and Paste as text remain available.
 
 Server normalization runs only on new portal submissions. It keeps meaningful prose/list/quote/table structure while removing presentation attributes, hidden markup and redundant blank formatting. Plain-text blank lines remain paragraph boundaries, and single line breaks remain visible breaks. Headings are bounded to h3/h4. Unsupported pasted media and visually empty content produce a submission error without JavaScript. Existing capability, nonce, category and topic checks remain authoritative.
 
