@@ -259,6 +259,14 @@
         element.setAttribute("data-yoohw-full-date", full);
         element.setAttribute("aria-label", full);
         element.tabIndex = 0;
+        element.addEventListener("keydown", function (event) {
+          if (event.key === "Escape") {
+            element.setAttribute("data-yoohw-tooltip-dismissed", "");
+          }
+        });
+        function restoreTooltip() { element.removeAttribute("data-yoohw-tooltip-dismissed"); }
+        element.addEventListener("focus", restoreTooltip);
+        element.addEventListener("mouseenter", restoreTooltip);
         converted++;
       });
       if (converted) {

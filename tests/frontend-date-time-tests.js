@@ -40,6 +40,15 @@ async function page(mode, noIntl = false) {
   const detail = doc.getElementById('full').getAttribute('data-yoohw-full-date');
   check(detail.includes(new Intl.DateTimeFormat().resolvedOptions().timeZone) && /UTC[+−]\d\d:\d\d/.test(detail), 'Full detail includes timezone and UTC offset');
   check(doc.getElementById('full').getAttribute('aria-label') === detail && doc.getElementById('full').tabIndex === 0, 'Detail available on keyboard focus and to screen readers');
+  const focused = doc.getElementById('full');
+  focused.focus();
+  focused.dispatchEvent(new browser.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  check(focused.hasAttribute('data-yoohw-tooltip-dismissed') && doc.activeElement === focused, 'Escape dismisses tooltip without moving focus');
+  focused.blur(); focused.focus();
+  check(!focused.hasAttribute('data-yoohw-tooltip-dismissed'), 'Refocusing restores tooltip');
+  focused.dispatchEvent(new browser.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  focused.dispatchEvent(new browser.window.MouseEvent('mouseenter'));
+  check(!focused.hasAttribute('data-yoohw-tooltip-dismissed'), 'Pointer re-entry restores tooltip');
   check(!doc.querySelector('[data-yoohw-timezone]').hidden && doc.querySelector('[data-yoohw-timezone]').textContent.includes(new Intl.DateTimeFormat().resolvedOptions().timeZone), 'Conversation timezone note is visible after successful conversion');
   const older = doc.querySelector('#older time');
   check(older.textContent !== 'Older site time', 'Collapsed reply is formatted before reveal');
