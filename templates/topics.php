@@ -69,7 +69,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 							<?php echo esc_html( YoOhw_Support_Controller::topic_status_label( $post ) ); ?>
 						</span>
 						<?php YoOhw_Support_Controller::output_topic_category_meta( $post ); ?>
-						<span class="yoohw-topic-meta"><?php YoOhw_Support_Icons::output( 'calendar' ); ?> <?php echo esc_html( get_the_date() ); ?></span>
+						<span class="yoohw-topic-meta"><?php YoOhw_Support_Icons::output( 'calendar' ); ?> <?php YoOhw_Support_Date_Time::output( get_post()->post_date_gmt, false, get_the_date() ); ?></span>
 					</div>
 
 					<h2 class="yoohw-topic-card-title">

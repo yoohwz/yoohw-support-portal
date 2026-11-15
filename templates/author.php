@@ -8,7 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 $display_name = $author->display_name ?: $author->user_login;
 $account      = $author->user_login;
 $initial      = strtoupper( substr( $display_name, 0, 1 ) );
-$registered   = $author->user_registered ? date_i18n( get_option( 'date_format' ), strtotime( $author->user_registered ) ) : '';
+$registered   = $author->user_registered ? YoOhw_Support_Date_Time::html( $author->user_registered ) : '';
 $base_url     = get_author_posts_url( $author->ID, $author->user_nicename );
 ?>
 
@@ -21,7 +21,8 @@ $base_url     = get_author_posts_url( $author->ID, $author->user_nicename );
 		<div class="yoohw-author-meta">
 			<span><?php YoOhw_Support_Icons::output( 'user' ); ?> @<?php echo esc_html( $account ); ?></span>
 			<?php if ( $registered ) : ?>
-				<span><?php YoOhw_Support_Icons::output( 'calendar' ); ?> <?php /* translators: %s: User registration date. */ echo esc_html( sprintf( __( 'Joined %s', 'yoohw-support-portal' ), $registered ) ); ?></span>
+				<span><?php YoOhw_Support_Icons::output( 'calendar' ); ?> <?php /* translators: %s: User registration date. */ printf( esc_html__( 'Joined %s', 'yoohw-support-portal' ), $registered ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Registered date is escaped by YoOhw_Support_Date_Time::html().
+				?></span>
 			<?php endif; ?>
 		</div>
 	</div>
@@ -72,7 +73,7 @@ $base_url     = get_author_posts_url( $author->ID, $author->user_nicename );
 							<?php echo esc_html( YoOhw_Support_Controller::topic_status_label( $post ) ); ?>
 						</span>
 						<?php YoOhw_Support_Controller::output_topic_category_meta( $post ); ?>
-						<span class="yoohw-topic-meta"><?php YoOhw_Support_Icons::output( 'calendar' ); ?> <?php echo esc_html( get_the_date() ); ?></span>
+						<span class="yoohw-topic-meta"><?php YoOhw_Support_Icons::output( 'calendar' ); ?> <?php YoOhw_Support_Date_Time::output( get_post()->post_date_gmt, false, get_the_date() ); ?></span>
 					</div>
 
 					<h2 class="yoohw-topic-card-title">

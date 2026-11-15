@@ -2743,3 +2743,34 @@
 	object-fit: cover;
 	border-radius: inherit;
 }
+
+.yoohw-timezone-note {
+  color: var(--yoohw-muted, #647084);
+  font-size: 0.8125rem;
+  margin: 0 0 0.75rem;
+}
+
+time[data-yoohw-full-date] {
+  position: relative;
+  cursor: help;
+}
+
+time[data-yoohw-full-date]:not([data-yoohw-tooltip-dismissed]):hover::after,
+time[data-yoohw-full-date]:not([data-yoohw-tooltip-dismissed]):focus::after {
+  content: attr(data-yoohw-full-date);
+  position: absolute;
+  z-index: 20;
+  bottom: 100%;
+  left: 0;
+  width: max-content;
+  max-width: min(20rem, 75vw);
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  background: #0f172a;
+  color: #fff;
+  font-size: 0.8125rem;
+  font-weight: normal;
+  line-height: 1.5;
+  white-space: normal;
+  pointer-events: auto;
+}

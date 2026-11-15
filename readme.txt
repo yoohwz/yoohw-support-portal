@@ -113,6 +113,12 @@ In WordPress posts/comments storage, the default is 48 hours after the latest su
 
 A closing warning must be earlier than the auto-resolve duration. Disabling email does not disable auto-resolve. Changes apply to existing open topics, so shortening the duration, changing working days, or re-enabling auto-resolve can resolve overdue topics on a later working-day background run. Resolved topics are not reopened automatically. Background processing depends on WordPress cron, so timing may vary with the site's cron setup.
 
+= Can visitors see dates and times in their own timezone? =
+
+Under General, Frontend date & time defaults to Site settings, using the WordPress date/time formats and timezone. Choose Visitor’s browser to format portal dates and reply times using each visitor’s browser locale and timezone, in either storage mode. Conversation pages identify the timezone; hover or focus a timestamp for the full date, timezone and UTC offset. Date-only displays stay date-only, and expanded older replies use the same format.
+
+Browser formatting requires JavaScript; site-formatted text remains the fallback. Browser locale controls the available date order and 12/24-hour convention and may differ from custom operating-system formats. Working days, auto-resolve, reminders, emails and wp-admin continue to use the site settings. No visitor timezone preference is stored or sent to the server.
+
 = Can I change reply history and topic list sizes? =
 
 Yes. Configure reply collapsing, the number of replies shown initially and per expansion (1–100), and topics per page (1–100). Defaults are five replies per batch and eight topics per page. Topic page size also applies to embedded lists and customer profiles.
