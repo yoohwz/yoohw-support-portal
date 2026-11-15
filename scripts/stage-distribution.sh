@@ -112,7 +112,7 @@ if find "$DESTINATION" -type f \( \
   exit 1
 fi
 
-for required in yoohw-support-portal.php readme.txt changelog.txt license.txt inc templates assets; do
+for required in yoohw-support-portal.php readme.txt license.txt inc templates assets; do
   if [[ ! -e "$DESTINATION/$required" ]]; then
     echo "distribution is missing required path: $required" >&2
     exit 1
