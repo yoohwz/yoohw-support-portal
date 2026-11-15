@@ -85,8 +85,14 @@ specific collision; never delete/retarget published tags to make a run pass.
    completed feature/fix: actual new features, fixes in the previously published
    release, important privacy/security/compatibility changes, and user action
    where relevant. Do not copy internal PR chronology, temporary regressions,
-   workflow/CI implementation or unreleased intermediary states. Preserve
-   historical published changelog entries. Add or update `Upgrade Notice` only
+   workflow/CI implementation or unreleased intermediary states. Keep only the
+   newest changelog entry in `readme.txt`, with
+   `Release date: Nov 15, 2026`-style dates beneath the unchanged version heading.
+   Preserve full historical published notes in the distributed `changelog.txt`;
+   add historical dates only from verified publication evidence. Keep the newest
+   notes/date identical in both files and retain applicable Upgrade Notices.
+   Reconcile the planned release date if publication happens on a later day.
+   Add or update `Upgrade Notice` only
    when an upgrade requires meaningful owner action or compatibility warning.
 3. Reconcile `Requires at least`, `Requires PHP` and `Tested up to` against
    executed release evidence rather than extrapolating a new tested version.

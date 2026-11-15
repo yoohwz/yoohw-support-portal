@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import re
+from datetime import datetime
 import shutil
 import subprocess
 import tempfile
@@ -28,6 +29,22 @@ def version_contract() -> None:
         stable.group(1),
     )
     assert requires_php.group(1) == "7.4"
+
+
+def changelog_contract() -> None:
+    readme = text("readme.txt")
+    section = readme.split("== Changelog ==", 1)[1].split("\n== ", 1)[0].strip()
+    full = text("changelog.txt")
+    entries = re.findall(r"^= ([0-9.]+) =\n(.*?)(?=^= [0-9.]+ =|\Z)", full, re.MULTILINE | re.DOTALL)
+    latest = re.search(r"^Stable tag:\s*(\S+)", readme, re.MULTILINE).group(1)
+    assert entries and entries[0][0] == latest
+    assert section == f"= {latest} =\n{entries[0][1].strip()}"
+    assert len({version for version, _ in entries}) == len(entries)
+    for version, notes in entries:
+        date = re.search(r"^Release date: (.+)$", notes, re.MULTILINE)
+        assert date, version
+        assert datetime.strptime(date.group(1), "%b %d, %Y").strftime("%b %d, %Y") == date.group(1)
+        assert re.search(r"^\* .+", notes, re.MULTILINE), version
 
 
 def branding_contract() -> None:
@@ -246,6 +263,7 @@ def distribution_adversarial_contract() -> None:
             assert result.returncode == 0, result.stderr or result.stdout
             assert (fresh / "yoohw-support-portal.php").is_file()
             assert (fresh / "readme.txt").is_file()
+            assert (fresh / "changelog.txt").read_bytes() == (ROOT / "changelog.txt").read_bytes()
             assert (fresh / "license.txt").is_file()
             assert "GNU GENERAL PUBLIC LICENSE" in (fresh / "license.txt").read_text(encoding="utf-8")
             assert not (fresh / ".env").exists()
@@ -292,6 +310,7 @@ def distribution_adversarial_contract() -> None:
             tracked_result = run_stage(tracked_stage, fixture)
             assert tracked_result.returncode == 0, tracked_result.stderr or tracked_result.stdout
             assert (tracked_stage / "license.txt").is_file()
+            assert (tracked_stage / "changelog.txt").read_bytes() == (ROOT / "changelog.txt").read_bytes()
             for path in tracked_artifacts:
                 relative = path.relative_to(fixture)
                 assert not (tracked_stage / relative).exists(), relative
@@ -312,6 +331,7 @@ def foundation_scope_contract() -> None:
 
 def main() -> None:
     version_contract()
+    changelog_contract()
     branding_contract()
     license_contract()
     workflow_contract()

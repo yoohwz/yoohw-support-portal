@@ -1,0 +1,53 @@
+=== Support Portal Changelog ===
+
+= 1.1.3 =
+Release date: Nov 15, 2026
+
+* New: Choose Working days for auto-resolve, topic-closing warnings, and support follow-up reminders in WordPress posts/comments storage. Days off pause the timers and prevent these actions; all seven days are selected by default.
+* New: Choose Site settings or Visitor’s browser for frontend date and time display in both storage modes, with local timezone details and site-formatted fallback when JavaScript is unavailable. Site settings remains the default.
+* Fixed: Isolated-storage dates and account join dates use the WordPress timezone when displayed with site settings.
+* Fixed: Pasted replies retain visible paragraph and line breaks when editor cleanup removes clipboard formatting.
+* Improved: Plugin scripts and styles use the plugin version on production/staging sites and file modification times on local/development sites for consistent cache refreshes.
+
+= 1.1.2 =
+Release date: Oct 30, 2026
+
+* New: Add more files to a topic or reply without replacing files already selected, using the file picker or drag and drop in the portal and theme-embedded forms.
+* New: Remove individual pending attachments with the × button before submitting. Files already saved to a conversation are unchanged.
+* Improved: Skip duplicate file selections and retain previously selected files when an added batch exceeds the file-count or size limit.
+* Updated: Dashboard workspace labels clarify that the project summary refers to your own custom work projects.
+
+= 1.1.1 =
+Release date: Oct 25, 2026
+
+* Improved: Email notifications retry failed deliveries with bounded attempts, avoid resending to successfully notified participants, and use complete cursor-based topic scans for scheduled reminders.
+* New: General and Emails settings tabs let administrators configure notification switches, sender and admin-recipient addresses, reminder intervals, and fixed-sample email preview and test delivery.
+* New: Configure automatic topic resolution after a chosen number of hours, or disable it. Closing warnings respect the active auto-resolve deadline.
+* Improved: Topic and reply editors share safer paste cleanup, preserve lists, links, tables and literal code, and support inline code and code blocks in both storage modes without rewriting existing conversations.
+* Improved: Long code blocks scroll vertically and horizontally within a 420px display area while keeping Copy accessible; the Wrap toggle was removed.
+* Updated: WordPress.org feature descriptions, FAQ, privacy guidance and helpdesk tags.
+
+= 1.1.0 =
+Release date: Oct 18, 2026
+
+* Security: New support attachments and image variants use private filesystem storage outside the web document root, with upload rejection when storage verification fails. Existing installations must explicitly secure old support files; see the Upgrade Notice.
+* New: Embed topic submission, login, password recovery, and authorized topic lists in regular WordPress theme pages using shortcodes.
+* New: Configure attachments for new topics and replies separately, including file count, file-size limits, permitted image/video/ZIP types, and protected preview or download-link display.
+* New: Configure reply-history batch size, topics per page, and WordPress avatars or initials.
+* Improved: Conversations align your replies on the right, initially show the newest reply batch in chronological order, and let you reveal older messages without extra requests; the full history remains available without JavaScript.
+* Improved: Narrow-screen topic forms, editor toolbars, long titles, dashboard cards, and administration settings are easier to use, with visible keyboard focus.
+* Improved: Text, links, inputs, and buttons remain readable with configured dark backgrounds or light primary colors.
+* Fixed: Category role selection no longer triggers recursive focus errors, and unavailable site icons no longer show broken images.
+* Important: Exclude pages using personalized support shortcodes from page/CDN caches. Theme embeds in WordPress posts/comments storage require pretty permalinks.
+
+= 1.0.0 =
+Release date: Sep 14, 2026
+
+* Initial release.
+* Added private customer support topics and replies.
+* Added protected support attachments and authorization checks for WordPress posts/comments storage mode.
+* Added isolated support storage and native WordPress posts/comments storage modes.
+* Added role- and access-code-based category access.
+* Added dedicated support capabilities and customer visibility controls.
+* Added configurable portal appearance, labels, identity, and account flows.
+* Added first-run setup guidance, privacy-policy guidance, and compatibility checks.

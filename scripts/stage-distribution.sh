@@ -65,7 +65,7 @@ while IFS= read -r -d '' path; do
   esac
 
   case "$path" in
-    assets/*|inc/*|templates/*|languages/*|yoohw-support-portal.php|readme.txt|license.txt|third-party-licenses.txt|uninstall.php)
+    assets/*|inc/*|templates/*|languages/*|yoohw-support-portal.php|readme.txt|changelog.txt|license.txt|third-party-licenses.txt|uninstall.php)
       printf '%s\0' "$path" >> "$MANIFEST"
       ;;
   esac
