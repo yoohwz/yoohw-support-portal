@@ -741,7 +741,7 @@ final class YoOhw_Post_Status_Resolved {
 
 		// Read the current policy for every topic; disabling stops even an active batch.
 		$resolve_hours = YoOhw_Support_Settings::auto_resolve_hours();
-		if ( 0 === $resolve_hours || $latest_comment_time > ( time() - ( $resolve_hours * HOUR_IN_SECONDS ) ) ) {
+		if ( 0 === $resolve_hours || ! YoOhw_Support_Calendar::is_due( $latest_comment_time, $resolve_hours ) ) {
 			return;
 		}
 
@@ -768,7 +768,7 @@ final class YoOhw_Post_Status_Resolved {
 		}
 
 		$resolve_hours = YoOhw_Support_Settings::auto_resolve_hours();
-		if ( 0 === $resolve_hours || $latest_comment_time > time() - ( $resolve_hours * HOUR_IN_SECONDS ) ) {
+		if ( 0 === $resolve_hours || ! YoOhw_Support_Calendar::is_due( $latest_comment_time, $resolve_hours ) ) {
 			return;
 		}
 

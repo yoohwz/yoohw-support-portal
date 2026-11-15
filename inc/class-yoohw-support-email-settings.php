@@ -230,15 +230,15 @@ class YoOhw_Support_Email_Settings {
 			<h3><?php esc_html_e( 'Reminders', 'yoohw-support-portal' ); ?></h3>
 			<table class="form-table" role="presentation">
 			<?php
-			self::reminder_field( 'followup', __( 'Support follow-up', 'yoohw-support-portal' ), __( 'Hours after the latest customer reply to remind support. Leave empty or enter 0 to disable.', 'yoohw-support-portal' ) );
-			self::reminder_field( 'close', __( 'Topic closing warning', 'yoohw-support-portal' ), __( 'Hours after the latest support reply to warn the topic owner. Must be earlier than auto-resolve. No closing warning is sent while auto-resolve is disabled. Leave empty or enter 0 to disable.', 'yoohw-support-portal' ) );
+			self::reminder_field( 'followup', __( 'Support follow-up', 'yoohw-support-portal' ), __( 'Hours counted on working days after the latest customer reply to remind support. Leave empty or enter 0 to disable.', 'yoohw-support-portal' ) );
+			self::reminder_field( 'close', __( 'Topic closing warning', 'yoohw-support-portal' ), __( 'Hours counted on working days after the latest support reply to warn the topic owner. Must be earlier than auto-resolve. No closing warning is sent while auto-resolve is disabled. Leave empty or enter 0 to disable.', 'yoohw-support-portal' ) );
 			?>
 			</table>
 		</fieldset>
 		<p class="description"><?php
 		$resolve_hours = YoOhw_Support_Settings::auto_resolve_hours();
 		/* translators: %d: Number of hours after the latest support reply before automatic resolution. */
-		echo esc_html( $resolve_hours > 0 ? sprintf( __( 'Topics automatically resolve %d hours after the latest support reply without a customer response.', 'yoohw-support-portal' ), $resolve_hours ) : __( 'Auto-resolve is disabled. The saved closing warning is retained but will not be sent.', 'yoohw-support-portal' ) );
+		echo esc_html( $resolve_hours > 0 ? sprintf( __( 'Topics automatically resolve after %d hours counted on working days following the latest support reply without a customer response.', 'yoohw-support-portal' ), $resolve_hours ) : __( 'Auto-resolve is disabled. The saved closing warning is retained but will not be sent.', 'yoohw-support-portal' ) );
 		?> <a href="<?php echo esc_url( admin_url( 'options-general.php?page=yoohw-support-portal&tab=general#yoohw-auto-resolve-hours' ) ); ?>"><?php esc_html_e( 'Change in General', 'yoohw-support-portal' ); ?></a></p>
 		<p class="description"><?php esc_html_e( 'Disabling email does not disable auto-resolve. Re-enabling a notification applies to new events only; old events are not backfilled. Failed immediate notifications retry after 15 minutes, up to 3 times.', 'yoohw-support-portal' ); ?></p>
 		<h2><?php esc_html_e( 'Email appearance', 'yoohw-support-portal' ); ?></h2>

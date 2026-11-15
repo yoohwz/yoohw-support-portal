@@ -467,15 +467,15 @@ class YoOhw_Email_Notification extends YoOhw_Support_Email_Template {
 			}
 		}
 
-		$notice_time = $latest_comment_time + ( YoOhw_Support_Email_Settings::reminder_hours( 'close' ) * HOUR_IN_SECONDS );
+		$warning_hours = YoOhw_Support_Email_Settings::reminder_hours( 'close' );
 
 		// A warning is useful only before the current auto-resolve deadline.
-		if ( time() < $notice_time ) {
+		if ( ! YoOhw_Support_Calendar::is_due( $latest_comment_time, $warning_hours ) ) {
 			return;
 		}
 
 		$resolve_hours = YoOhw_Support_Settings::auto_resolve_hours();
-		if ( 0 === $resolve_hours || time() >= ( $latest_comment_time + ( $resolve_hours * HOUR_IN_SECONDS ) ) ) {
+		if ( 0 === $resolve_hours || YoOhw_Support_Calendar::is_due( $latest_comment_time, $resolve_hours ) ) {
 			return;
 		}
 
@@ -510,15 +510,17 @@ class YoOhw_Email_Notification extends YoOhw_Support_Email_Template {
 		// Recheck after eligibility reads in case another request changed the policy.
 		$resolve_hours = YoOhw_Support_Settings::auto_resolve_hours();
 		$warning_hours = YoOhw_Support_Email_Settings::reminder_hours( 'close' );
-		if ( ! YoOhw_Support_Email_Settings::reminder_allowed( 'close', (int) $latest_comment->comment_ID ) || time() < $latest_comment_time + ( $warning_hours * HOUR_IN_SECONDS ) || time() >= $latest_comment_time + ( $resolve_hours * HOUR_IN_SECONDS ) ) {
+		if ( ! YoOhw_Support_Email_Settings::reminder_allowed( 'close', (int) $latest_comment->comment_ID ) || ! YoOhw_Support_Calendar::is_due( $latest_comment_time, $warning_hours ) || YoOhw_Support_Calendar::is_due( $latest_comment_time, $resolve_hours ) ) {
 			return;
 		}
 
 		$subject = '[Topic Closing Soon] ' . wp_strip_all_tags( $post->post_title );
 
-		$remaining_hours = (int) ceil( ( $latest_comment_time + ( $resolve_hours * HOUR_IN_SECONDS ) - time() ) / HOUR_IN_SECONDS );
+		$days = YoOhw_Support_Settings::working_days();
+		$remaining_hours = (int) ceil( ( $resolve_hours * HOUR_IN_SECONDS - YoOhw_Support_Calendar::elapsed( $latest_comment_time, time(), $days ) ) / HOUR_IN_SECONDS );
+		$hours_label = 7 === count( $days ) ? ' hours' : ' hours counted on working days (the timer pauses on days off)';
 		$content = '
-			<p>Your support topic is scheduled to be automatically marked as resolved in about ' . esc_html( $remaining_hours ) . ' hours because our latest reply has not received a response from you.</p>
+			<p>Your support topic is scheduled to be automatically marked as resolved in about ' . esc_html( $remaining_hours . $hours_label ) . ' because our latest reply has not received a response from you.</p>
 			<p><strong>Topic title:</strong> ' . esc_html( $post->post_title ) . '</p>
 			<p>If you still need help, please reply to the topic before it is closed.</p>
 			<p><strong>View topic:</strong> <a href="' . esc_url( get_permalink( $post_id ) ) . '">Click here to view and reply</a></p>
@@ -588,7 +590,7 @@ class YoOhw_Email_Notification extends YoOhw_Support_Email_Template {
 		}
 
 		$followup_hours = YoOhw_Support_Email_Settings::reminder_hours( 'followup' );
-		if ( time() < ( $latest_comment_time + ( $followup_hours * HOUR_IN_SECONDS ) ) ) {
+		if ( ! YoOhw_Support_Calendar::is_due( $latest_comment_time, $followup_hours ) ) {
 			return;
 		}
 
@@ -598,12 +600,19 @@ class YoOhw_Email_Notification extends YoOhw_Support_Email_Template {
 			return;
 		}
 
+		// Recheck the current calendar and threshold after eligibility/recipient reads.
+		$followup_hours = YoOhw_Support_Email_Settings::reminder_hours( 'followup' );
+		if ( ! YoOhw_Support_Email_Settings::reminder_allowed( 'followup', (int) $latest_comment->comment_ID ) || ! YoOhw_Support_Calendar::is_due( $latest_comment_time, $followup_hours ) ) {
+			return;
+		}
+		$hours_label = 7 === count( YoOhw_Support_Settings::working_days() ) ? ' hours' : ' hours counted on working days (the timer pauses on days off)';
+
 		$subject = '[Waiting for Support Reply] ' . wp_strip_all_tags( $post->post_title );
 		$preview = self::get_content_preview( $latest_comment->comment_content );
 		$button_style = self::email_button_style();
 
 		$content = '
-			<p>A support topic has been waiting for an administrator reply for at least ' . esc_html( $followup_hours ) . ' hours.</p>
+			<p>A support topic has been waiting for an administrator reply for at least ' . esc_html( $followup_hours . $hours_label ) . '.</p>
 			<p><strong>Topic title:</strong> ' . esc_html( $post->post_title ) . '</p>
 			<p><strong>Latest user reply:</strong><br>' . $preview . '</p>
 			<p><strong>Reply author:</strong> ' . esc_html( $latest_comment->comment_author ) . '</p>

@@ -6,6 +6,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 // Settings are also loaded directly by activation and site setup before runtime initialization.
 require_once __DIR__ . '/class-yoohw-support-email-settings.php';
+require_once __DIR__ . '/class-yoohw-support-calendar.php';
 
 class YoOhw_Support_Settings {
 
@@ -75,6 +76,7 @@ class YoOhw_Support_Settings {
 			'reply_batch_size'           => 5,
 			'topics_per_page'            => 8,
 			'auto_resolve_hours'         => 48,
+			'working_days'               => [ 0, 1, 2, 3, 4, 5, 6 ],
 			'reply_avatar_mode'          => 'wordpress',
 			'docs_url'                   => self::default_site_url( '/docs/' ),
 			'dedicated_portal_mode'      => self::STORAGE_WORDPRESS,
@@ -117,6 +119,32 @@ class YoOhw_Support_Settings {
 		return max( 0, (int) self::get()['auto_resolve_hours'] );
 	}
 
+	public static function working_days(): array {
+		// Re-read the policy at action boundaries in long-running cron batches.
+		wp_cache_delete( self::OPTION_NAME, 'options' );
+		wp_cache_delete( 'alloptions', 'options' );
+		wp_cache_delete( 'notoptions', 'options' );
+		return self::get()['working_days'];
+	}
+
+	public static function render_working_days_field(): void {
+		global $wp_locale;
+		$days = self::get()['working_days'];
+		echo '<fieldset' . disabled( self::uses_isolated_storage(), true, false ) . '><legend class="screen-reader-text">' . esc_html__( 'Working days', 'yoohw-support-portal' ) . '</legend>';
+		// The hidden sentinel distinguishes an empty selection from an omitted field.
+		echo '<input type="hidden" name="' . esc_attr( self::OPTION_NAME . '[working_days][]' ) . '" value="">';
+		for ( $i = 1; $i <= 7; ++$i ) {
+			$day = $i % 7;
+			echo '<label style="display:inline-block;margin:0 16px 8px 0"><input type="checkbox" name="' . esc_attr( self::OPTION_NAME . '[working_days][]' ) . '" value="' . esc_attr( $day ) . '" ' . checked( in_array( $day, $days, true ), true, false ) . '> ' . esc_html( $wp_locale->get_weekday( $day ) ) . '</label> ';
+		}
+		echo '</fieldset><p class="description">' . esc_html__( 'Auto-resolve and reminders count time only on selected days. Unselected days pause the timer and these actions. Each selected day counts in full, without daily office hours. Select at least one day.', 'yoohw-support-portal' ) . '</p>';
+		/* translators: %s: WordPress timezone. */
+		echo '<p class="description">' . esc_html( sprintf( __( 'Uses the WordPress timezone: %s. Changes apply to existing open topics; overdue actions may run on the next working-day cron pass. Sent reminders are not repeated and resolved topics are not reopened.', 'yoohw-support-portal' ), wp_timezone_string() ) ) . '</p>';
+		if ( self::uses_isolated_storage() ) {
+			echo '<p class="description">' . esc_html__( 'Auto-resolve and reminders require WordPress posts/comments storage. Your saved working days are retained in isolated storage.', 'yoohw-support-portal' ) . '</p>';
+		}
+	}
+
 	private static function validate_closing_policy( array $value, array $current ): array {
 		$resolve = (int) $value['auto_resolve_hours'];
 		$warning = YoOhw_Support_Email_Settings::reminder_hours( 'close', $value );
@@ -131,7 +159,7 @@ class YoOhw_Support_Settings {
 		$settings = self::get();
 		?>
 		<input type="number" class="small-text" id="yoohw-auto-resolve-hours" name="<?php echo esc_attr( self::OPTION_NAME ); ?>[auto_resolve_hours]" min="0" step="1" value="<?php echo esc_attr( $settings['auto_resolve_hours'] ); ?>" <?php disabled( self::uses_isolated_storage() ); ?>> <?php esc_html_e( 'hours', 'yoohw-support-portal' ); ?>
-		<p class="description"><?php esc_html_e( 'Hours after the latest support reply without a customer response. Leave empty or enter 0 to disable. Resolving also closes comments. Changes apply to existing open topics; shortening this time or re-enabling may resolve overdue topics on a later cron pass. Resolved topics are not reopened.', 'yoohw-support-portal' ); ?></p>
+		<p class="description"><?php esc_html_e( 'Hours counted on working days after the latest support reply without a customer response. Leave empty or enter 0 to disable. Resolving also closes comments. Changes apply to existing open topics; shortening this time or re-enabling may resolve overdue topics on a later cron pass. Resolved topics are not reopened.', 'yoohw-support-portal' ); ?></p>
 		<?php if ( self::uses_isolated_storage() ) : ?>
 			<p class="description"><?php esc_html_e( 'Auto-resolve requires WordPress posts/comments storage. Your saved preference is retained in isolated storage.', 'yoohw-support-portal' ); ?></p>
 		<?php endif;
@@ -491,6 +519,8 @@ class YoOhw_Support_Settings {
 		add_settings_section( 'yoohw_support_portal_lifecycle', __( 'Topic lifecycle', 'yoohw-support-portal' ), '__return_false', 'yoohw-support-portal' );
 		add_settings_field( 'auto_resolve_hours', __( 'Auto-resolve after', 'yoohw-support-portal' ), [ __CLASS__, 'render_auto_resolve_field' ], 'yoohw-support-portal', 'yoohw_support_portal_lifecycle', [ 'label_for' => 'yoohw-auto-resolve-hours' ] );
 
+		add_settings_field( 'working_days', __( 'Working days', 'yoohw-support-portal' ), [ __CLASS__, 'render_working_days_field' ], 'yoohw-support-portal', 'yoohw_support_portal_lifecycle' );
+
 		add_settings_section( 'yoohw_support_portal_shortcodes', __( 'Shortcodes', 'yoohw-support-portal' ), [ __CLASS__, 'render_shortcode_guide' ], 'yoohw-support-portal' );
 	}
 
@@ -567,6 +597,29 @@ class YoOhw_Support_Settings {
 		$clean['attachment_types'] = array_values( array_intersect( [ 'images', 'video', 'zip' ], is_array( $types ) ? array_filter( $types, 'is_string' ) : [] ) );
 		$clean['attachment_display'] = 'links' === ( $value['attachment_display'] ?? $current['attachment_display'] ) ? 'links' : 'preview';
 		$clean['reply_avatar_mode'] = 'initials' === ( $value['reply_avatar_mode'] ?? $current['reply_avatar_mode'] ) ? 'initials' : 'wordpress';
+
+		$clean['working_days'] = $current['working_days'];
+		if ( array_key_exists( 'working_days', $value ) ) {
+			$raw = $value['working_days'];
+			$days = [];
+			$valid = is_array( $raw );
+			foreach ( is_array( $raw ) ? $raw : [] as $day ) {
+				if ( '' === $day ) {
+					continue;
+				}
+				if ( ! in_array( $day, [ 0, 1, 2, 3, 4, 5, 6, '0', '1', '2', '3', '4', '5', '6' ], true ) ) {
+					$valid = false;
+					break;
+				}
+				$days[] = (int) $day;
+			}
+			if ( ! $valid || ! $days ) {
+				add_settings_error( 'yoohw_support_portal', 'working_days', __( 'Select at least one valid working day. Your previous working days were retained.', 'yoohw-support-portal' ) );
+			} else {
+				$clean['working_days'] = array_values( array_unique( $days ) );
+				sort( $clean['working_days'] );
+			}
+		}
 
 		$clean['auto_resolve_hours'] = $current['auto_resolve_hours'];
 		if ( array_key_exists( 'auto_resolve_hours', $value ) ) {
