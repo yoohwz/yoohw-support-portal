@@ -51,7 +51,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 							<?php echo esc_html( $is_resolved ? __( 'Resolved', 'yoohw-support-portal' ) : __( 'Open', 'yoohw-support-portal' ) ); ?>
 						</span>
 						<span class="yoohw-topic-meta"><?php YoOhw_Support_Icons::output( 'tag' ); ?> <?php echo esc_html( implode( ' / ', $path ) ); ?></span>
-						<span class="yoohw-topic-meta"><?php YoOhw_Support_Icons::output( 'calendar' ); ?> <?php echo esc_html( mysql2date( get_option( 'date_format' ), $topic['created_at'] ) ); ?></span>
+						<span class="yoohw-topic-meta"><?php YoOhw_Support_Icons::output( 'calendar' ); ?> <?php YoOhw_Support_Date_Time::output( $topic['created_at'] ); ?></span>
 					</div>
 					<h2 class="yoohw-topic-card-title"><a href="<?php echo esc_url( $topic_url ); ?>"><?php echo esc_html( $topic['title'] ); ?></a></h2>
 					<div class="yoohw-topic-card-excerpt"><?php echo esc_html( wp_trim_words( wp_strip_all_tags( $topic['content'] ), 28 ) ); ?></div>

@@ -235,6 +235,55 @@
     document.querySelectorAll(".yoohw-topic-body, .yoohw-reply-content").forEach(enhanceCodeBlocks);
   }
 
+  function setupDateTimes() {
+    if (!config().dateTime || config().dateTime.mode !== "browser" || !window.Intl || !window.Intl.DateTimeFormat) return;
+    try {
+      var dateFormat = new Intl.DateTimeFormat(undefined, { year: "numeric", month: "short", day: "numeric" });
+      var timeFormat = new Intl.DateTimeFormat(undefined, { year: "numeric", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+      var fullFormat = new Intl.DateTimeFormat(undefined, { weekday: "long", year: "numeric", month: "long", day: "numeric", hour: "numeric", minute: "2-digit", second: "2-digit" });
+      var timezone = dateFormat.resolvedOptions().timeZone;
+      if (!timezone) return;
+      function offsetLabel(date) {
+        var offset = -date.getTimezoneOffset();
+        return "UTC" + (offset < 0 ? "−" : "+") + String(Math.floor(Math.abs(offset) / 60)).padStart(2, "0") + ":" + String(Math.abs(offset) % 60).padStart(2, "0");
+      }
+      var converted = 0;
+      document.querySelectorAll("time[data-yoohw-date]").forEach(function (element) {
+        var raw = element.getAttribute("datetime");
+        if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(raw || "")) return;
+        var date = new Date(raw);
+        if (!Number.isFinite(date.getTime()) || date.toISOString() !== raw.replace("Z", ".000Z")) return;
+        var text = (element.dataset.yoohwDate === "datetime" ? timeFormat : dateFormat).format(date);
+        var full = fullFormat.format(date) + " · " + timezone + " (" + offsetLabel(date) + ")";
+        element.textContent = text;
+        element.setAttribute("data-yoohw-full-date", full);
+        element.setAttribute("aria-label", full);
+        element.tabIndex = 0;
+        function restoreTooltip() { element.removeAttribute("data-yoohw-tooltip-dismissed"); }
+        element.addEventListener("focus", restoreTooltip);
+        element.addEventListener("mouseenter", restoreTooltip);
+        converted++;
+      });
+      if (converted) {
+        // Escape must also dismiss hover-only details when focus is elsewhere.
+        document.addEventListener("keydown", function (event) {
+          if (event.key === "Escape") {
+            document.querySelectorAll("time[data-yoohw-full-date]").forEach(function (element) {
+              element.setAttribute("data-yoohw-tooltip-dismissed", "");
+            });
+          }
+        });
+        var label = timezone + " (" + offsetLabel(new Date()) + ")";
+        document.querySelectorAll("[data-yoohw-timezone]").forEach(function (element) {
+          element.textContent = message("timesShownIn", "Times shown in %s").replace("%s", label);
+          element.hidden = false;
+        });
+      }
+    } catch (error) {
+      // Keep the server-rendered site format if browser internationalization is unavailable.
+    }
+  }
+
   function setupReplyAvatars() {
     document.querySelectorAll(".yoohw-reply-avatar").forEach(function (image) {
       var initial = image.closest(".yoohw-avatar").querySelector(".yoohw-avatar-initial");
@@ -328,6 +377,7 @@
   }
 
   document.addEventListener("DOMContentLoaded", function () {
+    setupDateTimes();
     setupBrandIcon();
     setupReplyAvatars();
     setupReplyHistory();
