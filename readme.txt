@@ -101,7 +101,7 @@ Existing files from 1.0.0 need an explicit securing step. Activation does not mo
 
 = How do email notifications work? =
 
-In Settings > Support Portal > Emails, configure the sender name/address, administrator notification recipient, and new-topic notifications and new-reply notifications to topic owners and previous participants. Configure follow-up reminders after a customer reply and closing warnings after a support reply. Reminder durations are measured in hours; 0 or an empty value disables that reminder.
+In Settings > Support Portal > Emails, configure the sender name/address, administrator notification recipient, and new-topic notifications and new-reply notifications to topic owners and previous participants. Configure follow-up reminders after a customer reply and closing warnings after a support reply. Reminder durations are measured in hours counted on the Working days selected under General; 0 or an empty value disables that reminder.
 
 Topic notifications and reminders require WordPress posts/comments storage. They use WordPress mail delivery; your hosting or SMTP configuration determines actual delivery. Save settings before using the fixed-sample preview and test email. An accepted test confirms only that the mail transport accepted the message, not inbox delivery.
 
@@ -109,9 +109,9 @@ Support notifications use the portal email template. In WordPress posts/comments
 
 = When are topics automatically resolved? =
 
-In WordPress posts/comments storage, the default is 48 hours after the latest support reply without a customer response. Change this duration under General, or enter 0 or leave it empty to disable auto-resolve. Resolving a topic also closes replies.
+In WordPress posts/comments storage, the default is 48 hours after the latest support reply without a customer response. Change this duration under General, or enter 0 or leave it empty to disable auto-resolve. Working days, in the same section, defaults to all seven days. Unselected weekdays pause auto-resolve and reminder timers and prevent these actions from running. Selected days count in full using the WordPress timezone; immediate topic/reply notifications are unaffected. Select at least one working day. Resolving a topic also closes replies.
 
-A closing warning must be earlier than the auto-resolve duration. Disabling email does not disable auto-resolve. Changes apply to existing open topics, so shortening the duration or re-enabling auto-resolve can resolve overdue topics on a later background run. Resolved topics are not reopened automatically. Background processing depends on WordPress cron, so timing may vary with the site's cron setup.
+A closing warning must be earlier than the auto-resolve duration. Disabling email does not disable auto-resolve. Changes apply to existing open topics, so shortening the duration, changing working days, or re-enabling auto-resolve can resolve overdue topics on a later working-day background run. Resolved topics are not reopened automatically. Background processing depends on WordPress cron, so timing may vary with the site's cron setup.
 
 = Can I change reply history and topic list sizes? =
 
