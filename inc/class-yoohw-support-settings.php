@@ -7,6 +7,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 // Settings are also loaded directly by activation and site setup before runtime initialization.
 require_once __DIR__ . '/class-yoohw-support-email-settings.php';
 require_once __DIR__ . '/class-yoohw-support-calendar.php';
+require_once __DIR__ . '/class-yoohw-support-date-time.php';
 
 class YoOhw_Support_Settings {
 
@@ -77,6 +78,7 @@ class YoOhw_Support_Settings {
 			'topics_per_page'            => 8,
 			'auto_resolve_hours'         => 48,
 			'working_days'               => [ 0, 1, 2, 3, 4, 5, 6 ],
+			'frontend_date_time'         => 'site',
 			'reply_avatar_mode'          => 'wordpress',
 			'docs_url'                   => self::default_site_url( '/docs/' ),
 			'dedicated_portal_mode'      => self::STORAGE_WORDPRESS,
@@ -125,6 +127,15 @@ class YoOhw_Support_Settings {
 		wp_cache_delete( 'alloptions', 'options' );
 		wp_cache_delete( 'notoptions', 'options' );
 		return self::get()['working_days'];
+	}
+
+	public static function render_frontend_date_time_field(): void {
+		$mode = self::get()['frontend_date_time'];
+		echo '<fieldset><legend class="screen-reader-text">' . esc_html__( 'Frontend date & time', 'yoohw-support-portal' ) . '</legend>';
+		foreach ( [ 'site' => __( 'Site settings', 'yoohw-support-portal' ), 'browser' => __( 'Visitor’s browser', 'yoohw-support-portal' ) ] as $value => $label ) {
+			echo '<label style="display:block;margin-bottom:8px"><input type="radio" name="' . esc_attr( self::OPTION_NAME . '[frontend_date_time]' ) . '" value="' . esc_attr( $value ) . '" ' . checked( $mode, $value, false ) . '> ' . esc_html( $label ) . '</label>';
+		}
+		echo '</fieldset><p class="description">' . esc_html__( 'Site settings uses the WordPress date format, time format and timezone. Visitor’s browser uses each visitor’s browser locale and timezone on frontend pages in either storage mode. Support schedules, emails and wp-admin still use site settings. If JavaScript is unavailable, site settings are used.', 'yoohw-support-portal' ) . '</p>';
 	}
 
 	public static function render_working_days_field(): void {
@@ -512,6 +523,8 @@ class YoOhw_Support_Settings {
 			);
 		}
 
+		add_settings_field( 'frontend_date_time', __( 'Frontend date & time', 'yoohw-support-portal' ), [ __CLASS__, 'render_frontend_date_time_field' ], 'yoohw-support-portal', 'yoohw_support_portal_ui' );
+
 		add_settings_section( 'yoohw_support_portal_features', __( 'Support features', 'yoohw-support-portal' ), '__return_false', 'yoohw-support-portal' );
 		add_settings_field( 'attachment_options', __( 'Attachments', 'yoohw-support-portal' ), [ __CLASS__, 'render_attachment_options' ], 'yoohw-support-portal', 'yoohw_support_portal_features' );
 		add_settings_field( 'conversation_options', __( 'Conversations and lists', 'yoohw-support-portal' ), [ __CLASS__, 'render_conversation_options' ], 'yoohw-support-portal', 'yoohw_support_portal_features' );
@@ -597,6 +610,15 @@ class YoOhw_Support_Settings {
 		$clean['attachment_types'] = array_values( array_intersect( [ 'images', 'video', 'zip' ], is_array( $types ) ? array_filter( $types, 'is_string' ) : [] ) );
 		$clean['attachment_display'] = 'links' === ( $value['attachment_display'] ?? $current['attachment_display'] ) ? 'links' : 'preview';
 		$clean['reply_avatar_mode'] = 'initials' === ( $value['reply_avatar_mode'] ?? $current['reply_avatar_mode'] ) ? 'initials' : 'wordpress';
+
+		$clean['frontend_date_time'] = $current['frontend_date_time'];
+		if ( array_key_exists( 'frontend_date_time', $value ) ) {
+			if ( in_array( $value['frontend_date_time'], [ 'site', 'browser' ], true ) ) {
+				$clean['frontend_date_time'] = $value['frontend_date_time'];
+			} else {
+				add_settings_error( 'yoohw_support_portal', 'frontend_date_time', __( 'Choose a valid frontend date and time setting. Your previous selection was retained.', 'yoohw-support-portal' ) );
+			}
+		}
 
 		$clean['working_days'] = $current['working_days'];
 		if ( array_key_exists( 'working_days', $value ) ) {

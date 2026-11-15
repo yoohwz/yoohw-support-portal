@@ -24,6 +24,7 @@ $allowed_author_html = [
 $reply_side_labels = YoOhw_Support_Settings::reply_side_labels();
 ?>
 
+<?php YoOhw_Support_Date_Time::output_timezone_note(); ?>
 <article class="yoohw-panel yoohw-topic-detail">
 	<header class="yoohw-topic-detail-header">
 		<div class="yoohw-topic-meta-row">
@@ -32,7 +33,7 @@ $reply_side_labels = YoOhw_Support_Settings::reply_side_labels();
 				<?php echo esc_html( YoOhw_Support_Controller::topic_status_label( $post ) ); ?>
 			</span>
 			<?php YoOhw_Support_Controller::output_topic_category_meta( $post ); ?>
-			<span class="yoohw-topic-meta"><?php YoOhw_Support_Icons::output( 'calendar' ); ?> <?php echo esc_html( get_the_date( '', $post ) ); ?></span>
+			<span class="yoohw-topic-meta"><?php YoOhw_Support_Icons::output( 'calendar' ); ?> <?php YoOhw_Support_Date_Time::output( $post->post_date_gmt, false, get_the_date( '', $post ) ); ?></span>
 
 			<div class="yoohw-topic-author">
 				<?php YoOhw_Support_Icons::output( 'user' ); ?>
@@ -132,7 +133,7 @@ $reply_side_labels = YoOhw_Support_Settings::reply_side_labels();
 									}
 									?>
 								</strong>
-								<span class="yoohw-reply-date"><?php echo esc_html( get_comment_date( '', $comment ) ); ?> <?php echo esc_html( mysql2date( get_option( 'time_format' ), $comment->comment_date ) ); ?></span>
+								<span class="yoohw-reply-date"><?php YoOhw_Support_Date_Time::output( $comment->comment_date_gmt, true, get_comment_date( '', $comment ) . ' ' . mysql2date( get_option( 'time_format' ), $comment->comment_date ) ); ?></span>
 							</div>
 							<span class="yoohw-reply-side"><?php echo esc_html( $reply_is_support ? $reply_side_labels['support'] : $reply_side_labels['customer'] ); ?></span>
 						</header>

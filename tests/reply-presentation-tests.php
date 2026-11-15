@@ -5,6 +5,10 @@ if ( ! defined( 'WP_CLI' ) || ! WP_CLI || 'local' !== wp_get_environment_type() 
 }
 require_once ABSPATH . 'wp-admin/includes/user.php';
 add_filter( 'pre_wp_mail', '__return_true' );
+$date_settings = YoOhw_Support_Settings::get();
+$date_settings['frontend_date_time'] = 'browser';
+$date_settings_filter = static function () use ( $date_settings ) { return $date_settings; };
+add_filter( 'pre_option_' . YoOhw_Support_Settings::OPTION_NAME, $date_settings_filter );
 $prefix = 'ysp15-replies-' . wp_generate_password( 8, false, false );
 $users = [];
 $post_id = 0;
@@ -55,6 +59,8 @@ try {
 			libxml_use_internal_errors( true );
 			$document->loadHTML( '<?xml encoding="utf-8" ?>' . $html );
 			$xpath = new DOMXPath( $document );
+			$assert( 13 === $xpath->query( '//time[@datetime][@data-yoohw-date]' )->length, "$template: topic and every reply, including collapsed history, have canonical browser dates." );
+			$assert( 1 === $xpath->query( '//*[@data-yoohw-timezone][@hidden]' )->length, "$template: one progressive timezone note." );
 			$assert( 12 === $xpath->query( '//article[contains(concat(" ", @class, " "), " yoohw-reply ")]' )->length, "$template: history remains chronological and complete before JS enhancement." );
 			$articles = $xpath->query( '//article[contains(concat(" ", @class, " "), " yoohw-reply ")]' );
 			foreach ( $articles as $index => $article ) {
@@ -70,6 +76,7 @@ try {
 	}
 	WP_CLI::log( "reply-presentation-ok: $checks checks (both templates, three viewer perspectives)" );
 } finally {
+	remove_filter( 'pre_option_' . YoOhw_Support_Settings::OPTION_NAME, $date_settings_filter );
 	remove_filter( 'pre_get_avatar_data', $avatar_filter, 10 );
 	remove_filter( 'pre_option_show_avatars', $avatar_option );
 	wp_set_current_user( $original_user );

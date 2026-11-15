@@ -18,6 +18,7 @@ $labels      = YoOhw_Support_Settings::reply_side_labels();
 <?php if ( ! empty( $_GET['created'] ) ) : ?>
 	<div class="yoohw-notice yoohw-notice-success"><?php esc_html_e( 'Your topic has been created.', 'yoohw-support-portal' ); ?></div>
 <?php endif; ?>
+<?php YoOhw_Support_Date_Time::output_timezone_note(); ?>
 <article class="yoohw-panel yoohw-topic-detail">
 	<header class="yoohw-topic-detail-header">
 		<div class="yoohw-topic-meta-row">
@@ -26,7 +27,7 @@ $labels      = YoOhw_Support_Settings::reply_side_labels();
 				<?php echo esc_html( $is_resolved ? __( 'Resolved', 'yoohw-support-portal' ) : __( 'Open', 'yoohw-support-portal' ) ); ?>
 			</span>
 			<span class="yoohw-topic-meta"><?php YoOhw_Support_Icons::output( 'tag' ); ?> <?php echo esc_html( implode( ' / ', $path ) ); ?></span>
-			<span class="yoohw-topic-meta"><?php YoOhw_Support_Icons::output( 'calendar' ); ?> <?php echo esc_html( mysql2date( get_option( 'date_format' ), $topic['created_at'] ) ); ?></span>
+			<span class="yoohw-topic-meta"><?php YoOhw_Support_Icons::output( 'calendar' ); ?> <?php YoOhw_Support_Date_Time::output( $topic['created_at'] ); ?></span>
 			<div class="yoohw-topic-author">
 				<?php YoOhw_Support_Icons::output( 'user' ); ?>
 				<span class="yoohw-topic-author-name">
@@ -80,7 +81,7 @@ $labels      = YoOhw_Support_Settings::reply_side_labels();
 						</div>
 					</div>
 					<div class="yoohw-reply-bubble">
-						<header class="yoohw-reply-header"><div class="yoohw-reply-author"><strong><?php echo esc_html( $reply_name ); ?></strong><span class="yoohw-reply-date"><?php echo esc_html( mysql2date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $reply['created_at'] ) ); ?></span></div><span class="yoohw-reply-side"><?php echo esc_html( $is_support ? $labels['support'] : $labels['customer'] ); ?></span></header>
+						<header class="yoohw-reply-header"><div class="yoohw-reply-author"><strong><?php echo esc_html( $reply_name ); ?></strong><span class="yoohw-reply-date"><?php YoOhw_Support_Date_Time::output( $reply['created_at'], true ); ?></span></div><span class="yoohw-reply-side"><?php echo esc_html( $is_support ? $labels['support'] : $labels['customer'] ); ?></span></header>
 						<div class="yoohw-reply-content"><?php echo apply_filters( 'the_content', $reply['content'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped,WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core content filter produces display HTML. ?></div>
 					</div>
 				</article>

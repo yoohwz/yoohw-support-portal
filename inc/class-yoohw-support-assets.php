@@ -62,6 +62,7 @@ class YoOhw_Support_Assets {
 			'yoohw-support-portal-ui',
 			'YoOhwSupportPortalConfig',
 			[
+				'dateTime' => [ 'mode' => YoOhw_Support_Date_Time::uses_browser() ? 'browser' : 'site' ],
 				'maxFiles' => YoOhw_Support_Settings::attachment_max_count(),
 				'maxSize'  => YoOhw_Support_Settings::attachment_max_bytes(),
 				'conversation' => [
@@ -75,6 +76,8 @@ class YoOhw_Support_Assets {
 					'fileTooLarge'    => sprintf( __( 'Each attachment must be %s or smaller.', 'yoohw-support-portal' ), size_format( YoOhw_Support_Settings::attachment_max_bytes() ) ),
 					'noFilesSelected' => __( 'No files selected', 'yoohw-support-portal' ),
 					'submitting'      => __( 'Submitting. Please wait...', 'yoohw-support-portal' ),
+					/* translators: %s: Browser timezone and current UTC offset. */
+					'timesShownIn'    => __( 'Times shown in %s', 'yoohw-support-portal' ),
 					'copied'          => __( 'Copied', 'yoohw-support-portal' ),
 					'copy'            => __( 'Copy', 'yoohw-support-portal' ),
 					/* translators: %d: Number of hidden older replies. */
