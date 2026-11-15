@@ -42,13 +42,13 @@ class YoOhw_Support_Settings {
 			'yoohw-support-portal-admin',
 			YOOHW_SUPPORT_PORTAL_URL . 'assets/css/admin.css',
 			[],
-			file_exists( $css_path ) ? (string) filemtime( $css_path ) : YOOHW_SUPPORT_PORTAL_VERSION
+			YoOhw_Support_Assets::version( $css_path )
 		);
 		wp_enqueue_script(
 			'yoohw-support-portal-admin',
 			YOOHW_SUPPORT_PORTAL_URL . 'assets/js/admin.js',
 			[ 'thickbox' ],
-			file_exists( $js_path ) ? (string) filemtime( $js_path ) : YOOHW_SUPPORT_PORTAL_VERSION,
+			YoOhw_Support_Assets::version( $js_path ),
 			true
 		);
 	}

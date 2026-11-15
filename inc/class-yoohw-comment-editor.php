@@ -449,8 +449,8 @@ class YoOhw_Comment_Editor {
 		$css_path = YOOHW_SUPPORT_PORTAL_PATH . 'assets/css/frontend-extras.css';
 		$js_path  = YOOHW_SUPPORT_PORTAL_PATH . 'assets/js/frontend-extras.js';
 
-		wp_enqueue_style( 'yoohw-support-portal-extras', YOOHW_SUPPORT_PORTAL_URL . 'assets/css/frontend-extras.css', [], file_exists( $css_path ) ? (string) filemtime( $css_path ) : YOOHW_SUPPORT_PORTAL_VERSION );
-		wp_enqueue_script( 'yoohw-support-portal-extras', YOOHW_SUPPORT_PORTAL_URL . 'assets/js/frontend-extras.js', [], file_exists( $js_path ) ? (string) filemtime( $js_path ) : YOOHW_SUPPORT_PORTAL_VERSION, true );
+		wp_enqueue_style( 'yoohw-support-portal-extras', YOOHW_SUPPORT_PORTAL_URL . 'assets/css/frontend-extras.css', [], YoOhw_Support_Assets::version( $css_path ) );
+		wp_enqueue_script( 'yoohw-support-portal-extras', YOOHW_SUPPORT_PORTAL_URL . 'assets/js/frontend-extras.js', [], YoOhw_Support_Assets::version( $js_path ), true );
 	}
 
 }

@@ -594,7 +594,7 @@ final class YoOhw_Post_Status_Resolved {
 			$handle,
 			plugins_url( '../assets/js/resolved-editor.js', __FILE__ ),
 			[ 'wp-plugins', 'wp-element', 'wp-data', 'wp-edit-post', 'wp-components' ],
-			filemtime( plugin_dir_path( __FILE__ ) . '../assets/js/resolved-editor.js' ),
+			YoOhw_Support_Assets::version( YOOHW_SUPPORT_PORTAL_PATH . 'assets/js/resolved-editor.js' ),
 			true
 		);
 
@@ -626,7 +626,7 @@ final class YoOhw_Post_Status_Resolved {
 		}
 
 		$path = YOOHW_SUPPORT_PORTAL_PATH . 'assets/js/admin.js';
-		wp_enqueue_script( 'yoohw-support-portal-admin', YOOHW_SUPPORT_PORTAL_URL . 'assets/js/admin.js', [], file_exists( $path ) ? (string) filemtime( $path ) : YOOHW_SUPPORT_PORTAL_VERSION, true );
+		wp_enqueue_script( 'yoohw-support-portal-admin', YOOHW_SUPPORT_PORTAL_URL . 'assets/js/admin.js', [], YoOhw_Support_Assets::version( $path ), true );
 		wp_localize_script(
 			'yoohw-support-portal-admin',
 			'YoOhwSupportAdmin',
@@ -644,7 +644,7 @@ final class YoOhw_Post_Status_Resolved {
 		}
 
 		$path = YOOHW_SUPPORT_PORTAL_PATH . 'assets/css/frontend-extras.css';
-		wp_enqueue_style( 'yoohw-support-portal-extras', YOOHW_SUPPORT_PORTAL_URL . 'assets/css/frontend-extras.css', [], file_exists( $path ) ? (string) filemtime( $path ) : YOOHW_SUPPORT_PORTAL_VERSION );
+		wp_enqueue_style( 'yoohw-support-portal-extras', YOOHW_SUPPORT_PORTAL_URL . 'assets/css/frontend-extras.css', [], YoOhw_Support_Assets::version( $path ) );
 	}
 
 	public static function add_resolved_icon_to_title( string $title, int $post_id ): string {
