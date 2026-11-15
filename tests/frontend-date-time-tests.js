@@ -49,6 +49,9 @@ async function page(mode, noIntl = false) {
   focused.dispatchEvent(new browser.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
   focused.dispatchEvent(new browser.window.MouseEvent('mouseenter'));
   check(!focused.hasAttribute('data-yoohw-tooltip-dismissed'), 'Pointer re-entry restores tooltip');
+  focused.blur();
+  doc.dispatchEvent(new browser.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  check(focused.hasAttribute('data-yoohw-tooltip-dismissed') && doc.activeElement !== focused, 'Escape at document dismisses hover-only detail without moving focus');
   check(!doc.querySelector('[data-yoohw-timezone]').hidden && doc.querySelector('[data-yoohw-timezone]').textContent.includes(new Intl.DateTimeFormat().resolvedOptions().timeZone), 'Conversation timezone note is visible after successful conversion');
   const older = doc.querySelector('#older time');
   check(older.textContent !== 'Older site time', 'Collapsed reply is formatted before reveal');
