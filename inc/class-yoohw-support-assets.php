@@ -6,7 +6,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class YoOhw_Support_Assets {
 
-	const VERSION = '1.2.0';
+	/** Development refreshes changed files; deployed sites share the plugin release version. */
+	public static function version( string $path ): string {
+		if ( in_array( wp_get_environment_type(), [ 'local', 'development' ], true ) && is_file( $path ) ) {
+			$modified = filemtime( $path );
+			if ( false !== $modified ) {
+				return (string) $modified;
+			}
+		}
+		return YOOHW_SUPPORT_PORTAL_VERSION;
+	}
 
 	public static function init(): void {
 		add_action( 'wp_enqueue_scripts', [ __CLASS__, 'enqueue_frontend' ] );
@@ -43,7 +52,7 @@ class YoOhw_Support_Assets {
 			'yoohw-support-portal-ui',
 			YOOHW_SUPPORT_PORTAL_URL . 'assets/css/support-center.css',
 			[],
-			file_exists( $css_path ) ? (string) filemtime( $css_path ) : self::VERSION
+			self::version( $css_path )
 		);
 
 		if ( class_exists( 'YoOhw_Support_Settings' ) ) {
@@ -54,7 +63,7 @@ class YoOhw_Support_Assets {
 			'yoohw-support-portal-ui',
 			YOOHW_SUPPORT_PORTAL_URL . 'assets/js/support-center.js',
 			$script_deps,
-			file_exists( $js_path ) ? (string) filemtime( $js_path ) : self::VERSION,
+			self::version( $js_path ),
 			true
 		);
 
@@ -115,7 +124,7 @@ class YoOhw_Support_Assets {
 			'yoohw-support-editor',
 			YOOHW_SUPPORT_PORTAL_URL . 'assets/js/editor.js',
 			[],
-			file_exists( $js_path ) ? (string) filemtime( $js_path ) : self::VERSION,
+			self::version( $js_path ),
 			true
 		);
 		wp_localize_script( 'yoohw-support-editor', 'YoOhwComposerLabels', [
@@ -128,7 +137,7 @@ class YoOhw_Support_Assets {
 	private static function enqueue_attachment_assets(): void {
 		foreach ( [ 'style' => 'css', 'script' => 'js' ] as $type => $extension ) {
 			$file = 'assets/' . $extension . '/attachments.' . $extension;
-			$version = (string) filemtime( YOOHW_SUPPORT_PORTAL_PATH . $file );
+			$version = self::version( YOOHW_SUPPORT_PORTAL_PATH . $file );
 			if ( 'style' === $type ) {
 				wp_enqueue_style( 'yoohw-support-attachments', YOOHW_SUPPORT_PORTAL_URL . $file, [], $version );
 			} else {

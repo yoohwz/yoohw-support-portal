@@ -50,7 +50,7 @@ class YoOhw_Support_Setup_Wizard {
 		}
 
 		$path = YOOHW_SUPPORT_PORTAL_PATH . 'assets/css/admin.css';
-		wp_enqueue_style( 'yoohw-support-portal-admin', YOOHW_SUPPORT_PORTAL_URL . 'assets/css/admin.css', [], file_exists( $path ) ? (string) filemtime( $path ) : YOOHW_SUPPORT_PORTAL_VERSION );
+		wp_enqueue_style( 'yoohw-support-portal-admin', YOOHW_SUPPORT_PORTAL_URL . 'assets/css/admin.css', [], YoOhw_Support_Assets::version( $path ) );
 	}
 
 	public static function render_page(): void {
