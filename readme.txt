@@ -4,7 +4,7 @@ Tags: customer support, help desk, ticket system, helpdesk, support
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.1.2
+Stable tag: 1.1.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -20,7 +20,7 @@ Use a dedicated support area or embed individual forms and topic lists in pages 
 
 * Private customer dashboards and support topics with replies.
 * Search, category filters, open/resolved status filters, and pagination for topic lists.
-* Rich-text editing with lists, links, quotes, tables, inline code, and scrollable code blocks. Pasted content is cleaned up while preserving supported structure and code text.
+* Rich-text editing with lists, links, quotes, tables, inline code, and scrollable code blocks. Pasted content is cleaned up while preserving supported structure, visible paragraph breaks, and code text.
 * Conversation-style replies: your replies on the right and other accounts' replies on the left.
 * Expandable reply history, configurable batch sizes, and WordPress avatars or initials. The full conversation remains readable without JavaScript.
 * Built-in login, registration, lost-password, and password-reset screens, with registration subject to the site's settings.
@@ -31,6 +31,7 @@ Use a dedicated support area or embed individual forms and topic lists in pages 
 * Customers can access their own topics; customer profiles are restricted to authorized support staff.
 * Category access controlled by user role or access code.
 * Configurable portal colors, fonts, labels, documentation link, and site identity.
+* Frontend dates and times can follow site settings or each visitor’s browser locale and timezone, with a site-formatted fallback.
 * Responsive portal layouts and an optional YoOhw footer credit, disabled by default.
 * First-run setup guidance to help choose the appropriate storage mode.
 
@@ -43,6 +44,7 @@ The following features require WordPress posts/comments storage:
 * Email notifications for new topics and replies, plus support follow-up and topic-closing reminders.
 * Email sender and administrator-recipient settings, notification switches, reminder timing, and sample preview/test tools.
 * Automatic topic resolution after a configurable period without a customer response to the latest support reply.
+* Shared Working days for auto-resolve and reminders, with timers and actions paused on unselected weekdays according to the WordPress timezone.
 
 These features are unavailable in isolated storage. Saved native-mode preferences are retained when using isolated storage.
 
@@ -141,6 +143,10 @@ No. Support Portal does not transmit support conversations, attachments, or acco
 
 The plugin removes its settings, scheduled hooks, and custom capabilities. Support conversations, attachments, users, categories, and isolated support tables are intentionally retained to reduce the risk of accidental data loss. Private attachment files and recovery copies also need to be covered by your own retention policy.
 
+= Where can I find the full release history? =
+
+The latest release is listed below. The full changelog, including older versions and release dates, is included as `changelog.txt` in the plugin package.
+
 == Privacy ==
 
 Support data can include account identifiers, names, message content, timestamps, categories, status, and, in WordPress posts/comments storage, uploaded files. Conversations and files are stored on your WordPress site. Notifications may include conversation details and links, processed through your configured mail transport.
@@ -163,40 +169,14 @@ Third-party components and their license notices are documented in `third-party-
 
 == Changelog ==
 
-= 1.1.2 =
-* New: Add more files to a topic or reply without replacing files already selected, using the file picker or drag and drop in the portal and theme-embedded forms.
-* New: Remove individual pending attachments with the × button before submitting. Files already saved to a conversation are unchanged.
-* Improved: Skip duplicate file selections and retain previously selected files when an added batch exceeds the file-count or size limit.
-* Updated: Dashboard workspace labels clarify that the project summary refers to your own custom work projects.
+= 1.1.3 =
+Release date: Nov 15, 2026
 
-= 1.1.1 =
-* Improved: Email notifications retry failed deliveries with bounded attempts, avoid resending to successfully notified participants, and use complete cursor-based topic scans for scheduled reminders.
-* New: General and Emails settings tabs let administrators configure notification switches, sender and admin-recipient addresses, reminder intervals, and fixed-sample email preview and test delivery.
-* New: Configure automatic topic resolution after a chosen number of hours, or disable it. Closing warnings respect the active auto-resolve deadline.
-* Improved: Topic and reply editors share safer paste cleanup, preserve lists, links, tables and literal code, and support inline code and code blocks in both storage modes without rewriting existing conversations.
-* Improved: Long code blocks scroll vertically and horizontally within a 420px display area while keeping Copy accessible; the Wrap toggle was removed.
-* Updated: WordPress.org feature descriptions, FAQ, privacy guidance and helpdesk tags.
-
-= 1.1.0 =
-* Security: New support attachments and image variants use private filesystem storage outside the web document root, with upload rejection when storage verification fails. Existing installations must explicitly secure old support files; see the Upgrade Notice.
-* New: Embed topic submission, login, password recovery, and authorized topic lists in regular WordPress theme pages using shortcodes.
-* New: Configure attachments for new topics and replies separately, including file count, file-size limits, permitted image/video/ZIP types, and protected preview or download-link display.
-* New: Configure reply-history batch size, topics per page, and WordPress avatars or initials.
-* Improved: Conversations align your replies on the right, initially show the newest reply batch in chronological order, and let you reveal older messages without extra requests; the full history remains available without JavaScript.
-* Improved: Narrow-screen topic forms, editor toolbars, long titles, dashboard cards, and administration settings are easier to use, with visible keyboard focus.
-* Improved: Text, links, inputs, and buttons remain readable with configured dark backgrounds or light primary colors.
-* Fixed: Category role selection no longer triggers recursive focus errors, and unavailable site icons no longer show broken images.
-* Important: Exclude pages using personalized support shortcodes from page/CDN caches. Theme embeds in WordPress posts/comments storage require pretty permalinks.
-
-= 1.0.0 =
-* Initial release.
-* Added private customer support topics and replies.
-* Added protected support attachments and authorization checks for WordPress posts/comments storage mode.
-* Added isolated support storage and native WordPress posts/comments storage modes.
-* Added role- and access-code-based category access.
-* Added dedicated support capabilities and customer visibility controls.
-* Added configurable portal appearance, labels, identity, and account flows.
-* Added first-run setup guidance, privacy-policy guidance, and compatibility checks.
+* New: Choose Working days for auto-resolve, topic-closing warnings, and support follow-up reminders in WordPress posts/comments storage. Days off pause the timers and prevent these actions; all seven days are selected by default.
+* New: Choose Site settings or Visitor’s browser for frontend date and time display in both storage modes, with local timezone details and site-formatted fallback when JavaScript is unavailable. Site settings remains the default.
+* Fixed: Isolated-storage dates and account join dates use the WordPress timezone when displayed with site settings.
+* Fixed: Pasted replies retain visible paragraph and line breaks when editor cleanup removes clipboard formatting.
+* Improved: Plugin scripts and styles use the plugin version on production/staging sites and file modification times on local/development sites for consistent cache refreshes.
 
 == Upgrade Notice ==
 

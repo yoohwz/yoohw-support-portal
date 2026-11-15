@@ -227,6 +227,7 @@ def release_changelog_contract() -> None:
             assert rel.changelog_notes(source, "1.0.1") == expected
 
         check(valid, "* Added one shipped feature.")
+        check("== Changelog ==\n\n= 1.0.1 =\nRelease date: Nov 15, 2026\n\n* Added one shipped feature.\n", "Release date: Nov 15, 2026\n* Added one shipped feature.")
         check("A readme without a Changelog section.\n", None)
         check("== Changelog ==\n\n= 1.0.0 =\n* Previous release.\n= 1.0.1 =\n* Later entry.\n", None)
         check("== Changelog ==\n\n= 1.0.1 =\n\n= 1.0.0 =\n* Previous release.\n", None)
