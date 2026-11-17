@@ -1,9 +1,17 @@
 # Native topic action extension points
 
 Approved companion task: YoOhw-com/yoohw-website#219. The source is the existing
-native WordPress topic detail and approved comment render path. Add two optional
+native WordPress topic detail and approved comment render path. Add optional
 rendering actions: `yoohw_support_topic_actions(WP_Post $topic)` and
-`yoohw_support_reply_actions(WP_Comment $reply, WP_Post $topic)`.
+`yoohw_support_reply_actions(WP_Comment $reply, WP_Post $topic)` after the
+message bodies. The UI refinement adds
+`yoohw_support_topic_header_actions(WP_Post $topic)` at the end of the topic
+metadata row, and
+`yoohw_support_reply_header_actions(WP_Comment $reply, WP_Post $topic)` at the
+end of each reply header. These generic header hooks let the site adapter render
+a compact disclosure menu instead of a large standalone action button. Existing
+body hooks remain available for inline confirmation and related-request content.
+No wrapper or menu markup is added by Support itself.
 
 The hooks run only inside the existing authorized native topic renderer. With no
 listener there is no visible output or behavior change. No YFR dependency,
