@@ -54,6 +54,7 @@ $reply_side_labels = YoOhw_Support_Settings::reply_side_labels();
 					<span class="yoohw-topic-author-account">@<?php echo esc_html( $topic_author_account ); ?></span>
 				<?php endif; ?>
 			</div>
+			<?php do_action( 'yoohw_support_topic_header_actions', $post ); ?>
 		</div>
 
 		<h2><?php echo esc_html( $post->post_title ); ?></h2>
@@ -137,6 +138,7 @@ $reply_side_labels = YoOhw_Support_Settings::reply_side_labels();
 								<span class="yoohw-reply-date"><?php YoOhw_Support_Date_Time::output( $comment->comment_date_gmt, true, get_comment_date( '', $comment ) . ' ' . mysql2date( get_option( 'time_format' ), $comment->comment_date ) ); ?></span>
 							</div>
 							<span class="yoohw-reply-side"><?php echo esc_html( $reply_is_support ? $reply_side_labels['support'] : $reply_side_labels['customer'] ); ?></span>
+							<?php do_action( 'yoohw_support_reply_header_actions', $comment, $post ); ?>
 						</header>
 						<div class="yoohw-reply-content">
 							<?php echo apply_filters( 'comment_text', $comment->comment_content, $comment, [] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped,WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core comment filter produces display HTML. ?>

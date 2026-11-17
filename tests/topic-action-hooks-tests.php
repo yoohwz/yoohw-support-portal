@@ -59,13 +59,23 @@ $comments = [];
 foreach ( [ 3, 7, 0 ] as $index => $author ) {
 	$comments[] = (object) [ 'comment_ID' => 201 + $index, 'comment_post_ID' => 101, 'user_id' => $author, 'comment_author' => 'Author ' . $author, 'comment_approved' => '1', 'comment_content' => 'Synthetic reply ' . $index, 'comment_date_gmt' => '2026-01-01 12:00:00', 'comment_date' => '2026-01-01 12:00:00' ];
 }
-$baseline = preg_replace( '/^\h*<\?php do_action\( \'yoohw_support_(?:topic|reply)_actions\'.*?\?>\R/m', '', $source );
+$baseline = preg_replace( '/^\h*<\?php do_action\( \'yoohw_support_(?:topic|reply)(?:_header)?_actions\'.*?\?>\R/m', '', $source );
 $normalize = static function ( $html ) { return preg_replace( '/>\s+</', '><', trim( $html ) ); };
 check( $normalize( render_fixture( $source, $post, $comments ) ) === $normalize( render_fixture( $baseline, $post, $comments ) ), 'No listeners: native output unchanged except whitespace.' );
 $seen = [];
 $GLOBALS['topic_action_listeners']['yoohw_support_topic_actions'][] = static function ( $topic ) use ( &$seen ) { $seen[] = [ 'topic', $topic ]; echo '<span data-topic-action="1"></span>'; };
 $GLOBALS['topic_action_listeners']['yoohw_support_reply_actions'][] = static function ( $reply, $topic ) use ( &$seen ) { $seen[] = [ 'reply', $reply, $topic ]; echo '<span data-reply-action="' . esc_attr( $reply->comment_ID ) . '"></span>'; };
+$headers = [];
+$GLOBALS['topic_action_listeners']['yoohw_support_topic_header_actions'][] = static function ( $topic ) use ( &$headers ) { $headers[] = [ 'topic', $topic ]; echo '<span data-topic-header-action="1"></span>'; };
+$GLOBALS['topic_action_listeners']['yoohw_support_reply_header_actions'][] = static function ( $reply, $topic ) use ( &$headers ) { $headers[] = [ 'reply', $reply, $topic ]; echo '<span data-reply-header-action="' . esc_attr( $reply->comment_ID ) . '"></span>'; };
 $html = render_fixture( $source, $post, $comments );
+check( count( $headers ) === 4 && $headers[0] === [ 'topic', $post ], 'Topic header hook runs once with the exact topic object.' );
+foreach ( $comments as $index => $reply ) {
+	check( $headers[ $index + 1 ] === [ 'reply', $reply, $post ], 'Reply header hook keeps exact source identity for customer, staff and guest alias.' );
+}
+check( preg_match( '/yoohw-topic-meta-row.*?yoohw-topic-author.*?data-topic-header-action="1".*?<\/div>\s*<h2>/s', $html ), 'Topic header action follows author metadata inside its row.' );
+check( preg_match( '/yoohw-reply-header.*?yoohw-reply-side.*?data-reply-header-action="201".*?<\/header>\s*<div class="yoohw-reply-content">/s', $html ), 'Reply header action follows side badge before content.' );
+check( 1 === substr_count( $html, 'data-topic-header-action="1"' ) && 3 === substr_count( $html, 'data-reply-header-action=' ), 'Exactly one header action per topic or reply.' );
 check( count( $seen ) === 4 && $seen[0] === [ 'topic', $post ], 'Topic hook runs once with the exact topic object before replies.' );
 foreach ( $comments as $index => $reply ) {
 	check( $seen[ $index + 1 ] === [ 'reply', $reply, $post ], 'Reply hook receives the exact reply and topic, including staff and guest aliases.' );
@@ -75,7 +85,7 @@ check( 1 === substr_count( $html, 'data-topic-action="1"' ), 'Topic action is re
 check( preg_match( '/Synthetic body.*?data-topic-action="1".*?<\/article>/s', $html ), 'Topic action stays inside its article after the body.' );
 check( preg_match( '/yoohw-reply-content.*?Synthetic reply 0.*?data-reply-action="201".*?<\/article>/s', $html ), 'Reply action stays inside its bubble after its content.' );
 $isolated = file_get_contents( $root . '/templates/topic-single-isolated.php' );
-check( false === strpos( $isolated, 'yoohw_support_topic_actions' ) && false === strpos( $isolated, 'yoohw_support_reply_actions' ), 'Isolated storage exposes no native source action hook.' );
+check( ! preg_match( '/yoohw_support_(?:topic|reply)(?:_header)?_actions/', $isolated ), 'Isolated storage exposes no native source action hook.' );
 $controller = file_get_contents( $root . '/inc/class-yoohw-support-controller.php' );
 $single = substr( $controller, strpos( $controller, 'public static function render_topic_single()' ) );
 $single = strstr( $single, 'public static function render_author_profile()', true );
