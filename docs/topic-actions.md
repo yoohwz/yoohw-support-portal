@@ -5,8 +5,8 @@ native WordPress topic detail and approved comment render path. Add optional
 rendering actions: `yoohw_support_topic_actions(WP_Post $topic)` and
 `yoohw_support_reply_actions(WP_Comment $reply, WP_Post $topic)` after the
 message bodies. The UI refinement adds
-`yoohw_support_topic_header_actions(WP_Post $topic)` at the end of the topic
-metadata row, and
+`yoohw_support_topic_header_actions(WP_Post $topic)` directly after the topic
+title, as a child of the topic header, and
 `yoohw_support_reply_header_actions(WP_Comment $reply, WP_Post $topic)` at the
 end of each reply header. These generic header hooks let the site adapter render
 a compact disclosure menu instead of a large standalone action button. Existing
