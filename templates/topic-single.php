@@ -67,6 +67,7 @@ $reply_side_labels = YoOhw_Support_Settings::reply_side_labels();
 		}
 		?>
 	</div>
+	<?php do_action( 'yoohw_support_topic_actions', $post ); ?>
 </article>
 
 <section class="yoohw-replies" aria-label="<?php esc_attr_e( 'Replies', 'yoohw-support-portal' ); ?>">
@@ -140,6 +141,7 @@ $reply_side_labels = YoOhw_Support_Settings::reply_side_labels();
 						<div class="yoohw-reply-content">
 							<?php echo apply_filters( 'comment_text', $comment->comment_content, $comment, [] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped,WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core comment filter produces display HTML. ?>
 						</div>
+						<?php do_action( 'yoohw_support_reply_actions', $comment, $post ); ?>
 					</div>
 				</article>
 			<?php endforeach; ?>
