@@ -54,10 +54,10 @@ $reply_side_labels = YoOhw_Support_Settings::reply_side_labels();
 					<span class="yoohw-topic-author-account">@<?php echo esc_html( $topic_author_account ); ?></span>
 				<?php endif; ?>
 			</div>
-			<?php do_action( 'yoohw_support_topic_header_actions', $post ); ?>
 		</div>
 
 		<h2><?php echo esc_html( $post->post_title ); ?></h2>
+		<?php do_action( 'yoohw_support_topic_header_actions', $post ); ?>
 	</header>
 
 	<div class="yoohw-topic-body">

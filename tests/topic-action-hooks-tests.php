@@ -73,7 +73,7 @@ check( count( $headers ) === 4 && $headers[0] === [ 'topic', $post ], 'Topic hea
 foreach ( $comments as $index => $reply ) {
 	check( $headers[ $index + 1 ] === [ 'reply', $reply, $post ], 'Reply header hook keeps exact source identity for customer, staff and guest alias.' );
 }
-check( preg_match( '/yoohw-topic-meta-row.*?yoohw-topic-author.*?data-topic-header-action="1".*?<\/div>\s*<h2>/s', $html ), 'Topic header action follows author metadata inside its row.' );
+check( preg_match( '/<h2>Synthetic topic<\/h2>\s*<span data-topic-header-action="1"><\/span>\s*<\/header>/', $html ), 'Topic action directly follows its title as a child of the topic header.' );
 check( preg_match( '/yoohw-reply-header.*?yoohw-reply-side.*?data-reply-header-action="201".*?<\/header>\s*<div class="yoohw-reply-content">/s', $html ), 'Reply header action follows side badge before content.' );
 check( 1 === substr_count( $html, 'data-topic-header-action="1"' ) && 3 === substr_count( $html, 'data-reply-header-action=' ), 'Exactly one header action per topic or reply.' );
 check( count( $seen ) === 4 && $seen[0] === [ 'topic', $post ], 'Topic hook runs once with the exact topic object before replies.' );
