@@ -76,7 +76,7 @@ Stop before risky implementation and promote Fast work when discovery finds a Co
 
 Delegate bounded work only where it adds value. Lead Codex owns integration; subagents never independently approve their own implementation. Avoid overlapping file ownership and use separate checkouts for concurrent implementation.
 
-Codex may choose subagent model/effort without a new Human approval: default to `gpt-6.1-sol` with proportional supported effort. Use `gpt-6-astra` only for a concrete bounded reasoning problem where evidence, decomposition or greater Sol effort is insufficient or clearly unsuitable. Record the reason and outcome briefly in existing PR evidence. Risk labels or reviewer roles alone do not justify escalation. Model choice never changes authority, independence or evidence requirements; do not claim unavailable runtime switches.
+Codex may choose subagent model/effort without a new Human approval: default to `gpt-6.2-sol` with proportional supported effort. Use `gpt-6.2-astra` only for a concrete bounded reasoning problem where evidence, decomposition or greater Sol effort is insufficient or clearly unsuitable. Record the reason and outcome briefly in existing PR evidence. Risk labels or reviewer roles alone do not justify escalation. Model choice never changes authority, independence or evidence requirements; do not claim unavailable runtime switches.
 
 ## CI and handoff
 
